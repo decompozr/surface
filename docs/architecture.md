@@ -70,6 +70,18 @@ The CLI should support machine-readable results and explicit exit codes. MCP ope
 
 Agents can initially use their existing file-editing capabilities to create pages and components. Whether dedicated generation, file-writing, or template tools are needed should be determined from actual workflows. Write skills after the operation contracts stabilize, covering discovery, creation, previewing, and troubleshooting.
 
+## Returning page input to an agent
+
+Add a session registry and an interaction delivery layer to the management service. An agent registers its existing session and reachable control endpoint, then binds a page interaction to that session. A button or form submits structured data to Artifact; the backend resolves the binding and delivers the response through an agent-specific adapter.
+
+Framework adapters manage page runtimes. Agent adapters manage delivery into agent conversations. These are separate extension points: a Svelte page should not need to know whether its response will be delivered through a CLI or an agent control API.
+
+The proposed shared operations include registering an agent session, creating an interaction request, submitting a response, and inspecting delivery status. CLI and MCP should expose consistent semantics for these operations. The browser uses a scoped submission endpoint; it does not receive general session-management access.
+
+The preferred delivery path steers an active agent turn or continues the same conversation with a new turn if it is idle. It does not require the agent to hold a waiting tool call open. A backend CLI invocation is one possible adapter mechanism; a native control API is another. CLI process completion alone does not establish that the agent processed the input.
+
+See [agent interaction](agent-interaction.md) for the proposed contract, Codex capability evidence, and unresolved delivery behavior.
+
 ## Lifecycle and observability
 
 Give each runtime instance a distinct identity and distinguish starting, ready, failed, and stopped states. Return a valid preview only after readiness checks succeed; port conflicts and build failures need explicit outcomes.

@@ -18,6 +18,22 @@ Acceptance criteria:
 
 Use this experiment to decide whether a minimal management service is necessary, whether the state model is sufficient, and whether the CLI operations have the right scope.
 
+## Experiment 1B: A button steers the originating agent session
+
+Extend the first page with two options, an adjustable parameter, and a submit button. The agent registers its existing session and creates an interaction request. Submitting the page sends structured user data through Artifact's backend to that session; the agent then updates the page based on the selection. The agent does not need to keep a waiting tool call open.
+
+Acceptance criteria:
+
+- The response is bound to the intended project, page, request, and agent session; a second registered session does not receive it.
+- With an active turn, the adapter delivers steering input to that turn and the agent acts on it.
+- With an idle conversation, the adapter starts a turn in the same conversation and the agent acts on it; no replacement conversation is created.
+- The user can distinguish a saved submission, runtime acceptance, and an observed agent response. The resulting page reflects the submitted choice and parameter.
+- Repeated delivery of the same response ID does not intentionally trigger another action. An uncertain delivery result remains visible instead of causing a blind retry.
+- A stale request, unavailable session, or turn that ends during delivery produces an explicit outcome. The response does not go to an unrelated or merely most-recent session.
+- Evidence records the actual control endpoint, CLI or protocol version, target session and turn, delivery result, and browser-observed update without exposing credentials.
+
+For Codex, validate App Server `turn/steer` and same-thread `turn/start` against the runtime owning the session. Separately test whether the locally available `codex queue` command provides the desired delivery behavior; its help text alone does not establish immediate steering or idle-session activation. See [agent interaction](agent-interaction.md).
+
 ## Experiment 2: Two projects with different dependencies
 
 Mount plain HTML/JS and Svelte/TS workspaces simultaneously, using different versions of the same package.
@@ -41,6 +57,7 @@ Acceptance criteria:
 - A runtime created through the CLI can be queried and stopped through MCP, and vice versa.
 - Both interfaces return consistent project identities, runtime status, and diagnostics.
 - After the agent follows the skill to create or modify a component, the user can validate the result in a browser.
+- Agent session bindings, interaction requests, and response status are consistent across CLI and MCP; both use the delivery behavior established in experiment 1B.
 
 ## Experiment 4: Extend framework coverage
 
@@ -50,7 +67,7 @@ The acceptance criterion is a clear support matrix and documented failure condit
 
 ## Evidence to retain for each experiment
 
-Record the code revision, project configuration, startup procedure, expected and actual results, the user's browser inspection, and unresolved issues. Distinguish source creation, process readiness, page accessibility, and successful interaction checks.
+Record the code revision, project configuration, startup procedure, expected and actual results, the user's browser inspection, and unresolved issues. Distinguish source creation, process readiness, page accessibility, and successful interaction checks. For agent interaction, also distinguish response persistence, runtime acceptance, and observed agent action.
 
 ## Open questions
 
@@ -59,7 +76,8 @@ Record the code revision, project configuration, startup procedure, expected and
 - Do preview URLs need to remain stable across runs? When is a shared proxy entry point worthwhile?
 - Should projects start on demand, remain running in the background, or shut down when idle?
 - How should permission to install dependencies, write files, and execute scripts be expressed in different agent environments?
-- Do user inputs and results produced in a page need to be sent back to the agent? If so, through what explicit event interface?
+- Which agent runtimes can accept direct session input, and what control endpoint and credentials does each adapter require?
+- What response schema, expiry rules, delivery receipts, and retry behavior are sufficient for reliable interaction?
 - What evidence establishes support for a framework rather than just one example built with it?
 
-Prioritize experiment 1. Update the architecture proposal as boundaries become clearer, while retaining the vision's long-term goals.
+Prioritize experiment 1, followed by experiment 1B to validate the two-way workflow before expanding framework coverage. Update the architecture proposal as boundaries become clearer, while retaining the vision's long-term goals.
