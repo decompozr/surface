@@ -1,42 +1,42 @@
 # Artifact
 
-让任意项目中的 agent 通过 MCP 或 CLI 配合 skills，启动本地服务、创建页面与组件，并在保留项目自身依赖和前端框架选择的前提下挂载为可交互的预览。
+Enable agents in any project to start a local server, create pages and components, and mount them as interactive previews through MCP or CLI with skills, while preserving each project's dependencies and choice of frontend framework.
 
-## 当前状态
+## Current status
 
-项目处于领域探索阶段，目前只有愿景和设计文档，尚未实现服务器、CLI、MCP 接口或 skills。文档中的接口与目录均为提案，不能作为现有功能使用。
+This project is exploring the domain. It currently contains vision and design documents only; the server, CLI, MCP interface, and skills have not been implemented. Interfaces and directories described here are proposals, not available features.
 
-## 我们想探索什么
+## What we want to explore
 
-当 agent 需要展示方案、验证交互、解释数据或构建一个小工具时，它应该能直接在当前项目中创建真实的前端源码，并给用户一个可打开、可修改、可持续迭代的本地页面。
+When an agent needs to present an idea, validate an interaction, explain data, or build a small tool, it should be able to create real frontend source files in the current project and give the user a local page they can open, modify, and iterate on.
 
-Artifact 希望提供可复用的运行与预览基础设施，让这个流程能够跨项目、跨 agent 使用：
+Artifact aims to provide reusable runtime and preview infrastructure for this workflow across projects and agents:
 
-1. 启动或连接本地 Artifact 服务。
-2. 注册项目目录，选择已有前端应用或创建一个独立的页面工作区。
-3. 由 agent 创建页面、组件和必要的项目依赖。
-4. 挂载项目并取得预览地址。
-5. 用户在浏览器中检查，agent 根据反馈继续修改，并读取运行状态与诊断信息。
-6. 停止预览或卸载项目，保留源码以便下次继续。
+1. Start or connect to a local Artifact service.
+2. Register a project directory and select an existing frontend application or create a separate workspace for pages.
+3. Have the agent create pages, components, and the required project dependencies.
+4. Mount the project and obtain a preview URL.
+5. Let the user inspect it in a browser while the agent reads runtime status and diagnostics and makes changes based on feedback.
+6. Stop the preview or unmount the project, preserving the source files for future work.
 
-## 目标能力
+## Target capabilities
 
-| 方向 | 期望 |
+| Area | Goal |
 | --- | --- |
-| Web 基础 | 支持 HTML、CSS、JavaScript 和 TypeScript |
-| 框架选择 | 优先验证 Svelte，逐步探索其他 JS 前端框架 |
-| 项目依赖 | 每个项目拥有自己的依赖声明、锁文件和解析上下文 |
-| 页面与组件 | 能运行完整页面，也能为组件创建包含 props、样式和上下文的预览入口 |
-| Agent 接入 | MCP 与 CLI 共用核心能力，skills 提供使用流程 |
-| 本地体验 | 返回可打开的预览地址，支持修改反馈、状态和错误诊断 |
-| 源码所有权 | 产物保留为项目中的普通文件，可以纳入 Git 并独立维护 |
+| Web foundations | Support HTML, CSS, JavaScript, and TypeScript |
+| Framework choice | Validate Svelte first, then explore other JS frontend frameworks |
+| Project dependencies | Give each project its own dependency declarations, lockfile, and resolution context |
+| Pages and components | Run complete pages and provide component preview entries with props, styles, and context |
+| Agent access | Share core capabilities between MCP and CLI, with skills describing the workflow |
+| Local experience | Return usable preview URLs, reflect source changes, and expose status and error diagnostics |
+| Source ownership | Keep artifacts as ordinary project files that can be versioned in Git and maintained independently |
 
-“支持任意 JS 前端框架”是长期探索目标。初期建议从原生 HTML/JS 和 Svelte + TypeScript 开始，逐个验证适配边界。
+Supporting any JS frontend framework is a long-term exploration goal. The suggested starting point is plain HTML/JS and Svelte + TypeScript, validating integration boundaries one at a time.
 
-## 文档
+## Documentation
 
-- [产品愿景](docs/vision.md)：用户价值、核心概念与设计原则。
-- [架构探索](docs/architecture.md)：服务、项目运行时、接口与依赖边界的初步提案。
-- [实验路线](docs/exploration.md)：最小实验、验收条件与待决问题。
+- [Product vision](docs/vision.md): user value, core concepts, and design principles.
+- [Architecture exploration](docs/architecture.md): initial proposals for the service, project runtimes, interfaces, and dependency boundaries.
+- [Experiment roadmap](docs/exploration.md): small experiments, acceptance criteria, and open questions.
 
-下一步建议完成一个小实验：在任意本地项目中创建 Svelte + TypeScript 页面，通过 CLI 挂载并取得预览地址，修改一个组件后观察浏览器更新，再停止服务并保留源码。
+The suggested next step is a small experiment: create a Svelte + TypeScript page in a local project, mount it through the CLI, obtain a preview URL, change a component and observe the browser update, then stop the service while preserving the source files.

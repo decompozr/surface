@@ -1,65 +1,65 @@
-# 实验路线
+# Experiment roadmap
 
-目标是逐步验证“任意项目中的 agent 可以创建并运行交互界面”，每一步记录实际结果，再决定是否扩大范围。以下实验尚未执行。
+The goal is to progressively validate whether agents in any project can create and run interactive interfaces. Record actual results at each step before expanding the scope. None of the following experiments has been run yet.
 
-## 实验 1：一个项目的完整循环
+## Experiment 1: A complete loop for one project
 
-在一个本地项目中准备 Svelte + TypeScript 页面和一个可交互组件。通过最小 CLI 注册、启动并返回预览，修改源码后观察浏览器更新，再停止运行并从保留的源码重新启动。
+Prepare a Svelte + TypeScript page and an interactive component in a local project. Use a minimal CLI to register the project, start it, and return a preview. Change the source and observe the browser update, then stop the runtime and restart it from the preserved source files.
 
-验收条件：
+Acceptance criteria:
 
-- 用户能够打开返回的地址并实际操作组件。
-- 页面能导入项目内的组件和一项明确声明的第三方依赖。
-- 修改组件后，浏览器反映当前源码；记录更新方式与观察结果。
-- 编译错误能够被定位，修复后恢复预览。
-- TypeScript 类型检查结果与开发服务器启动结果分开记录。
-- 停止后受管理的进程与端口被释放，源码与锁文件仍然存在。
-- 新会话可以依据项目文件重新启动，不依赖原 agent 的聊天上下文。
+- The user can open the returned URL and interact with the component.
+- The page imports a local component and an explicitly declared third-party dependency.
+- After a component changes, the browser reflects the current source; record the update mechanism and observed result.
+- Compilation errors can be located, and the preview recovers after they are fixed.
+- TypeScript type-checking results are recorded separately from development server startup results.
+- Stopping releases managed processes and ports while preserving source files and the lockfile.
+- A new session can restart the preview using project files, without depending on the original agent's conversation context.
 
-这个实验用于决定：最小管理服务是否必要、状态模型是否足够，以及 CLI 的操作颗粒度是否合适。
+Use this experiment to decide whether a minimal management service is necessary, whether the state model is sufficient, and whether the CLI operations have the right scope.
 
-## 实验 2：两个项目与不同依赖
+## Experiment 2: Two projects with different dependencies
 
-同时挂载原生 HTML/JS 和 Svelte/TS 两个工作区，让它们引用同一个包的不同版本。
+Mount plain HTML/JS and Svelte/TS workspaces simultaneously, using different versions of the same package.
 
-验收条件：
+Acceptance criteria:
 
-- 两个预览都使用各自声明的依赖版本。
-- 停止、修改或制造一个项目的构建错误，不影响另一个项目继续运行。
-- 状态和日志能明确归属到项目及运行实例。
-- 重复挂载、端口占用与服务重启有可解释的结果，不遗留无法管理的进程。
+- Each preview uses its own declared dependency version.
+- Stopping, modifying, or introducing a build error in one project does not prevent the other from running.
+- Status and logs are clearly attributable to a project and runtime instance.
+- Repeated mounting, occupied ports, and service restarts produce understandable outcomes without leaving unmanaged processes behind.
 
-这个实验用于验证项目边界，也用于检验“每项目一个运行进程”的收益与成本。
+Use this experiment to validate project boundaries and assess the benefits and costs of one runtime process per project.
 
-## 实验 3：MCP 与 CLI 互通
+## Experiment 3: MCP and CLI interoperability
 
-在前两个实验使用的核心操作之上提供最小 MCP 接入，并整理一份基于实际步骤的 skill。
+Expose minimal MCP access to the core operations used in the first two experiments, and write a skill based on the actual workflow.
 
-验收条件：
+Acceptance criteria:
 
-- Agent 能发现已注册项目并启动预览。
-- 通过 CLI 创建的运行实例可以由 MCP 查询和停止，反向操作也成立。
-- 两种入口返回一致的项目身份、运行状态和诊断。
-- Agent 按 skill 创建或修改组件后，用户能在浏览器中验证结果。
+- An agent can discover registered projects and start a preview.
+- A runtime created through the CLI can be queried and stopped through MCP, and vice versa.
+- Both interfaces return consistent project identities, runtime status, and diagnostics.
+- After the agent follows the skill to create or modify a component, the user can validate the result in a browser.
 
-## 实验 4：扩展框架边界
+## Experiment 4: Extend framework coverage
 
-选择一个额外框架或一个已有的 SvelteKit 应用，验证适配协议能否承接其开发服务器、路由、资源路径和热更新。
+Choose an additional framework or an existing SvelteKit application and test whether the adapter protocol can handle its development server, routing, asset paths, and hot updates.
 
-验收条件是记录清晰的支持矩阵和失败条件。若需要专门适配，应如实记录；单个页面能打开不能代表整个框架的能力都已支持。
+The acceptance criterion is a clear support matrix and documented failure conditions. Record any required specialized integration honestly; opening a single page does not establish support for an entire framework's capabilities.
 
-## 每次实验保留的证据
+## Evidence to retain for each experiment
 
-记录代码版本、项目配置、启动方式、预期与实际结果、用户在浏览器中的检查，以及尚未解决的问题。区分源码已创建、进程已就绪、页面已打开和交互已通过检查。
+Record the code revision, project configuration, startup procedure, expected and actual results, the user's browser inspection, and unresolved issues. Distinguish source creation, process readiness, page accessibility, and successful interaction checks.
 
-## 待决问题
+## Open questions
 
-- 第一版聚焦在新建的小型界面，还是同时覆盖已有前端应用？
-- 一个项目中的多个页面与组件如何被发现和组织？
-- 预览地址是否需要跨运行稳定？何时值得增加统一代理入口？
-- 项目按需启动、后台常驻或空闲回收，哪种方式符合实际使用？
-- 安装依赖、写入文件与运行脚本的权限应如何在不同 agent 环境中表达？
-- 用户在页面内产生的输入与结果是否需要回传 agent？若需要，使用何种显式事件接口？
-- 什么证据足以说明支持一个框架，而不仅是支持其中一个示例？
+- Should the first version focus on newly created small interfaces, or also cover existing frontend applications?
+- How should multiple pages and components within one project be discovered and organized?
+- Do preview URLs need to remain stable across runs? When is a shared proxy entry point worthwhile?
+- Should projects start on demand, remain running in the background, or shut down when idle?
+- How should permission to install dependencies, write files, and execute scripts be expressed in different agent environments?
+- Do user inputs and results produced in a page need to be sent back to the agent? If so, through what explicit event interface?
+- What evidence establishes support for a framework rather than just one example built with it?
 
-优先执行实验 1。遇到边界问题时更新架构提案，保留愿景中的长期目标。
+Prioritize experiment 1. Update the architecture proposal as boundaries become clearer, while retaining the vision's long-term goals.

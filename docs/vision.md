@@ -1,69 +1,69 @@
-# 产品愿景
+# Product vision
 
-Artifact 希望让任意项目中的 agent 都能按需启动本地交互界面，通过 MCP 或 CLI 配合 skills 创建、运行和挂载页面与组件，让用户直接观察、操作并推动项目迭代。
+Artifact aims to let agents in any project create local interactive interfaces on demand, using MCP or CLI with skills to create, run, and mount pages and components so users can observe, interact, and guide iteration directly.
 
-## 为什么做
+## Why this project
 
-文字、代码和静态截图并不总能充分表达一个想法。交互页面可以让用户改变参数、比较方案、检查状态，也可以成为项目中的长期工具。
+Text, code, and static screenshots do not always communicate an idea fully. Interactive pages let users change parameters, compare options, and inspect state, and can become lasting tools within a project.
 
-我们要探索的机会是：把创建这类界面时重复发生的服务启动、依赖管理、预览定位和错误反馈工作，整理成 agent 可以稳定使用的基础能力。
+The opportunity is to turn recurring work around service startup, dependency management, preview discovery, and error feedback into reliable capabilities that agents can reuse.
 
-项目的价值取决于一个完整循环是否足够顺畅：agent 创建真实源码，Artifact 运行它，用户通过页面理解和验证，agent 再根据反馈修改。
+The project's value depends on a smooth feedback loop: an agent creates real source files, Artifact runs them, the user understands and validates the result through a page, and the agent makes further changes based on feedback.
 
-## 主要使用场景
+## Main use cases
 
-- 在现有代码仓库中，为一项功能制作可操作的原型。
-- 在设计或研究项目中创建参数面板、结果比较页或数据可视化。
-- 单独预览一个组件，通过示例数据、props 和交互状态检查它。
-- 给已有前端项目提供一致的启动、状态查询和预览入口。
-- 同时预览多个项目，而不要求它们共享框架或依赖版本。
+- Build an interactive feature prototype in an existing code repository.
+- Create parameter controls, comparison pages, or data visualizations in a design or research project.
+- Preview a component independently using sample data, props, and interaction states.
+- Provide consistent startup, status queries, and preview discovery for an existing frontend project.
+- Preview multiple projects without requiring them to share a framework or dependency versions.
 
-## 核心概念
+## Core concepts
 
-**项目**是明确注册的本地源码范围。它可以是已有前端应用，也可以是一个非前端仓库中的独立页面工作区。
+A **project** is an explicitly registered scope of local source files. It may be an existing frontend application or a separate workspace for pages inside a repository that otherwise has no frontend.
 
-**页面**是浏览器可访问的入口，负责组合组件、数据和交互。
+A **page** is a browser-accessible entry point that combines components, data, and interactions.
 
-**组件**是由其所属框架解释的可复用源码。组件预览需要一个宿主页来提供 props、样式和必要上下文；不假设一个 Svelte 组件可以直接作为 React 组件使用。
+A **component** is reusable source code interpreted by its framework. A component preview needs a host page to supply props, styles, and the necessary context; it does not assume a Svelte component can be used directly as a React component.
 
-**挂载**是把已注册项目及其运行入口加入 Artifact 的管理范围，建立项目身份、运行状态和预览地址之间的关系。挂载本身不代表复制整个仓库、自动安装依赖或修改既有应用配置。
+**Mounting** brings a registered project and its runtime entry point under Artifact's management, associating project identity, runtime status, and a preview URL. Mounting alone does not mean copying an entire repository, automatically installing dependencies, or changing an existing application's configuration.
 
-**Skill**描述 agent 如何发现项目、选择入口、创建或修改源码、运行预览和处理错误。CLI 与 MCP 提供实际可执行的能力，skill 不成为唯一保存业务规则的地方。
+A **skill** describes how an agent discovers a project, selects an entry point, creates or modifies source files, runs a preview, and handles errors. CLI and MCP provide the executable capabilities; a skill should not be the only place where business rules are defined.
 
-## 设计原则
+## Design principles
 
-### 项目拥有自己的产物
+### Projects own their artifacts
 
-页面、组件、配置和依赖声明保留在用户项目内。Artifact 的运行状态可以重建；用户的源码不应依赖某次会话或某个 agent 才能继续使用。
+Pages, components, configuration, and dependency declarations stay within the user's project. Artifact's runtime state can be reconstructed; continued use of the source files should not depend on a particular session or agent.
 
-### 用户选择框架
+### Users choose the framework
 
-优先把 Svelte 的体验做好，并使用原生 HTML/JS 验证基础路径。框架适配机制应允许逐步扩展；每种框架的支持范围都需要实际运行证据。
+Prioritize a good Svelte experience and use plain HTML/JS to validate the basic path. The framework adapter mechanism should allow gradual expansion, with actual runtime evidence for each framework's supported scope.
 
-### 项目依赖有明确归属
+### Dependencies have clear ownership
 
-不同项目可以使用不同版本的同一个包。Artifact 自身的依赖与被挂载项目的依赖分开管理，避免用全局安装掩盖项目缺失的依赖。
+Different projects may use different versions of the same package. Manage Artifact's own dependencies separately from mounted projects' dependencies, avoiding global installations that conceal missing project dependencies.
 
-### 接入方式共享语义
+### Access methods share semantics
 
-MCP 和 CLI 应对同一项目返回一致的身份、状态、预览地址和错误信息。Agent 可以通过任一入口完成工作；用户也可以直接检查和操作。
+MCP and CLI should return consistent identity, status, preview URLs, and error information for the same project. Agents can work through either interface, and users can inspect and operate projects directly.
 
-### 用户能判断实际发生了什么
+### Users can tell what actually happened
 
-“进程启动”“服务就绪”“页面可访问”“交互通过检查”是不同结果。预览地址应关联到具体项目和当前运行实例；失败时提供明确诊断，避免把旧实例的页面当作新结果。
+A process starting, a service becoming ready, a page becoming accessible, and an interaction passing inspection are distinct outcomes. Preview URLs should be associated with a specific project and current runtime instance. Failures should provide clear diagnostics so a page from an older instance is not mistaken for a new result.
 
-### 本地运行具有明确边界
+### Local execution has explicit boundaries
 
-第一阶段面向用户信任的本地项目。项目依赖隔离和独立进程有助于运行管理，但不等于执行安全沙箱。项目注册、源码访问范围和服务生命周期需要明确；未来若支持不可信代码，再单独设计相应执行环境。
+The first phase targets local projects trusted by the user. Separate project dependencies and processes help manage execution, but do not constitute a security sandbox. Project registration, source access scope, and service lifecycles must be explicit. Supporting untrusted code would require a separately designed execution environment.
 
-## 第一阶段范围
+## First-phase scope
 
-建议验证本地服务、项目注册与挂载、页面和组件预览、项目依赖、修改反馈，以及最小 CLI 到 MCP 的贯通流程。
+Validate the local service, project registration and mounting, page and component previews, project dependencies, feedback from source changes, and a minimal workflow connecting CLI and MCP.
 
-公网托管、多人协作、生产部署、跨框架组件混用和不可信代码执行暂不属于首个实验。“任意框架”包含的路由、服务端渲染和专有构建系统能力，后续分开验证。
+Public hosting, collaboration between multiple users, production deployment, mixing components across frameworks, and untrusted code execution are outside the first experiment. Routing, server-side rendering, and specialized build systems implied by the goal of supporting any framework will be validated separately.
 
-## 成功的体验
+## A successful experience
 
-用户在一个已有项目里提出需要交互界面的任务后，agent 能创建页面、返回可用预览，并根据反馈继续修改。用户可以查看源码、重启预览，或者把这些文件交给另一个 agent 继续工作。
+After a user requests an interactive interface in an existing project, an agent can create a page, return a working preview, and continue making changes based on feedback. The user can inspect the source files, restart the preview, or hand the files to another agent to continue the work.
 
-具体实验与验收条件见[实验路线](exploration.md)。
+See the [experiment roadmap](exploration.md) for specific experiments and acceptance criteria.

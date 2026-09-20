@@ -1,83 +1,83 @@
-# 架构探索
+# Architecture exploration
 
-本文记录初步技术假设，尚未形成实现承诺。先通过[实验路线](exploration.md)取得证据，再决定稳定接口。
+This document records initial technical hypotheses, not implementation commitments. Gather evidence through the [experiment roadmap](exploration.md) before settling on stable interfaces.
 
-## 推荐的初始结构
+## Suggested initial structure
 
 ```text
-Agent / 用户
+Agent / user
   ├─ CLI + skills ─┐
-  └─ MCP ──────────┴─ 共用项目与运行操作
+  └─ MCP ──────────┴─ Shared project and runtime operations
                          │
-                    本地管理服务
-                         ├─ 项目身份、运行状态、日志与预览地址
-                         ├─ 项目 A：HTML / JS 运行进程
-                         └─ 项目 B：Svelte / TS 运行进程
-                                  └─ 各项目自己的源码、配置和依赖
+                    Local management service
+                         ├─ Project identity, runtime status, logs, preview URLs
+                         ├─ Project A: HTML / JS runtime process
+                         └─ Project B: Svelte / TS runtime process
+                                  └─ Each project's source, config, dependencies
 ```
 
-建议先探索“一个管理服务 + 每项目独立运行进程”。管理服务负责生命周期和发现；项目保留自己的开发服务器、模块解析和框架环境。
+Start by exploring one management service with a separate runtime process per project. The management service handles lifecycle and discovery; projects retain their own development servers, module resolution, and framework environments.
 
-第一个实验可以直接返回各项目的 loopback 地址。统一域名或路径代理是待验证能力，需要另外处理资源路径、客户端路由和热更新 WebSocket，不应成为最小实验的前置条件。
+The first experiment can return each project's loopback URL directly. A shared domain or path proxy remains to be validated: it requires separate handling for asset paths, client-side routing, and hot-update WebSockets, and should not be a prerequisite for the smallest experiment.
 
-## 源码与工作区
+## Source files and workspaces
 
-需要区分两种情况：
+Distinguish two situations:
 
-- **已有前端项目**：使用项目现有的入口、配置和包管理器，显式选择运行命令。
-- **为其他项目新增界面**：建议在项目中建立普通、可版本管理的工作区，例如 `artifacts/demo/`，包含页面源码、`package.json` 和锁文件。
+- **Existing frontend project**: use its current entry point, configuration, and package manager, with an explicitly selected run command.
+- **Adding an interface to another project**: create an ordinary, versionable workspace within the project, such as `artifacts/demo/`, containing page source files, `package.json`, and a lockfile.
 
-具体目录名尚未确定。挂载时应记录规范化的项目根目录、选定入口、适配器和依赖根目录。暂不假设一个 Git 仓库只能有一个可挂载界面。
+The directory convention is not yet decided. Mounting should record the canonical project root, selected entry point, adapter, and dependency root. Do not assume a Git repository can contain only one mountable interface.
 
-## 框架适配
+## Framework adapters
 
-Vite 是首个候选基础设施：官方提供 vanilla、Svelte 及其 TypeScript 模板，也提供可编程开发服务器 API。选择它作为实验起点，是基于这些能力的设计判断；仍需验证 Artifact 的多项目生命周期与依赖边界。[Vite 入门](https://vite.dev/guide/)、[JavaScript API](https://vite.dev/guide/api-javascript)
+Vite is the first infrastructure candidate: it provides vanilla and Svelte templates, including TypeScript variants, and a programmable development server API. Choosing it as an experimental starting point is a design judgment based on these capabilities; Artifact's lifecycle management across projects and dependency boundaries still need validation. [Vite guide](https://vite.dev/guide/), [JavaScript API](https://vite.dev/guide/api-javascript)
 
-适配器应描述如何识别或创建入口、启动运行进程、判断就绪、获取诊断和停止进程。不同适配器可共用协议，但不必共用同一个构建工具。
+An adapter should describe how to identify or create an entry point, start a runtime process, determine readiness, retrieve diagnostics, and stop the process. Adapters may share a protocol without sharing a build tool.
 
-初期候选：
+Initial candidates:
 
-| 适配路径 | 首先验证的内容 |
+| Adapter path | What to validate first |
 | --- | --- |
-| 原生 HTML / JS | 页面入口、模块导入、静态资源与修改反馈 |
-| Svelte + TypeScript | 组件编译、样式、依赖解析与热更新 |
-| 已有应用的开发命令 | 后续验证自定义启动命令、就绪检测与停止行为 |
+| Plain HTML / JS | Page entry points, module imports, static assets, and feedback from source changes |
+| Svelte + TypeScript | Component compilation, styles, dependency resolution, and hot updates |
+| An existing application's development command | Later validation of custom startup commands, readiness detection, and shutdown behavior |
 
-Svelte 组件预览需要宿主页提供 props 和上下文。SvelteKit 或其他带服务端能力的框架需要额外验证路由和服务端行为，不能由 Svelte 单页实验推导为已支持。
+Svelte component previews need a host page to supply props and context. SvelteKit and other frameworks with server-side capabilities require additional validation of routing and server behavior; a Svelte single-page experiment does not establish support for them.
 
-TypeScript 的转换和类型检查应作为不同诊断结果呈现；能在浏览器运行并不代表类型检查通过。
+Report TypeScript transformation and type checking as separate diagnostic outcomes. Running in the browser does not mean type checking passed.
 
-## 依赖归属
+## Dependency ownership
 
-- 每个工作区保存依赖声明和锁文件，解析依赖时使用其项目上下文。
-- 尊重已有项目的包管理器与工作区结构；新增独立工作区的默认包管理器待选。
-- 安装依赖是显式操作，应返回所操作的目录和结果，不能隐含在注册或挂载中。
-- 多项目实验必须覆盖同一个包的不同版本，确认不会串用依赖。
-- 项目脚本可能执行本机代码；第一阶段的信任模型是用户认可的本地代码，独立进程不构成安全沙箱。
+- Each workspace keeps its dependency declarations and lockfile, with dependencies resolved in that project's context.
+- Respect existing package managers and workspace structures; the default package manager for new standalone workspaces remains undecided.
+- Dependency installation is an explicit operation that reports its target directory and result. It must not be implicit in registration or mounting.
+- Experiments with multiple projects must cover different versions of the same package to confirm that dependencies do not leak between projects.
+- Project scripts may execute local code. The first phase assumes user-trusted local code; separate processes do not provide a security sandbox.
 
-## CLI、MCP 与 skills
+## CLI, MCP, and skills
 
-建议先以 CLI 验证核心操作，再用薄 MCP 接口暴露同一套语义。以下为能力草案，并非已存在的命令或工具名：
+Validate core operations through the CLI first, then expose the same semantics through a thin MCP interface. The following is a capability sketch, not a list of implemented commands or tool names:
 
-| 操作 | 输入与结果 |
+| Operation | Inputs and outcomes |
 | --- | --- |
-| 注册项目 | 指定源码根目录和入口，返回项目身份 |
-| 启动 / 挂载 | 指定项目和适配器，返回运行身份、状态与就绪后的预览地址 |
-| 列出 / 检查 | 查询项目、运行实例、错误与诊断 |
-| 停止 / 卸载 | 释放受管理的进程与资源，保留源码 |
+| Register project | Specify the source root and entry point; return a project identity |
+| Start / mount | Specify the project and adapter; return a runtime identity, status, and a preview URL once ready |
+| List / inspect | Query projects, runtime instances, errors, and diagnostics |
+| Stop / unmount | Release managed processes and resources while preserving source files |
 
-CLI 应支持机器可读结果与明确退出码。MCP 中的操作可映射为 tools，状态和诊断可探索通过 resources 提供；两者的职责遵循 MCP 的服务端概念定义。[MCP 服务端概念](https://modelcontextprotocol.io/docs/learn/server-concepts)
+The CLI should support machine-readable results and explicit exit codes. MCP operations can map to tools, while status and diagnostics may be exposed as resources, following MCP's definitions of these server concepts. [MCP server concepts](https://modelcontextprotocol.io/docs/learn/server-concepts)
 
-Agent 初期可以直接使用现有文件编辑能力创建页面和组件；是否增加专门的生成、写文件或模板工具，需要从真实流程中判断。Skills 在操作契约稳定后再编写，用于指导发现、创建、预览和排错。
+Agents can initially use their existing file-editing capabilities to create pages and components. Whether dedicated generation, file-writing, or template tools are needed should be determined from actual workflows. Write skills after the operation contracts stabilize, covering discovery, creation, previewing, and troubleshooting.
 
-## 生命周期与可观察性
+## Lifecycle and observability
 
-建议每个运行实例拥有独立身份，并区分启动中、就绪、失败和已停止。只有就绪检查成功后才返回有效预览；端口冲突和构建失败需要明确结果。
+Give each runtime instance a distinct identity and distinguish starting, ready, failed, and stopped states. Return a valid preview only after readiness checks succeed; port conflicts and build failures need explicit outcomes.
 
-服务应知道自己拥有的子进程，停止时清理这些进程；重新连接或重启后需检查实际存活状态，不能把保存的旧端口直接当成可用预览。浏览器运行错误的采集方式需要单独实验，开发服务器日志不能替代浏览器验证。
+The service should track the child processes it owns and clean them up on shutdown. After reconnecting or restarting, check actual process liveness instead of treating a saved port as a working preview. Browser runtime error collection needs a separate experiment; development server logs cannot replace browser validation.
 
-## 待验证的访问边界
+## Access boundaries to validate
 
-第一阶段默认绑定本机 loopback，并限制已注册的源码范围。管理操作与页面内容应有清晰边界；若管理接口使用 HTTP，应验证请求来源与授权方式，避免页面脚本获得管理权限。多个项目共享浏览器 origin 会产生存储与权限耦合，需要在统一预览地址设计时明确处理。
+The first phase should bind to loopback by default and restrict source access to registered scopes. Management operations and page content need clear boundaries. If the management interface uses HTTP, validate request origins and authorization so page scripts cannot gain management privileges. Sharing a browser origin across projects couples storage and permissions; address this explicitly when designing shared preview URLs.
 
-这些是原型的设计问题，不代表目前已实现访问控制或执行隔离。
+These are prototype design questions, not claims that access controls or execution isolation already exist.
