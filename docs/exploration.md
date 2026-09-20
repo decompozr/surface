@@ -1,6 +1,6 @@
 # Experiment roadmap
 
-The goal is to progressively validate whether agents in any project can create and run interactive interfaces. Record actual results at each step before expanding the scope. None of the following experiments has been run yet.
+The goal is to progressively validate whether agents in any project can create and run interactive interfaces. Record actual results at each step before expanding the scope. The first prototype covers a bundled Svelte page and live delivery into a dedicated Codex conversation. General project mounting and the remaining experiments are not complete. See [prototype evidence](prototype.md#validation-on-2026-09-20).
 
 ## Experiment 1: A complete loop for one project
 
@@ -19,6 +19,8 @@ Acceptance criteria:
 Use this experiment to decide whether a minimal management service is necessary, whether the state model is sufficient, and whether the CLI operations have the right scope.
 
 ## Experiment 1B: A button steers the originating agent session
+
+Status: the primary live loop has passed for active and idle conversations. The agent published result data through the CLI, and the browser displayed it. This is evidence of a page data update, not autonomous source-code modification. Failure handling has automated coverage; the full acceptance list below is not yet proven against every live runtime condition.
 
 Extend the first page with two options, an adjustable parameter, and a submit button. The agent registers its existing session and creates an interaction request. Submitting the page sends structured user data through Artifact's backend to that session; the agent then updates the page based on the selection. The agent does not need to keep a waiting tool call open.
 
@@ -80,4 +82,4 @@ Record the code revision, project configuration, startup procedure, expected and
 - What response schema, expiry rules, delivery receipts, and retry behavior are sufficient for reliable interaction?
 - What evidence establishes support for a framework rather than just one example built with it?
 
-Prioritize experiment 1, followed by experiment 1B to validate the two-way workflow before expanding framework coverage. Update the architecture proposal as boundaries become clearer, while retaining the vision's long-term goals.
+Next, extend experiment 1 from the bundled example to an independently located project and validate its dependency and lifecycle boundaries. Preserve the working experiment 1B loop while doing so. Update the architecture proposal as boundaries become clearer, while retaining the vision's long-term goals.

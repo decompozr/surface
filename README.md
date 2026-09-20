@@ -4,7 +4,34 @@ Enable agents in any project to create and mount local interactive pages and com
 
 ## Current status
 
-This project is exploring the domain. It currently contains vision and design documents only; the server, CLI, MCP interface, and skills have not been implemented. Interfaces and directories described here are proposals, not available features.
+This project is exploring the domain. The first local prototype includes a Bun server and CLI, a Svelte feedback page, and a Codex adapter that delivers page responses to an existing conversation. Active-turn steering and idle continuation have been exercised against a local Codex session.
+
+The prototype runs one bundled example. General project mounting, multiple framework runtimes, MCP tools, and reusable skills remain future work. See [prototype usage and evidence](docs/prototype.md) for the exact supported scope.
+
+## Run the prototype
+
+Requires Bun 1.4.0 and a running local Codex App Server for live agent delivery.
+
+```bash
+bun install --frozen-lockfile
+bun install --cwd examples/svelte-feedback --frozen-lockfile
+bun run dev --dev
+```
+
+This starts the API on `http://127.0.0.1:4317` and the Svelte preview on `http://127.0.0.1:5173`. In another terminal, bind an exact Codex thread and create an interaction:
+
+```bash
+bun run artifact bind \
+  --project "$PWD" \
+  --thread "YOUR_THREAD_ID" \
+  --socket "/absolute/path/to/app-server-control.sock"
+
+bun run artifact request --binding "BINDING_ID" --title "Choose a direction"
+```
+
+Open the returned `previewUrl`, choose A or B, adjust the width, and submit. Artifact delivers the data to the bound conversation; that agent can publish its result back through the CLI. The preview link grants access to this interaction, so keep it private. The target session needs permission to contact the local API when publishing a result.
+
+Use `bun run artifact --help` for commands. Stop the development server with Ctrl+C; source files and local interaction records remain intact.
 
 ## What we want to explore
 
@@ -39,6 +66,7 @@ Supporting any JS frontend framework is a long-term exploration goal. The sugges
 - [Product vision](docs/vision.md): user value, core concepts, and design principles.
 - [Architecture exploration](docs/architecture.md): initial proposals for the service, project runtimes, interfaces, and dependency boundaries.
 - [Agent interaction](docs/agent-interaction.md): session registration, page responses, and delivery through agent adapters.
+- [Prototype usage and evidence](docs/prototype.md): setup, implemented behavior, validation, and limits.
 - [Experiment roadmap](docs/exploration.md): small experiments, acceptance criteria, and open questions.
 
-The suggested next step is a small experiment: create a Svelte + TypeScript page in a local project, mount it through the CLI, obtain a preview URL, change a component and observe the browser update, then stop the service while preserving the source files. Follow this with a button that sends a choice to the originating agent session and causes the agent to update the page.
+The next expansion is to mount an independently located project with its own dependencies, using the working page-to-agent loop as a foundation.

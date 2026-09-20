@@ -1,0 +1,69 @@
+import { afterEach, expect, test } from 'bun:test';
+import { mkdtempSync, rmSync, realpathSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { Store } from '../src/core/store.ts';
+import { Service } from '../src/core/service.ts';
+import { DeliveryError, type AgentAdapter, type Binding } from '../src/adapters/codex.ts';
+
+const directories: string[] = [];
+afterEach(() => { for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true }); });
+const payload = { responseId: 'one-response', data: { option: 'B', width: 160, comment: 'Please use this' } };
+function fixture(deliver?: AgentAdapter['deliver']) {
+  const dir = mkdtempSync(join(tmpdir(), 'artifact-service-')); directories.push(dir);
+  const file = join(dir, 'state.json');
+  const store = new Store(file);
+  const binding: Binding = { id: 'bound-session', threadId: 'exact-thread', projectRoot: realpathSync(dir), socketPath: '/test.sock' };
+  store.update(state => { state.bindings.push(binding); });
+  const calls: Binding[] = [];
+  const service = new Service(store, {
+    inspect: async () => ({ status: 'idle' }),
+    deliver: async (...args) => { calls.push(args[0]); return deliver ? deliver(...args) : { mode: 'start', turnId: 'one-turn' }; },
+  }, '/path/to/artifact/src/cli/index.ts');
+  const request = service.create({ bindingId: binding.id, title: 'Choose an option' });
+  return { service, store, request, calls, file };
+}
+test('persists accepted delivery and routes only to the bound session', async () => {
+  const { service, request, calls, file } = fixture();
+  const view = await service.submit(request.id, payload);
+  expect(view.response?.status).toBe('accepted');
+  expect(calls.map(item => item.threadId)).toEqual(['exact-thread']);
+  expect(new Store(file).state.requests[0]?.response?.receipt?.turnId).toBe('one-turn');
+  expect(view).not.toHaveProperty('token');
+});
+test('deduplicates concurrent retries, and rejects reused IDs with changed data', async () => {
+  let finish!: () => void;
+  const wait = new Promise<void>(resolve => { finish = resolve; });
+  const { service, request, calls } = fixture(async () => { await wait; return { mode: 'start', turnId: 'turn' }; });
+  const original = service.submit(request.id, payload);
+  expect((await service.submit(request.id, payload)).response?.status).toBe('delivering');
+  await expect(service.submit(request.id, { ...payload, data: { ...payload.data, width: 180 } })).rejects.toThrow('already has a submission');
+  finish(); await original;
+  await service.submit(request.id, payload);
+  expect(calls).toHaveLength(1);
+});
+test('rejects invalid input and closed requests before delivery', async () => {
+  const { service, request, calls } = fixture();
+  await expect(service.submit(request.id, { ...payload, data: { ...payload.data, width: 900 } })).rejects.toThrow('schema');
+  service.close(request.id);
+  await expect(service.submit(request.id, payload)).rejects.toThrow('closed');
+  expect(calls).toHaveLength(0);
+});
+test('retains an unknown outcome and never silently retries it', async () => {
+  const { service, request, calls, file } = fixture(async () => { throw new DeliveryError('Connection lost after write', 'unknown'); });
+  await service.submit(request.id, payload);
+  await service.submit(request.id, payload);
+  expect(calls).toHaveLength(1);
+  expect(new Store(file).state.requests[0]?.response?.status).toBe('unknown');
+});
+test('marks a delivery interrupted by restart as unknown', () => {
+  const { store, file } = fixture();
+  store.update(state => { state.requests[0]!.response = { id: 'r', data: {}, createdAt: 'now', status: 'delivering' }; });
+  expect(new Store(file).state.requests[0]?.response?.status).toBe('unknown');
+});
+test('records a published result separately from delivery acceptance', async () => {
+  const { service, request } = fixture();
+  await service.submit(request.id, payload);
+  service.result(request.id, { message: 'Updated', option: 'B', width: 160 });
+  expect(service.view(request.id)).toMatchObject({ response: { status: 'accepted' }, result: { width: 160 } });
+});

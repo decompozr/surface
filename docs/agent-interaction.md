@@ -6,7 +6,7 @@ Artifact should let a user submit a choice, form, or parameter set from a page d
 
 The preferred design is direct session input: steer an active turn, or continue an idle conversation with a new turn when the agent runtime supports it. Keeping an agent blocked on a waiting tool call is not required.
 
-This is an agreed product direction with a proposed technical contract. No Artifact session registry, response endpoint, CLI command, or agent adapter has been implemented. Codex documentation and local CLI help have been inspected; end-to-end delivery has not been tested.
+This is an agreed product direction with an initial implementation. The prototype registers Codex session bindings, creates one-response interaction requests, accepts page submissions, records delivery outcomes, and lets an agent publish a result back to the page. Live active-turn steering and idle continuation have been observed. The wider contract remains exploratory; see [prototype usage and evidence](prototype.md) for verified behavior and limits.
 
 ## Interaction flow
 
@@ -62,16 +62,18 @@ Delivery should preserve the request and response identity alongside user data s
 
 ## CLI and backend integration
 
-A possible Artifact CLI shape is shown below. This command is a proposal and does not exist yet:
+The prototype CLI exposes the shared delivery path with an explicit request and response identity:
 
 ```bash
-artifact agent send \
-  --session <binding-id> \
-  --request <request-id> \
-  --data '{"option":"B","width":120}'
+bun run artifact send \
+  --request "REQUEST_ID" \
+  --response-id "RESPONSE_ID" \
+  --data '{"option":"B","width":120,"comment":"Use this version"}'
 ```
 
-The CLI would use the same validation and delivery operations as the page submission endpoint. Its explicit session must match the request binding. The backend can invoke a configured agent CLI, or call a native control API directly; it need not launch Artifact's own CLI for every click.
+The request resolves to the registered session, so callers do not supply a second destination that could disagree with it. The CLI and page endpoint use the same validation and delivery operations. The implemented Codex adapter calls the native control API; a configured agent CLI remains another possible adapter mechanism.
+
+The delivered message includes a `result` CLI operation scoped to the request. When the agent executes it, the backend records a separate result and the page displays it. This updates page data; it does not establish that the agent edited a component's source code.
 
 For a CLI adapter, use a known executable with discrete arguments or stdin for payload data. Page input supplies data, not executable names or shell command strings. The agent provider and its configured adapter determine how the data reaches the session.
 
@@ -81,12 +83,12 @@ Inspected on 2026-09-20:
 
 | Mechanism | Confirmed evidence | Validation still needed |
 | --- | --- | --- |
-| App Server `turn/steer` | Official documentation describes appending input to an active turn using `threadId` and matching `expectedTurnId`; it fails when no turn is active | Delivery into the actual runtime owning a registered Artifact session |
-| App Server `turn/start` | Official documentation describes starting generation in a specified thread; `thread/resume` reopens an existing thread when needed | Continuing an idle registered conversation and observing its response |
+| App Server `turn/steer` | Documented active-turn input with matching `threadId` and `expectedTurnId`; live page submission was accepted into the exact active turn and the agent published a result | Broader runtime versions and concurrent-client behavior |
+| App Server `turn/start` | Documented same-thread generation; live page submission continued an idle test conversation and the agent published a result | Broader runtime versions and unloaded-session recovery |
 | `codex queue --thread <id> --message <text>` | Local `codex-cli 0.154.0` help describes queuing a message for an existing session | Whether it steers immediately, queues for a later turn, or activates an idle session in the intended environment |
 | `codex exec resume <session-id> <prompt>` | Local CLI help describes resuming a saved session non-interactively | Whether its execution and conversation visibility suit this integration; it is not established as live-session steering |
 
-Source for the App Server behavior: [official Codex App Server documentation](https://learn.chatgpt.com/docs/app-server). Local CLI evidence came from `codex --version`, `codex queue --help`, and `codex exec resume --help`; no message was sent during that inspection.
+Source for the App Server behavior: [official Codex App Server documentation](https://learn.chatgpt.com/docs/app-server). CLI availability evidence came from `codex --version`, `codex queue --help`, and `codex exec resume --help`; neither CLI delivery command has been exercised. The live proof used the App Server adapter and a dedicated test conversation, as recorded in [prototype evidence](prototype.md#validation-on-2026-09-20).
 
 The Codex adapter should connect to the authorized runtime owning the target session. Starting an unrelated App Server does not by itself establish control of an already running conversation. Endpoint discovery and access are part of the experiment.
 

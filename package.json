@@ -1,0 +1,25 @@
+{
+  "name": "@decompozr/artifact",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.0",
+  "scripts": {
+    "artifact": "bun src/cli/index.ts",
+    "dev": "bun src/cli/index.ts serve",
+    "test": "bun test tests",
+    "check": "tsc --noEmit",
+    "check:ui": "bun run --bun --cwd examples/svelte-feedback check",
+    "build:ui": "bun run --bun --cwd examples/svelte-feedback build"
+  },
+  "dependencies": {
+    "ajv": "8.20.0",
+    "ws": "8.21.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/bun": "1.4.2",
+    "@types/ws": "8.18.1",
+    "typescript": "6.0.3"
+  }
+}

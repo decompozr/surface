@@ -2,6 +2,14 @@
 
 This document records initial technical hypotheses, not implementation commitments. Gather evidence through the [experiment roadmap](exploration.md) before settling on stable interfaces.
 
+## Prototype stack
+
+The first implementation uses Bun 1.4.0 and TypeScript for the service and CLI, Bun's HTTP server and test runner, Ajv for response validation, and a Codex adapter using JSON-RPC over a local Unix WebSocket. The example uses Svelte 5 and Vite 8, with TypeScript 6 to match the Svelte checking tool's supported range.
+
+Artifact and the example have separate package manifests and `bun.lock` files. Prototype records live in an ignored `.artifact/` directory as an atomically replaced JSON file, with an exclusive lock preventing two servers from writing the same state directory. This is a single-server prototype store, not a distributed queue.
+
+The implementation currently launches one bundled Svelte example; the general project runtime registry below remains a proposal. See [prototype usage and evidence](prototype.md).
+
 ## Suggested initial structure
 
 ```text
@@ -50,7 +58,7 @@ Report TypeScript transformation and type checking as separate diagnostic outcom
 ## Dependency ownership
 
 - Each workspace keeps its dependency declarations and lockfile, with dependencies resolved in that project's context.
-- Respect existing package managers and workspace structures; the default package manager for new standalone workspaces remains undecided.
+- Respect existing package managers and workspace structures. Artifact and its initial example use Bun; this does not require externally mounted projects to use Bun.
 - Dependency installation is an explicit operation that reports its target directory and result. It must not be implicit in registration or mounting.
 - Experiments with multiple projects must cover different versions of the same package to confirm that dependencies do not leak between projects.
 - Project scripts may execute local code. The first phase assumes user-trusted local code; separate processes do not provide a security sandbox.

@@ -15,3 +15,8 @@ coverage/
 .env.*
 !.env.example
 *.log
+
+# Local Artifact sessions and browser verification
+.artifact/
+playwright-report/
+test-results/
