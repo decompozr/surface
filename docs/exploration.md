@@ -1,6 +1,19 @@
 # Experiment roadmap
 
-The goal is to progressively validate whether agents in any project can create and run interactive interfaces. Record actual results at each step before expanding the scope. The first prototype covers a bundled Svelte page and live delivery into a dedicated Codex conversation. General project mounting and the remaining experiments are not complete. See [prototype evidence](prototype.md#validation-on-2026-09-20).
+The goal is to progressively validate whether agents in any project can create and run interactive interfaces. Record actual results at each step before expanding the scope. The first prototype covers a bundled Svelte page and live delivery into a dedicated Codex conversation. External project mounting, Svelte/vanilla starters, a generic browser client, custom CLI schemas, and a reusable skill are now implemented. Browser verification covers two external projects with a fixture adapter; dependency-version isolation and MCP remain incomplete. See [prototype evidence](prototype.md#validation-on-2026-09-20).
+
+## Exploratory milestones
+
+| Milestone | Status | Evidence or next gate |
+| --- | --- | --- |
+| Core page/agent round trip | Proven for the original local Codex prototype | Active steering and idle continuation; browser-observed result |
+| External project lifecycle | Implemented and browser-tested | Independent Svelte/vanilla projects; source update/error recovery; stop/restart; manager crash cleanup |
+| Reusable interaction | Implemented and browser-tested | Custom JSON schema, browser client, CLI publication; explicit fixture adapter |
+| Agent self-service | CLI and skill implemented | Independent agent completed a custom Svelte workflow using the skill and a fixture binding; live delivery remains separately evidenced |
+| Multiple dependencies and MCP | Next | Different versions of the same package in two projects; CLI/MCP interoperability |
+| More frameworks and remote access | Later | Per-framework and remote-access acceptance tests |
+
+See [the experiment record](experiments/2026-09-20-external-projects.md) for observations and limits, and [the workflow guide](workflow.md) for executable commands. Installed packages remain project-owned; running two starters does not yet prove conflicting dependency-version isolation.
 
 ## Experiment 1: A complete loop for one project
 

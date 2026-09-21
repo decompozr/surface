@@ -4,11 +4,15 @@ Enable agents in any project to create and mount local interactive pages and com
 
 ## Current status
 
-This project is exploring the domain. The first local prototype includes a Bun server and CLI, a Svelte feedback page, and a Codex adapter that delivers page responses to an existing conversation. Active-turn steering and idle continuation have been exercised against a local Codex session.
+This project is exploring the domain. Its executable code is an experimental implementation for testing design hypotheses; the architecture, API, storage model, and packaging are not finalized product commitments. The first local prototype includes a Bun server and CLI, a Svelte feedback page, and a Codex adapter that delivers page responses to an existing conversation. Active-turn steering and idle continuation have been exercised against a local Codex session.
 
-The prototype runs one bundled example. General project mounting, multiple framework runtimes, MCP tools, and reusable skills remain future work. See [prototype usage and evidence](docs/prototype.md) for the exact supported scope.
+Artifact can now scaffold Svelte or vanilla HTML/TypeScript workspaces, mount external projects with explicit development commands, and connect custom forms through a browser client. The CLI and a reusable agent skill share this workflow. MCP, broader framework validation, component-only previews, and remote access remain future work. Start with the [external-project workflow](docs/workflow.md); the [prototype evidence](docs/prototype.md) records the earlier live Codex proof.
 
-## Run the prototype
+## Use Artifact in another project
+
+From this checkout, run `bun install --frozen-lockfile` and `bun link`, then start `artifact serve`. Follow the [workflow guide](docs/workflow.md) to create or register a frontend, mount it, and bind an exact agent session. The [Artifact skill](skills/artifact/SKILL.md) teaches this end-to-end workflow.
+
+## Run the bundled prototype
 
 Requires Bun 1.4.0 and a running local Codex App Server for live agent delivery.
 
@@ -63,10 +67,11 @@ Supporting any JS frontend framework is a long-term exploration goal. The sugges
 
 ## Documentation
 
+- [External-project workflow](docs/workflow.md): CLI setup, scaffolding, mounting, custom interactions, skill installation, and verification.
 - [Product vision](docs/vision.md): user value, core concepts, and design principles.
 - [Architecture exploration](docs/architecture.md): initial proposals for the service, project runtimes, interfaces, and dependency boundaries.
 - [Agent interaction](docs/agent-interaction.md): session registration, page responses, and delivery through agent adapters.
 - [Prototype usage and evidence](docs/prototype.md): setup, implemented behavior, validation, and limits.
 - [Experiment roadmap](docs/exploration.md): small experiments, acceptance criteria, and open questions.
 
-The next expansion is to mount an independently located project with its own dependencies, using the working page-to-agent loop as a foundation.
+The next expansion is dependency-version isolation testing and a thin MCP interface over the same runtime and interaction operations.

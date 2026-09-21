@@ -8,7 +8,7 @@ The first implementation uses Bun 1.4.0 and TypeScript for the service and CLI, 
 
 Artifact and the example have separate package manifests and `bun.lock` files. Prototype records live in an ignored `.artifact/` directory as an atomically replaced JSON file, with an exclusive lock preventing two servers from writing the same state directory. This is a single-server prototype store, not a distributed queue.
 
-The implementation currently launches one bundled Svelte example; the general project runtime registry below remains a proposal. See [prototype usage and evidence](prototype.md).
+The implementation now includes an external-project registry and one supervised process group per mounted frontend. Explicit commands run in project-owned dependency contexts and return direct loopback URLs. Svelte and vanilla starters share a browser client; the reusable skill teaches the CLI workflow. MCP and broader framework adapters below remain proposals. See the [workflow guide](workflow.md) and earlier [prototype evidence](prototype.md).
 
 ## Suggested initial structure
 
@@ -24,7 +24,7 @@ Agent / user
                                   └─ Each project's source, config, dependencies
 ```
 
-Start by exploring one management service with a separate runtime process per project. The management service handles lifecycle and discovery; projects retain their own development servers, module resolution, and framework environments.
+The current implementation uses one management service with a separate runtime process group per registered frontend. The management service handles lifecycle and discovery; projects retain their own development servers, module resolution, and framework environments.
 
 The first experiment can return each project's loopback URL directly. A shared domain or path proxy remains to be validated: it requires separate handling for asset paths, client-side routing, and hot-update WebSockets, and should not be a prerequisite for the smallest experiment.
 
@@ -76,7 +76,7 @@ Validate core operations through the CLI first, then expose the same semantics t
 
 The CLI should support machine-readable results and explicit exit codes. MCP operations can map to tools, while status and diagnostics may be exposed as resources, following MCP's definitions of these server concepts. [MCP server concepts](https://modelcontextprotocol.io/docs/learn/server-concepts)
 
-Agents can initially use their existing file-editing capabilities to create pages and components. Whether dedicated generation, file-writing, or template tools are needed should be determined from actual workflows. Write skills after the operation contracts stabilize, covering discovery, creation, previewing, and troubleshooting.
+Agents can initially use their existing file-editing capabilities to create pages and components. Whether dedicated generation, file-writing, or template tools are needed should be determined from actual workflows. The first [Artifact skill](../skills/artifact/SKILL.md) covers discovery, creation, previewing, callback handling, and troubleshooting through the implemented CLI. MCP remains the next interface extension.
 
 ## Returning page input to an agent
 

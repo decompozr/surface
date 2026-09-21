@@ -1,5 +1,7 @@
 # Local interaction prototype
 
+This document records the original bundled prototype and its live-agent evidence. External mounting and the reusable client/skill are now available; see [the current workflow](workflow.md). Historical limitations below refer to that original proof.
+
 The prototype proves one focused loop: a Svelte page submits structured feedback, Artifact delivers it to an existing Codex conversation, and that agent publishes a result which appears on the page.
 
 ## Stack and layout
@@ -102,7 +104,7 @@ Outcomes distinguish `delivering`, `accepted`, `failed`, and `unknown`. An inter
 
 An exclusive `server.lock` prevents concurrent writers. If the process is forcibly killed, inspect the PID in that file and confirm the process is gone before manually removing that specific stale lock. Do not remove a live server's lock.
 
-The prototype has no response replay queue, expiry scheduler, general project mounting, browser-origin sandbox, MCP interface, or automatic source-code generation. It runs trusted local code and one bundled preview. Unix socket integration has only been tested on this macOS environment with Codex CLI/App Server 0.154.0.
+At the original proof checkpoint, the prototype had no response replay queue, expiry scheduler, general project mounting, browser-origin sandbox, MCP interface, or automatic source-code generation. That proof used trusted local code and one bundled preview. External mounting has since been added as a separate experiment. Unix socket integration has only been tested on this macOS environment with Codex CLI/App Server 0.154.0.
 
 ## Validation on 2026-09-20
 

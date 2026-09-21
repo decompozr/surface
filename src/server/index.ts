@@ -3,8 +3,9 @@ import { resolve, join, sep } from 'node:path';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import type { AgentAdapter } from '../adapters/codex.ts';
 import { CodexAdapter } from '../adapters/codex.ts';
+import { Runtimes } from '../core/runtime.ts';
 import { Store } from '../core/store.ts';
-import { Service, InputError } from '../core/service.ts';
+import { Service, InputError, object } from '../core/service.ts';
 
 function equal(left: string, right: string) {
   const a = Buffer.from(left), b = Buffer.from(right);
@@ -34,6 +35,7 @@ export function startServer(options: {
   try {
     const store = new Store(join(stateDir, 'state.json'));
     const service = new Service(store, options.adapter ?? new CodexAdapter(), options.cliPath, stateDir);
+    const runtimes = new Runtimes(store);
     const uiDir = resolve(options.uiDir);
     let origin = '';
     const json = (value: unknown, status = 200) => Response.json(value, {
@@ -46,7 +48,26 @@ export function startServer(options: {
           const url = new URL(req.url);
           if (req.headers.get('host') !== new URL(origin).host) return json({ error: 'Invalid Host.' }, 403);
           const requestOrigin = req.headers.get('origin');
-          if (requestOrigin && requestOrigin !== origin && requestOrigin !== options.uiOrigin) return json({ error: 'Invalid Origin.' }, 403);
+          if (requestOrigin && requestOrigin !== origin && requestOrigin !== options.uiOrigin && !runtimes.isOrigin(requestOrigin)) return json({ error: 'Invalid Origin.' }, 403);
+          const pageRequest = /^\/api\/requests\/([a-f0-9-]+)(?:\/(responses))?$/.exec(url.pathname);
+          const cors = requestOrigin && runtimes.isOrigin(requestOrigin);
+          if (cors && !pageRequest) return json({ error: 'Project origins can only access their interactions.' }, 403);
+          if (cors && pageRequest) {
+            const record = service.get(pageRequest[1]!);
+            if (!record.runtimeId || runtimes.inspect(record.runtimeId).previewUrl !== requestOrigin) return json({ error: 'This interaction belongs to another preview origin.' }, 403);
+          }
+          const reply = (value: unknown, status = 200) => {
+            const response = json(value, status);
+            if (cors) {
+              response.headers.set('Access-Control-Allow-Origin', requestOrigin!);
+              response.headers.set('Vary', 'Origin');
+            }
+            return response;
+          };
+          if (req.method === 'OPTIONS' && cors) return new Response(null, { status: 204, headers: {
+            'Access-Control-Allow-Origin': requestOrigin!, 'Access-Control-Allow-Methods': 'GET, POST',
+            'Access-Control-Allow-Headers': 'authorization, content-type', 'Vary': 'Origin',
+          } });
           const bearer = req.headers.get('authorization')?.replace(/^Bearer /, '') ?? '';
           const admin = equal(bearer, token);
           const requireAdmin = () => { if (!admin) throw new InputError('Management authorization required.', 401); };
@@ -55,14 +76,47 @@ export function startServer(options: {
             try { return await req.json(); } catch { throw new InputError('Invalid JSON body.'); }
           };
           if (url.pathname === '/api/health' && req.method === 'GET') return json({ service: 'artifact', status: 'ready' });
+          if (url.pathname === '/api/runtimes') {
+            requireAdmin();
+            if (req.method === 'GET') return json(runtimes.list());
+            if (req.method === 'POST') return json(runtimes.register(await body()), 201);
+          }
+          const runtimeRoute = /^\/api\/runtimes\/([a-f0-9-]+)(?:\/(mount|stop|logs))?$/.exec(url.pathname);
+          if (runtimeRoute) {
+            requireAdmin();
+            const [, id, operation] = runtimeRoute;
+            if (req.method === 'GET' && !operation) return json(runtimes.inspect(id!));
+            if (req.method === 'GET' && operation === 'logs') return json(runtimes.logs(id!));
+            if (req.method === 'POST' && operation === 'mount') return json(await runtimes.mount(id!));
+            if (req.method === 'POST' && operation === 'stop') return json(await runtimes.stop(id!));
+          }
           if (url.pathname === '/api/bindings' && req.method === 'POST') {
             requireAdmin(); return json(await service.bind(await body()), 201);
           }
           if (url.pathname === '/api/requests' && req.method === 'POST') {
             requireAdmin();
-            const record = service.create(await body());
-            const previewOrigin = options.uiOrigin ?? origin;
-            return json({ ...record, previewUrl: `${previewOrigin}/?request=${record.id}#token=${record.token}` }, 201);
+            const input = object(await body());
+            let previewOrigin = options.uiOrigin ?? origin;
+            let previewPath = '/';
+            if (input.runtimeId !== undefined) {
+              if (typeof input.runtimeId !== 'string') throw new InputError('Invalid runtime ID.');
+              const runtime = runtimes.inspect(input.runtimeId);
+              const binding = store.state.bindings.find(item => item.id === input.bindingId);
+              if (!binding || binding.projectRoot !== runtime.projectRoot) throw new InputError('Runtime and agent binding must belong to the same project.');
+              if (runtime.status !== 'ready' || !runtime.previewUrl) throw new InputError('Mount the runtime before creating an interaction.', 409);
+              previewOrigin = runtime.previewUrl;
+              if (input.previewPath !== undefined && typeof input.previewPath !== 'string') throw new InputError('Invalid preview path.');
+              previewPath = (input.previewPath as string | undefined) ?? '/';
+              if (typeof previewPath !== 'string' || !previewPath.startsWith('/') || previewPath.startsWith('//') || previewPath.includes('\\')) throw new InputError('Expected a project-relative preview path.');
+            }
+            const preview = new URL(previewPath, previewOrigin);
+            if (preview.origin !== previewOrigin || preview.hash || preview.search) throw new InputError('Preview path cannot contain an origin, query, or fragment.');
+            const record = service.create(input);
+            preview.searchParams.set('request', record.id);
+            const fragment = new URLSearchParams({ token: record.token });
+            if (record.runtimeId) fragment.set('api', origin);
+            preview.hash = fragment.toString();
+            return json({ ...record, previewUrl: preview.href }, 201);
           }
           if (url.pathname === '/api/requests' && req.method === 'GET') {
             requireAdmin(); return json(store.state.requests.map(record => service.view(record.id)));
@@ -73,8 +127,8 @@ export function startServer(options: {
             const record = service.get(id!);
             if (operation === 'result' || operation === 'close') requireAdmin();
             else if (!admin && !equal(bearer, record.token)) throw new InputError('Interaction authorization required.', 401);
-            if (req.method === 'GET' && !operation) return json(service.view(id!));
-            if (req.method === 'POST' && operation === 'responses') return json(await service.submit(id!, await body()));
+            if (req.method === 'GET' && !operation) return reply(service.view(id!));
+            if (req.method === 'POST' && operation === 'responses') return reply(await service.submit(id!, await body()));
             if (req.method === 'POST' && operation === 'result') return json(service.result(id!, await body()));
             if (req.method === 'POST' && operation === 'close') { service.close(id!); return json({ closed: true }); }
           }
@@ -89,12 +143,18 @@ export function startServer(options: {
         } catch (error) {
           const status = error instanceof InputError ? error.status : 500;
           if (status === 500) console.error(error);
-          return json({ error: error instanceof InputError ? error.message : 'Operation failed. Inspect the local server log.' }, status);
+          const response = json({ error: error instanceof InputError ? error.message : 'Operation failed. Inspect the local server log.' }, status);
+          const requestOrigin = req.headers.get('origin');
+          if (requestOrigin && runtimes.isOrigin(requestOrigin)) {
+            response.headers.set('Access-Control-Allow-Origin', requestOrigin);
+            response.headers.set('Vary', 'Origin');
+          }
+          return response;
         }
       },
     });
     origin = `http://127.0.0.1:${server.port}`;
     writeFileSync(join(stateDir, 'connection.json'), JSON.stringify({ origin, token, pid: process.pid }), { mode: 0o600 });
-    return { server, service, origin, token, stop() { server.stop(true); release(); } };
+    return { server, service, runtimes, origin, token, async stop() { server.stop(true); await runtimes.shutdown(); release(); } };
   } catch (error) { release(); throw error; }
 }

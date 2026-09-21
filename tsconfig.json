@@ -6,8 +6,14 @@
     "strict": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "types": ["bun"],
+    "types": [
+      "bun"
+    ],
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts"]
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts",
+    "scripts/**/*.ts"
+  ]
 }

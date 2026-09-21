@@ -3,8 +3,8 @@ import { mkdtempSync, rmSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startServer } from '../src/server/index.ts';
-const cleanups: (() => void)[] = [];
-afterEach(() => { for (const cleanup of cleanups.splice(0).reverse()) cleanup(); });
+const cleanups: (() => void | Promise<void>)[] = [];
+afterEach(async () => { for (const cleanup of cleanups.splice(0).reverse()) await cleanup(); });
 function fixture() {
   const directory = mkdtempSync(join(tmpdir(), 'artifact-http-'));
   cleanups.push(() => rmSync(directory, { recursive: true, force: true }));

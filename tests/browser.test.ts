@@ -36,5 +36,5 @@ test('real page submits selected data, disables repeats, and displays a separate
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: '.artifact/screenshots/mobile-fixture.png', fullPage: true });
     expect(errors).toEqual([]);
-  } finally { await browser.close(); app.stop(); rmSync(dir, { recursive: true, force: true }); }
+  } finally { await browser.close(); await app.stop(); rmSync(dir, { recursive: true, force: true }); }
 }, 20_000);
