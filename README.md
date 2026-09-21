@@ -1,6 +1,10 @@
 # Surface
 
-Enable agents in any project to create and mount local interactive pages and components through MCP or CLI with skills, receive user input back in their existing sessions, and preserve each project's dependencies and choice of frontend framework.
+Surface gives humans and agents a shared, extensible interactive environment for representing, manipulating, and simulating systems.
+
+Projects own their interactive content and domain meaning. Surface provides the common runtime and interaction mechanisms so people can manipulate a representation and projects or agents can receive structured input and continue the work. Surface operates independently of DecompozR, which can use it as one producer and consumer among others.
+
+Web is the first implementation path. v0 focuses on a local Svelte loop: create project-owned source, mount and run it, interact in a browser, return structured input to the bound agent conversation, and update the result or interface. Graph, CAD, simulation, native representations, and a general capability protocol remain future directions rather than v0 requirements. See the [product vision](docs/vision.md) for the long-term goal, architecture boundaries, and v0 commitment.
 
 ## Current status
 
@@ -53,33 +57,35 @@ Open the returned `previewUrl`, choose A or B, adjust the width, and submit. Sur
 
 Use `bun run surface --help` for commands. Stop the development server with Ctrl+C; source files and local interaction records remain intact.
 
-## What we want to explore
+## The v0 interaction loop
 
 When an agent needs to present an idea, validate an interaction, explain data, or build a small tool, it should be able to create real frontend source files in the current project and give the user a local page they can open, modify, and iterate on.
 
-Surface aims to provide reusable runtime and preview infrastructure for this workflow across projects and agents:
+Surface's first delivery target provides reusable runtime and interaction infrastructure across projects and agents:
 
 1. Start or connect to a local Surface service.
-2. Register a project directory and select an existing frontend application or create a separate workspace for pages.
-3. Have the agent create pages, components, and the required project dependencies.
+2. Register a project directory and select or create a project-owned Svelte component source.
+3. Have the agent create the interactive content and declare its supported project dependencies.
 4. Mount the project and obtain a preview URL.
 5. Let the user inspect it in a browser and submit choices or data back to the registered agent session, which can continue working and update the page.
 6. Stop the preview or unmount the project, preserving the source files for future work.
 
-## Target capabilities
+The project or experience defines whether an interaction previews a value, proposes a change, or requests an action. Surface routes that input and reports delivery outcomes; it does not become the authority for the project's domain data.
+
+## Web implementation target
 
 | Area | Goal |
 | --- | --- |
 | Web foundations | Support HTML, CSS, JavaScript, and TypeScript |
 | Framework choice | Focus current experiments on Svelte; defer additional frameworks |
 | Project dependencies | Give each project its own dependency declarations, lockfile, and resolution context |
-| Pages and components | Run complete pages and provide component preview entries with props, styles, and context |
+| Pages and components | Render client-side Svelte component experiences in browser hosts with props, styles, and context; arbitrary mounted applications and SSR are outside v0 |
 | Agent access | Share core capabilities between MCP and CLI, with skills describing the workflow |
 | Two-way interaction | Route button clicks, form submissions, and selected parameters back to the existing agent session |
 | Local experience | Return usable preview URLs, reflect source changes, and expose status and error diagnostics |
 | Source ownership | Keep artifacts as ordinary project files that can be versioned in Git and maintained independently |
 
-The current exploration focuses on Svelte + TypeScript. Additional frameworks are deferred; the broader framework-neutral vision remains a long-term possibility. The seven [readiness experiments](docs/experiments/2026-09-21-readiness-plan.md) are complete within their stated boundaries. They support starting implementation with Bun, a built SvelteKit management shell, and one live Vite compiler for Svelte component previews. This is an implementation recommendation; the experimental commands, manifests, storage, and packaging still need a unified server contract.
+The current implementation target focuses on Svelte + TypeScript. Additional frameworks and non-Web capabilities are deferred. The seven [readiness experiments](docs/experiments/2026-09-21-readiness-plan.md) are complete within their stated boundaries. They support the Bun, built SvelteKit shell, and single live Vite compiler foundation. Milestone 1 shared project operations are implemented; the next milestone is supported installation and lifecycle for this loop. The experimental runtime and packaging still need consolidation and explicit supported contracts.
 
 ## Documentation
 

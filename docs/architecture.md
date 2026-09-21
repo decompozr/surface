@@ -1,6 +1,16 @@
 # Architecture exploration
 
-This document records initial technical hypotheses, not implementation commitments. Gather evidence through the [experiment roadmap](exploration.md) before settling on stable interfaces.
+The [product vision](vision.md) defines Surface's long-term goal, architecture boundaries, and bounded v0 commitment. This document connects those boundaries to the current Web topology and retains earlier technical hypotheses as historical context. The [readiness review](server-readiness.md) records what the experiments establish and what remains to implement.
+
+## Product boundaries and the first implementation
+
+Surface is an independent runtime foundation for shared human/agent interaction. DecompozR is a possible producer and consumer; Surface does not depend on its concepts or services.
+
+The conceptual layers are project-owned experiences, capabilities they use, and a common Surface Core. Core coordinates identity, mounting, interaction state and routing, resource ownership, access scope, and lifecycle. Rendering and domain computation belong to capabilities or project code. Projects retain authoritative domain data and define whether an interaction previews, proposes, or applies a change.
+
+These layers guide dependency direction rather than prescribe a new package layout or public plugin protocol. The Svelte browser runtime is the first implementation path. Graph, CAD, simulation, native renderers, and capability discovery remain future directions to validate through concrete integrations. Existing artifact manifests, identifiers, and browser compatibility aliases remain unchanged.
+
+The next installation/lifecycle milestone should package the bounded Web loop while keeping domain logic outside Core. It does not require a general capability registry, universal state/action schema, or new renderer first. Surface lifecycle responsibility covers its service and mounted resources; it does not absorb general project or agent orchestration.
 
 ## Preferred direction after the mounting discussion
 

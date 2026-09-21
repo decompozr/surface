@@ -1,80 +1,91 @@
 # Product vision
 
-Surface aims to let agents in any project create local interactive interfaces on demand through MCP or CLI with skills, and receive user responses in their existing sessions so users can observe, interact, and guide iteration directly.
+Surface gives humans and agents a shared, extensible interactive environment for representing, manipulating, and simulating systems.
 
-## Why this project
+## Long-term vision
 
-Text, code, and static screenshots do not always communicate an idea fully. Interactive pages let users change parameters, compare options, and inspect state, and can become lasting tools within a project.
+Projects need ways to make their systems, data, and ideas understandable and actionable. A person might adjust a design parameter, inspect an architecture graph, compare scenarios, or explore a simulation. An agent needs the structured meaning of that interaction so it can continue working and return an updated result.
 
-The opportunity is to turn recurring work around service startup, dependency management, preview discovery, and error feedback into reliable capabilities that agents can reuse.
+Surface provides the runtime foundation for that exchange. A project creates an interactive representation, mounts it, and makes it available to people or agents. Interaction returns structured input to the responsible project or agent, which interprets it and updates the experience. Web pages and components are the first delivery form; the product's scope is the shared interactive environment.
 
-The project's value depends on a smooth feedback loop: an agent creates real source files, Surface runs them, the user understands and validates the result through a page, and page responses reach the originating agent session so it can continue working. The interface becomes a shared workspace for interaction with the agent.
+Surface has value independently of DecompozR. DecompozR may produce experiences, consume their events, or coordinate capabilities, just as another project or agent can. Surface must operate without DecompozR-specific concepts or services.
 
-## Main use cases
+The long-term direction includes experiences composed from Web, Graph, CAD, Simulation, Data, or other capabilities. Native representations and structured agent interfaces are possible future delivery forms. These are extension directions, not implemented features or requirements for v0. Domain computation belongs to the relevant capability or project.
 
-- Build an interactive feature prototype in an existing code repository.
-- Create parameter controls, comparison pages, or data visualizations in a design or research project.
-- Preview a component independently using sample data, props, and interaction states.
-- Provide consistent startup, status queries, and preview discovery for an existing frontend project.
-- Preview multiple projects without requiring them to share a framework or dependency versions.
-- Select an option, submit a form, or confirm parameters in a page and send that input directly to the agent session that created the interaction.
+## Architecture boundaries
 
-## Core concepts
+The conceptual architecture has three layers:
 
-A **project** is an explicitly registered scope of local source files. It may be an existing frontend application or a separate workspace for pages inside a repository that otherwise has no frontend.
+| Layer | Responsibility | Examples |
+| --- | --- | --- |
+| Experiences | Project-owned compositions that give an interaction its purpose and meaning | Architecture explorer, camera-mount designer, deployment selector |
+| Capabilities | Rendering, domain computation, or integration used by an experience | Web rendering, graph operations, CAD geometry, physics simulation |
+| Surface Core | Common runtime and interaction mechanisms | Identity, mounting, state coordination, event/action routing, resource ownership, access scope, lifecycle |
 
-A **page** is a browser-accessible entry point that combines components, data, and interactions.
+This separation guides implementation. It does not introduce a public plugin API, require new packages, or establish a universal experience schema. A capability protocol should emerge from concrete integrations. The current Svelte runtime is the first implementation path; moving runtime code into clearer modules can proceed without building a general plugin platform first.
 
-A **component** is reusable source code interpreted by its framework. A component preview needs a host page to supply props, styles, and the necessary context; it does not assume a Svelte component can be used directly as a React component.
+### Projects own content and domain meaning
 
-**Mounting** brings a registered project and its runtime entry point under Surface's management, associating project identity, runtime status, and a preview URL. Mounting alone does not mean copying an entire repository, automatically installing dependencies, or changing an existing application's configuration.
+Projects retain their source files, definitions, dependency declarations, and authoritative domain data. A capability or project decides what a parameter means, which operations are valid, and how domain results are computed. Surface Core should not acquire CAD geometry rules, physics models, financial formulas, or DecompozR orchestration logic.
 
-A **skill** describes how an agent discovers a project, selects an entry point, creates or modifies source files, runs a preview, and handles errors. CLI and MCP provide the executable capabilities; a skill should not be the only place where business rules are defined.
+An experience can use a browser page without making “page” the universal product abstraction. Existing artifact IDs, manifests, and commands remain valid implementation contracts; this conceptual model does not rename or migrate them.
 
-An **agent session binding** records which existing conversation owns an interaction and how Surface can reach its execution environment. The agent introduces itself by registering its project, session identity, and supported delivery mechanism.
+### State and actions have explicit owners
 
-An **interaction request** associates a page action with the input the agent is asking for. A response carries structured user data and is routed through that request to the bound session.
+Shared interaction does not make Surface the authority for every project's state. Distinguish project domain data, temporary view state, and Surface's durable runtime and interaction records. Each experience defines whether a change is a local preview, a proposed value, or an applied domain change, and where the authoritative value is stored.
 
-## Design principles
+For example, dragging a camera-angle control can update a preview. Submitting the angle can ask an agent to revise the design. The experience defines those semantics; the transport must not treat a preview change as an instruction to apply it. An event reports an interaction or outcome; an action requests work under an explicit contract. Receiving either does not grant additional authority.
 
-### Projects own their artifacts
+State, Actions, Events, Resources, Permissions, and Metadata are useful responsibility areas. They are not an adopted generic object schema, durable state engine, or complete permissions framework. Public contracts should be introduced only as their behavior and ownership become concrete.
 
-Pages, components, configuration, and dependency declarations stay within the user's project. Surface's runtime state can be reconstructed; continued use of the source files should not depend on a particular session or agent.
+### Interaction preserves identity and observable outcomes
 
-### Users choose the framework
+CLI and MCP share operation semantics; skills teach their use while executable behavior lives in the implementation. Agent adapters route an interaction to its exact registered conversation; renderers do not choose a replacement session. The current implementation can steer an active Codex turn or continue an idle conversation through its supported adapter without requiring a waiting tool call. Other providers require their own verified adapters.
 
-Prioritize a good Svelte experience and use plain HTML/JS to validate the basic path. The framework adapter mechanism should allow gradual expansion, with actual runtime evidence for each framework's supported scope.
+Saving a response, obtaining an adapter acknowledgement, and observing completed work are separate outcomes. Surface makes failures and uncertain delivery visible. The agent can publish a result or edit project source, and the experience can display that change without implying that every accepted submission has completed.
 
-### Dependencies have clear ownership
+Likewise, a process starting, a runtime becoming ready, and a person successfully using an experience are distinct observations. Readiness and diagnostics must identify the current runtime instance so a stale preview cannot be mistaken for a new result.
 
-Different projects may use different versions of the same package. Manage Surface's own dependencies separately from mounted projects' dependencies, avoiding global installations that conceal missing project dependencies.
+### Runtime ownership stays bounded
 
-### Access methods share semantics
+Surface manages the resources and lifecycle needed to run its mounted experiences. Project dependencies remain separate from application dependencies. Unmounting and uninstalling preserve project source and data; durable interaction records have their own retention and recovery requirements.
 
-MCP and CLI should return consistent identity, status, preview URLs, and error information for the same project. Agents can work through either interface, and users can inspect and operate projects directly.
+The initial runtime executes trusted local code. A shared origin/compiler and scoped access checks do not establish a security sandbox. Extensibility does not itself promise execution isolation, arbitrary frontend compatibility, transparent state preservation, or unlimited uptime.
 
-### Users can tell what actually happened
+## v0 commitment
 
-A process starting, a service becoming ready, a page becoming accessible, and an interaction passing inspection are distinct outcomes. Preview URLs should be associated with a specific project and current runtime instance. Failures should provide clear diagnostics so a page from an older instance is not mistaken for a new result.
+Deliver one useful loop with a bounded local Web implementation:
 
-The same distinction applies to responses: saving a button submission, having the agent runtime accept it, and observing the agent act on it are separate outcomes.
+```text
+Project creates interactive source
+  -> Surface registers, mounts, and runs it
+  -> Human opens the browser and interacts
+  -> Structured input reaches the bound project/agent conversation
+  -> The project or agent updates the result or interface
+```
 
-### Page responses continue the existing conversation
+An agent can use this loop without DecompozR. For example, it creates a deployment selector in an ordinary project, mounts it, and receives the submitted strategy and regions in the same conversation. It then interprets those values and publishes a result or updates the interface. What “Apply” authorizes is part of that experience's contract.
 
-The preferred interaction is to send input directly into the registered agent session. The agent should not need to keep a waiting tool call open. An adapter steers an active turn or starts a new turn in the same conversation when supported by that runtime. Delivery failures must remain visible; they must not silently create a replacement conversation.
+The v0 implementation target is:
 
-### Local execution has explicit boundaries
+- Bun + TypeScript, one local service and application HTTP listener, a built SvelteKit management shell, and one live Vite/Svelte compiler.
+- Project-owned Svelte component sources and scoped dependencies, explicit project identity, mounting, browser access, and readiness/error reporting. Mounted components render on the client; arbitrary mounted SvelteKit applications and mounted SSR are outside this contract.
+- Shared CLI/MCP operations, structured interaction requests/responses/results, and delivery to an exact existing agent session through the supported adapter.
+- Source iteration with scoped diagnostics and eligible HMR state preservation. Full refresh or compiler recreation can lose temporary view state.
+- A supported installation/lifecycle workflow that separates releases, durable service state, and project content, with observable failures and data-preserving recovery.
 
-The first phase targets local projects trusted by the user. Separate project dependencies and processes help manage execution, but do not constitute a security sandbox. Project registration, source access scope, and service lifecycles must be explicit. Supporting untrusted code would require a separately designed execution environment.
+This is a delivery target, not a claim that v0 is complete. The seven readiness experiments and [Milestone 1 shared project operations](implementation/01-project-core.md) establish parts of the loop. Supported packaging/lifecycle, runtime consolidation, management UI write flows, schema transitions, and resource policies remain implementation work. The [readiness review](server-readiness.md) records evidence and exit criteria.
 
-## First-phase scope
+### Deferred scope
 
-Validate the local service, project registration and mounting, page and component previews, project dependencies, feedback from source changes, and a minimal workflow connecting CLI and MCP. Include an early two-way experiment that sends a page response to a registered agent session and observes the agent update the page.
+v0 does not require a general capability registry or plugin marketplace, native renderers, a universal domain state/action schema, built-in CAD or simulation engines, or additional frontend frameworks. Projects can build useful visualizations with their supported dependencies without implying that Surface already offers those capabilities as platform services.
 
-Public hosting, collaboration between multiple users, production deployment, mixing components across frameworks, and untrusted code execution are outside the first experiment. Routing, server-side rendering, and specialized build systems implied by the goal of supporting any framework will be validated separately.
+Public hosting, multi-user collaboration, remote access, untrusted code execution, arbitrary application hosting, and general agent orchestration are also outside v0. Future capabilities should address concrete user needs and validate their own contracts; they should not expand Core with domain-specific behavior.
 
-## A successful experience
+## Delivery priority and success
 
-After a user requests an interactive interface in an existing project, an agent can create a page and return a working preview. The user selects an option or adjusts parameters and submits them; the response reaches the same agent conversation, and the agent updates the page accordingly. The user can inspect the source files, restart the preview, or hand the files to another agent to continue the work.
+The next implementation milestone is supported installation and lifecycle for this local Web loop. It must preserve the architecture boundaries above without making a generic capability platform a prerequisite. Follow the [implementation sequence](server-readiness.md#implementation-sequence-and-exit-criteria); introduce new experiments only for specific unanswered decisions.
 
-See [agent interaction](agent-interaction.md) for the proposed return path and the [experiment roadmap](exploration.md) for specific experiments and acceptance criteria.
+Success means that a project can create an experience, a person can understand and manipulate it, the responsible project or agent receives meaningful structured input, and the resulting change is observable. The project retains its source and domain data so another session or agent can continue the work. Rendering a page alone does not complete that loop.
+
+See [architecture](architecture.md) for the current topology and historical hypotheses, and [agent interaction](agent-interaction.md) for the implemented return path and its limits.

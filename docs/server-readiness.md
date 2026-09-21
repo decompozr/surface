@@ -2,7 +2,15 @@
 
 Date: September 21, 2026 (America/Toronto).
 
-Implementation follow-up: [Milestone 1 — shared project operations](implementation/01-project-core.md) starts the sequence below; its own verification record distinguishes implemented work from the remaining milestones.
+Implementation status: [Milestone 1 — shared project operations](implementation/01-project-core.md) is implemented; its own verification record distinguishes that increment from the remaining milestones. Supported installation and lifecycle is next.
+
+## Product goal and v0 boundary
+
+The [product vision](vision.md) defines Surface as a shared, extensible interactive environment for people and agents, independent of DecompozR. The first server delivers one local Web loop: project-owned source is mounted and executed, a person interacts in a browser, structured input returns to the bound project/agent conversation, and the result or interface is updated.
+
+Experiences own their purpose and domain state. Capabilities provide rendering or domain computation. Core provides common identity, mounting, interaction, access, resource, and lifecycle mechanisms. Graph, CAD, simulation, native representations, and a general capability protocol are longer-term directions. They are not prerequisites for completing the Svelte v0 loop.
+
+Milestone 2 must turn installation and lifecycle into a supported workflow for that loop while preserving project ownership and the distinction between submitted input, accepted delivery, and completed work. This vision alignment does not adopt installation defaults, schema migrations, a plugin API, or a universal state/action model.
 
 ## Recommendation
 
@@ -13,6 +21,8 @@ The recommended foundation is Bun + TypeScript, a prebuilt SvelteKit management 
 The main operational limit is retained compiler metadata under continuous new-source churn. The bounded run supports ordinary local iteration; it does not support an indefinite-daemon promise. Resource observability, a supported operating budget, and an explicit restart/recreation policy belong in the first-server implementation. A compiler restart can require full refresh and lose ephemeral preview state; it must not be presented as transparent HMR.
 
 ## Completed experiment gates
+
+This table records each experiment's original scope. Later shared project operations are covered by the Milestone 1 record above.
 
 | Gate | Evidence | Scope of conclusion |
 | --- | --- | --- |
@@ -38,9 +48,11 @@ The main operational limit is retained compiler metadata under continuous new-so
 | Lifecycle | Owner-authenticated stop, conservative stale recovery, drain admitted adapter work | Stop does not wait for the agent's entire turn; close/archive/unmount do not cancel that turn. |
 | Access | Loopback, management authorization, scoped page capabilities, minimized management output | Shared origin/compiler remain one trusted-code boundary. Remote access is deferred. |
 
-Paths used by the installation experiment (`releases/`, `state/`, `run/`) and the project manifest (`artifact.project.json`) are concrete candidates. The actual default installation directory, stable CLI command names, public schema versions, and migration rules have not been adopted. Keep those decisions reviewable rather than letting experiment paths become accidental public contracts.
+Paths used by the installation experiment (`releases/`, `state/`, `run/`) remain candidates for the supported installation layout. The `surface` CLI name is adopted by [Decision 0002](decisions/0002-surface-name-and-local-state.md), and Milestone 1 retains `artifact.project.json` version 1 with a separately versioned operation envelope. Default installation locations, the supported lifecycle command contract, and schema transition rules remain to be designed. Keep those decisions reviewable rather than letting experiment paths become accidental public contracts.
 
 ## Implementation sequence and exit criteria
+
+Milestone 1 has delivered the shared project operations through the core, HTTP, CLI, and MCP. Runtime consolidation, management UI writes, and the other remaining work are still bounded by the milestones below. Historical experiment results later in this document retain their original scope; they are not new verification of the broader vision.
 
 1. **Unify the core and ownership model.** Define one operation/result contract for project registration, artifact lifecycle, mount status, and interactions. Move the tested behavior out of separate experimental wrappers. Specify stable IDs, schema versions, project-manifest versus service-catalog authority, and failure reconciliation. Exit with deterministic state/ownership tests and the existing browser proofs passing through the shared core.
 2. **Make installation and lifecycle a supported workflow.** Package the launcher, choose an explicit home/default origin, separate release/state/project ownership, and implement start/status/stop/restart/upgrade/rollback/uninstall. Define supported schema transitions and retain callback executables. Exit with a clean installation using the packaged entry point, failed-upgrade recovery, uninstall/reinstall with preserved data, and no owned process residue.
