@@ -4,7 +4,7 @@ import { createConnection } from 'node:net';
 import { randomBytes } from 'node:crypto';
 import { parseArgs } from 'node:util';
 
-export type Host = 'singleton' | 'sveltekit';
+export type Host = 'singleton' | 'sveltekit' | 'contract';
 type Release = { version: 1; release: string; commit: string; host: Host; bun: string; installedAt: string };
 type Owner = { version: 1; release: string; commit: string; host: Host; pid: number; nonce: string; secret: string; instanceId: string; origin: string };
 const read = <T>(path: string): T => JSON.parse(readFileSync(path, 'utf8'));
@@ -27,7 +27,7 @@ function alive(pid: number) {
 
 export class Installation {
   readonly home: string;
-  constructor(home: string) { this.home = resolve(home); }
+  constructor(home: string, private readonly validateRelease?: (directory: string, stateDir: string) => Promise<void>) { this.home = resolve(home); }
   private initialize() {
     if (existsSync(this.home) && lstatSync(this.home).isSymbolicLink()) throw new Error('Installation home must not be a symlink.');
     mkdirSync(this.home, { recursive: true, mode: 0o700 });
@@ -57,10 +57,18 @@ export class Installation {
   }
   private selected() {
     const active = read<Release>(join(this.home, 'active.json'));
-    if (!/^[a-f0-9]{40}-(singleton|sveltekit)$/.test(active.release)) throw new Error('Invalid selected release identity.');
+    if (!/^[a-f0-9]{40}-(singleton|sveltekit|contract)$/.test(active.release)) throw new Error('Invalid selected release identity.');
     const manifest = read<Release>(join(this.home, 'releases', active.release, '.artifact-release.json'));
     if (JSON.stringify(active) !== JSON.stringify(manifest)) throw new Error('Selected release manifest mismatch.');
     return active;
+  }
+  /** Serialize an explicit, stopped-only state operation with install/start/stop. */
+  async withStoppedState<T>(operation: (stateDir: string, releaseDir: string) => Promise<T>) {
+    return this.locked(async () => {
+      this.ensureStopped();
+      const release = this.selected();
+      return operation(join(this.home, 'state'), join(this.home, 'releases', release.release));
+    });
   }
   private async control(owner: Owner, operation: 'status' | 'stop') {
     return new Promise<any>((done, reject) => {
@@ -83,10 +91,10 @@ export class Installation {
       socket.on('end', () => { if (!received.includes('\n')) { clearTimeout(timer); reject(new Error('Lifecycle socket ended without a verified response.')); } });
     });
   }
-  async install(repo: string, ref: string, host: Host = 'singleton') {
+  async install(repo: string, ref: string, host: Host = 'singleton', prepareEntry?: (directory: string, release: string) => Promise<void>) {
     return this.locked(async () => {
       this.ensureStopped();
-      if (!['singleton', 'sveltekit'].includes(host)) throw new Error('Unknown host.');
+      if (!['singleton', 'sveltekit', 'contract'].includes(host)) throw new Error('Unknown host.');
       const commit = await command(['git', '-C', realpathSync(repo), 'rev-parse', '--verify', `${ref}^{commit}`]);
       if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error('Expected a full Git commit identity.');
       const release = `${commit}-${host}`;
@@ -95,6 +103,8 @@ export class Installation {
         const manifest = read<Release>(join(directory, '.artifact-release.json'));
         if (manifest.commit !== commit || manifest.host !== host || manifest.release !== release) throw new Error('Existing release identity mismatch.');
         requireBun(directory, manifest);
+        await this.validateRelease?.(directory, join(this.home, 'state'));
+        await prepareEntry?.(directory, release);
         atomic(join(this.home, 'active.json'), manifest); return manifest;
       }
       const staging = join(this.home, 'releases', `.preparing-${crypto.randomUUID()}`);
@@ -104,15 +114,17 @@ export class Installation {
         await command(['tar', '-xf', archive, '-C', staging]);
         requireBun(staging);
         const mcpPackages = existsSync(join(staging, 'experiments/mcp/package.json')) ? ['experiments/mcp'] : [];
-        for (const folder of ['', 'experiments/singleton', ...mcpPackages, ...(host === 'sveltekit' ? ['experiments/sveltekit'] : [])]) {
+        for (const folder of ['', 'experiments/singleton', ...mcpPackages, ...(host !== 'singleton' ? ['experiments/sveltekit'] : [])]) {
           const cwd = join(staging, folder);
           if (!existsSync(join(cwd, 'bun.lock')) && !existsSync(join(cwd, 'bun.lockb'))) throw new Error(`Missing frozen Bun lockfile: ${folder || 'root'}.`);
           await command([process.execPath, 'install', '--frozen-lockfile', '--ignore-scripts'], cwd);
         }
-        if (host === 'sveltekit') await command([process.execPath, 'run', 'build'], join(staging, 'experiments/sveltekit'));
+        if (host !== 'singleton') await command([process.execPath, 'run', 'build'], join(staging, 'experiments/sveltekit'));
+        await this.validateRelease?.(staging, join(this.home, 'state'));
         const manifest: Release = { version: 1, release, commit, host, bun: Bun.version, installedAt: new Date().toISOString() };
         atomic(join(staging, '.artifact-release.json'), manifest);
         renameSync(staging, directory);
+        await prepareEntry?.(directory, release);
         // Activation is last: failed dependency preparation/build cannot displace the active release.
         atomic(join(this.home, 'active.json'), manifest);
         return manifest;
@@ -122,10 +134,11 @@ export class Installation {
   async activate(release: string) {
     return this.locked(async () => {
       this.ensureStopped();
-      if (!/^[a-f0-9]{40}-(singleton|sveltekit)$/.test(release)) throw new Error('Invalid release identity.');
+      if (!/^[a-f0-9]{40}-(singleton|sveltekit|contract)$/.test(release)) throw new Error('Invalid release identity.');
       const manifest = read<Release>(join(this.home, 'releases', release, '.artifact-release.json'));
       if (manifest.release !== release) throw new Error('Release manifest mismatch.');
       requireBun(join(this.home, 'releases', release), manifest);
+      await this.validateRelease?.(join(this.home, 'releases', release), join(this.home, 'state'));
       atomic(join(this.home, 'active.json'), manifest); return manifest;
     });
   }
@@ -137,6 +150,7 @@ export class Installation {
       if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Invalid port.');
       const release = this.selected();
       requireBun(join(this.home, 'releases', release.release), release);
+      await this.validateRelease?.(join(this.home, 'releases', release.release), join(this.home, 'state'));
       if (join(this.home, 'run/control.sock').length > 100) throw new Error('Installation home is too long for this Unix control socket experiment.');
       const runner = join(this.home, 'run/runner.ts');
       writeFileSync(runner, readFileSync(join(import.meta.dir, 'runner.ts')), { mode: 0o600 });

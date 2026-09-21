@@ -90,7 +90,7 @@ try {
     mcpClient = installedClient;
     const installedTransport = new StdioClientTransport({ command: process.execPath, args: [join(installedMcp, 'server.ts'), '--state-dir', join(home, 'state')], stderr: 'pipe' });
     await installedClient.connect(installedTransport);
-    const installedTools = (await installedClient.listTools()).tools;
+    const installedTools = (await installedClient.listTools()).tools as { name: string }[];
     assert.equal(installedTools.length, 19);
     assert.deepEqual(installedTools.filter(tool => tool.name.startsWith('surface_project_')).map(tool => tool.name).sort(), ['add', 'archive', 'init', 'list', 'mount', 'register', 'restore', 'unmount'].map(operation => `surface_project_${operation}`));
     const installedHealth = await installedClient.callTool({ name: 'surface_health', arguments: {} });

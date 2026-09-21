@@ -4,15 +4,15 @@ import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { startSingleton } from '../singleton/server.ts';
-import type { AgentAdapter } from '../../src/adapters/codex.ts';
 
 type Handler = (req: IncomingMessage, res: ServerResponse, next?: () => void) => void;
 /** Built Kit application handler + one live Vite component compiler, sharing one listener. */
-export async function startKitFoundation(options: { stateDir: string; port?: number; adapter?: AgentAdapter }) {
+export async function startKitFoundation(options: Parameters<typeof startSingleton>[0]) {
   const build = join(import.meta.dir, 'build/handler.js');
   if (!existsSync(build)) throw new Error('Build the SvelteKit shell first: bun run --cwd experiments/sveltekit build');
   const { handler } = await import(pathToFileURL(build).href) as { handler: Handler };
-  return startSingleton({ ...options, application(req, res) {
+  return startSingleton({ ...options, async application(req, res) {
+    if (await options.application?.(req, res)) return true;
     const path = new URL(req.url!, 'http://127.0.0.1').pathname;
     if (path !== '/' && !/^\/(manage|kit-api)(\/|$)/.test(path) && !path.startsWith('/_app/')) return false;
     (req as IncomingMessage & { artifactStateDir: string }).artifactStateDir = resolve(options.stateDir);

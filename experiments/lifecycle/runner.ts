@@ -6,7 +6,7 @@ import { timingSafeEqual } from 'node:crypto';
 
 // This runner only starts an installed host. Its private socket owns lifecycle control.
 const [home, release, host, portValue] = process.argv.slice(2);
-if (!home || !release || !['singleton', 'sveltekit'].includes(host!)) throw new Error('Invalid owned runner arguments.');
+if (!home || !release || !['singleton', 'sveltekit', 'contract'].includes(host!)) throw new Error('Invalid owned runner arguments.');
 const secret = process.env.SURFACE_RUNNER_SECRET ?? process.env.ARTIFACT_RUNNER_SECRET;
 const nonce = process.env.SURFACE_RUNNER_NONCE ?? process.env.ARTIFACT_RUNNER_NONCE;
 if (!secret || !nonce) throw new Error('Missing launch identity.');
@@ -19,9 +19,9 @@ const ownerPath = join(home, 'run/owner.json');
 const releasePath = join(home, 'releases', release);
 const manifest = JSON.parse(readFileSync(join(releasePath, '.artifact-release.json'), 'utf8'));
 if (manifest.release !== release || manifest.host !== host) throw new Error('Release identity mismatch.');
-const modulePath = host === 'sveltekit' ? 'experiments/sveltekit/server.ts' : 'experiments/singleton/server.ts';
+const modulePath = host === 'contract' ? 'experiments/server-contract/server.ts' : host === 'sveltekit' ? 'experiments/sveltekit/server.ts' : 'experiments/singleton/server.ts';
 const module = await import(pathToFileURL(join(releasePath, modulePath)).href);
-const start = host === 'sveltekit' ? module.startKitFoundation : module.startSingleton;
+const start = host === 'contract' ? module.startContractHost : host === 'sveltekit' ? module.startKitFoundation : module.startSingleton;
 const app = await start({ stateDir: join(home, 'state'), port: Number(portValue ?? 0) });
 const publicOwner = { version: 1, release, commit: manifest.commit, host, pid: process.pid, nonce, instanceId: app.instanceId, origin: app.origin };
 const owner = { ...publicOwner, secret };

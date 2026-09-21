@@ -6,7 +6,7 @@ Status: implementation contract in preparation. The project SQLite policy below 
 
 Make the bounded local Web interaction loop installable and operable through a supported launcher: install, start, status, stop, restart, upgrade, rollback, and uninstall. Preserve the boundaries in the [product vision](../vision.md) between application releases, durable service state, and project-owned sources/data.
 
-The existing [installation experiment](../experiments/2026-09-21-installation.md) and [project database experiment](../experiments/2026-09-21-project-database.md) supply evidence. Their paths and private endpoints are not automatically public contracts.
+The existing [installation experiment](../experiments/2026-09-21-installation.md) and [project database experiment](../experiments/2026-09-21-project-database.md) supply evidence. The [three first-server contract experiments](../experiments/2026-09-21-server-contract.md) now add an installed bundled entry point, a bounded preferences-schema migration/rollback gate, and declared optional backends through installed lifecycle operations. Their paths and private endpoints are not automatically public contracts.
 
 ## Accepted project storage policy
 
@@ -48,4 +48,4 @@ Keep installation work bounded to the current local Svelte runtime. Native rende
 5. Failed startup/upgrade and supported rollback have explicit, recoverable outcomes; project sources/data survive uninstall and reinstall.
 6. Owned host/installer processes exit as expected. New installed-lifecycle evidence is recorded separately from the development experiment results.
 
-The lazy storage gates are now executable in the project database experiment. Installed-release gates remain to be implemented and verified as part of this milestone.
+The lazy storage gates are executable in the project database experiment and now also pass through installed releases in the first-server contract experiment. Promotion to supported entry points, actual service-store migrations, and consolidation remain milestone work; the preferences fixture does not prove migration of registry or interaction records.

@@ -24,6 +24,8 @@
     "verify:project-access": "bun experiments/mcp/verify-projects.ts",
     "check:project-database": "tsc --noEmit -p experiments/project-database/tsconfig.json",
     "verify:project-database": "bun experiments/project-database/verify.ts",
+    "check:server-contract": "tsc --noEmit -p experiments/server-contract/tsconfig.json",
+    "verify:server-contract": "bun experiments/server-contract/verify.ts",
     "surface": "bun src/cli/index.ts"
   },
   "dependencies": {
