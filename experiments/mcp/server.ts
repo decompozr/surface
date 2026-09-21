@@ -93,9 +93,19 @@ export function createMcpServer(stateDir: string) {
     mount: { projectRoot: absolutePath, artifactId: id }, unmount: { projectRoot: absolutePath, artifactId: id },
     archive: { projectRoot: absolutePath, artifactId: id }, restore: { projectRoot: absolutePath, artifactId: id },
   };
+  const projectDescriptions = {
+    init: 'Create a project-owned manifest with a stable identity. Refuses to overwrite an existing manifest.',
+    add: 'Register an existing project-relative source folder under a display name and a stable artifact ID.',
+    list: 'Read project definitions, source availability and observed runtime state separately.',
+    register: 'Bind the stable project identity to its canonical root in this server.',
+    mount: 'Mount the selected active artifact and prepare its declared dependencies.',
+    unmount: 'Make the selected preview unavailable while retaining source, definitions and interactions.',
+    archive: 'Unmount the selected artifact and mark its definition archived; retain source and dependencies.',
+    restore: 'Unarchive a definition. Leaves runtime state unchanged; mount explicitly when needed.',
+  };
   for (const operation of Object.keys(projectShapes) as (keyof typeof projectShapes)[]) {
     server.registerTool(`artifact_project_${operation}`, {
-      description: `Run project ${operation} through the existing Artifact server. Project identity and lifecycle rules are enforced by the server. Does not start a server.`,
+      description: `${projectDescriptions[operation]} Uses the existing Artifact server; does not start one. An unknown outcome must be inspected before retrying.`,
       inputSchema: z.strictObject(projectShapes[operation]), outputSchema: projectOutputSchema,
       annotations: { readOnlyHint: operation === 'list', destructiveHint: operation !== 'list', openWorldHint: operation !== 'list' },
     }, async input => {

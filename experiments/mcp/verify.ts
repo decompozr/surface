@@ -148,7 +148,7 @@ try {
   const unavailable = (await tool('health', {}, true)).output;
   assert.equal(unavailable.status, 'unavailable');
   assert.equal(existsSync(join(stateDir, 'connection.json')), false);
-  assert.equal((await client.listTools()).tools.length, 11);
+  assert.equal((await client.listTools()).tools.length, 19);
   observations.unavailableDoesNotStartServer = true;
   writeFileSync(join(stateDir, 'connection.json'), initialConnection);
   assert.equal((await tool('health', {}, true)).output.status, 'unavailable');

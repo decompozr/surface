@@ -111,14 +111,14 @@ try {
   await page.getByRole('heading', { name: 'Shared project core updated' }).waitFor();
   await tool('unmount', { projectRoot: alpha.projectRoot, artifactId: a.id });
   assert.equal((await fetch(mountA.previewUrl)).status, 404);
-  assert.equal((await cli(alpha.projectRoot, 'list')).artifacts[0].runtime, null);
+  assert.equal((await cli(alpha.projectRoot, 'list')).artifacts[0].runtime.status, 'unmounted');
   await tool('restore', { projectRoot: alpha.projectRoot, artifactId: a.id }, true);
   assert.equal(readFileSync(join(alpha.source, 'bun.lock'), 'utf8'), lock);
   assert.equal(readFileSync(join(alpha.projectRoot, 'README.md'), 'utf8'), 'User-owned project.\n');
   assert.ok(existsSync(join(alpha.source, 'node_modules/svelte')));
   assert.equal(app.vite, compiler); assert.equal(app.instanceId, identity);
   assert.equal(await neighbor.evaluate(() => (window as any).documentMarker), 'beta');
-  observed('MCP archive/CLI restore/remount preserve stable routes and project files; unmount removes runtime visibility, while the neighboring document and counter survive under the same compiler/server instance.');
+  observed('MCP archive/CLI restore/remount preserve stable routes and project files; unmount reports inactive runtime state, while the neighboring document and counter survive under the same compiler/server instance.');
 
   await app.stop(); app = await startSingleton({ stateDir, port: 0 });
   assert.equal((await tool('list', { projectRoot: alpha.projectRoot })).data.projectId, aProject.projectId);

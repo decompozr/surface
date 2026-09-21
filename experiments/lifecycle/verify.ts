@@ -90,7 +90,9 @@ try {
     mcpClient = installedClient;
     const installedTransport = new StdioClientTransport({ command: process.execPath, args: [join(installedMcp, 'server.ts'), '--state-dir', join(home, 'state')], stderr: 'pipe' });
     await installedClient.connect(installedTransport);
-    assert.equal((await installedClient.listTools()).tools.length, 11);
+    const installedTools = (await installedClient.listTools()).tools;
+    assert.equal(installedTools.length, 19);
+    assert.deepEqual(installedTools.filter(tool => tool.name.startsWith('artifact_project_')).map(tool => tool.name).sort(), ['add', 'archive', 'init', 'list', 'mount', 'register', 'restore', 'unmount'].map(operation => `artifact_project_${operation}`));
     const installedHealth = await installedClient.callTool({ name: 'artifact_health', arguments: {} });
     assert.equal(installedHealth.structuredContent.data.instanceId, first.instanceId);
     const requests = await installedClient.callTool({ name: 'artifact_list', arguments: { kind: 'requests' } });
