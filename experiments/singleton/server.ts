@@ -7,6 +7,7 @@ import { scopedDependencies } from './dependencies.ts';
 import { createInteractions } from './interactions.ts';
 import { createProjectRoutes } from '../../src/server/project-routes.ts';
 import { InputError } from '../../src/core/service.ts';
+import type { ProjectIdentityResolver } from '../../src/core/project-contract.ts';
 import type { AgentAdapter } from '../../src/adapters/codex.ts';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 
@@ -66,7 +67,7 @@ function prepareDependencyLink(workspace: string, target: string) {
 }
 
 /** Exploratory one-process, one-Vite component host. Separate from the previous runtime experiment. */
-export async function startSingleton(options: { stateDir: string; port?: number; adapter?: AgentAdapter; application?: (req: IncomingMessage, res: ServerResponse) => boolean | Promise<boolean>; openMountResource?: (mount: MountResourceContext) => Promise<MountResource> }) {
+export async function startSingleton(options: { stateDir: string; port?: number; adapter?: AgentAdapter; projectIdentity?: ProjectIdentityResolver; application?: (req: IncomingMessage, res: ServerResponse) => boolean | Promise<boolean>; openMountResource?: (mount: MountResourceContext) => Promise<MountResource> }) {
   const stateDir = resolve(options.stateDir), workspace = join(stateDir, 'workspace');
   mkdirSync(workspace, { recursive: true, mode: 0o700 });
   const lockPath = join(stateDir, 'server.lock');
@@ -140,7 +141,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
   }
   // Project operations own the outer mutation queue. These runtime methods call
   // the same raw functions as the direct API, without recursively entering it.
-  const projectRoutes = createProjectRoutes({ stateDir, schedule: mutate, runtime: {
+  const projectRoutes = createProjectRoutes({ stateDir, identity: options.projectIdentity, schedule: mutate, runtime: {
     namespace: async name => namespace(name),
     mount: input => mount(input),
     listMounts: async () => registry.mounts.map(view),

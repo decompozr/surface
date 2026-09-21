@@ -26,7 +26,9 @@
     "verify:project-database": "bun experiments/project-database/verify.ts",
     "check:server-contract": "tsc --noEmit -p experiments/server-contract/tsconfig.json",
     "verify:server-contract": "bun experiments/server-contract/verify.ts",
-    "surface": "bun src/cli/index.ts"
+    "surface": "bun src/cli/index.ts",
+    "check:workspaces": "tsc --noEmit -p experiments/workspaces/tsconfig.json",
+    "verify:workspaces": "bun experiments/workspaces/verify.ts"
   },
   "dependencies": {
     "ajv": "8.20.0",

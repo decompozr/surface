@@ -89,6 +89,8 @@ The current implementation target focuses on Svelte + TypeScript. Additional fra
 
 ## Documentation
 
+- [Worktree workspace experiment](docs/experiments/2026-09-21-workspaces.md): one shared service, worktree namespaces, lazy isolated data, and source merge/cleanup with retained history.
+
 - [First-server contract experiments](docs/experiments/2026-09-21-server-contract.md): installed launcher, explicit schema compatibility/restore, and optional backend declarations with lazy SQLite through installed lifecycle operations.
 
 - [Project-owned SQLite experiment](docs/experiments/2026-09-21-project-database.md): optional project databases acquired on demand, named backend operations, browser persistence, and lifecycle/failure evidence; not yet a supported backend API.

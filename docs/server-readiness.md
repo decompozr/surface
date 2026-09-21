@@ -36,6 +36,8 @@ This table records each experiment's original scope. Later shared project operat
 
 ## Proposed first-server contract
 
+The [worktree workspace follow-up](experiments/2026-09-21-workspaces.md) verifies one shared service for main and linked worktrees, explicit workspace identity, lazy external data locations, and retirement followed by Git source merge/removal. It does not migrate existing canonical-root registrations or generically merge project databases.
+
 A subsequent [three-part contract experiment](experiments/2026-09-21-server-contract.md) verifies a bundled installed entry point, explicit migration/rollback compatibility for a small preferences store, and optional declared backends through installed lifecycle operations. These are bounded experimental implementations; public defaults, migrations of actual registry/interaction stores, and runtime consolidation remain open.
 
 An additional [project-owned SQLite experiment](experiments/2026-09-21-project-database.md) passed after the original seven gates. It demonstrated named project backend operations, separate durable databases, browser/HMR/restart persistence, writer-conflict handling, and connection release. Project SQLite is optional and acquired only when a validated database operation first needs it; registration, mounting, and restart do not create or open it. A default Surface metadata database would require a separate decision. A candidate declaration and installed integration now have the follow-up evidence above; supported declaration semantics, scheduling, and multi-mount ownership remain design decisions; this pilot is not yet a supported v0 capability.

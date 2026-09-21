@@ -8,8 +8,8 @@ export type Outcome = { ok: true; data: Scenario[] | Scenario | { storage: 'opti
 const root = realpathSync(import.meta.dir);
 export const databasePath = join(root, 'data', 'scenarios.sqlite');
 
-function openStore() {
-  const directory = join(root, 'data');
+function openStore(directory: string) {
+  const databasePath = join(directory, 'scenarios.sqlite');
   mkdirSync(directory, { recursive: true });
   if (realpathSync(directory) !== directory) throw new Error('Project data directory must not be a symlink.');
   for (const path of [databasePath, databasePath + '-wal', databasePath + '-shm']) {
@@ -40,11 +40,12 @@ function openStore() {
 }
 
 // Constructing the backend is inert. Only a validated database operation acquires a store.
-export function createProjectBackend() {
+export function createProjectBackend(options?: { dataDirectory: string }) {
+  const directory = options?.dataDirectory ?? join(root, 'data');
   let store: ReturnType<typeof openStore> | undefined;
   let closed = false, opens = 0;
   function acquire() {
-    if (!store) { store = openStore(); opens++; }
+    if (!store) { store = openStore(directory); opens++; }
     return store;
   }
   return {

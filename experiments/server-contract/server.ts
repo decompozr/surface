@@ -31,7 +31,7 @@ async function body(req: IncomingMessage) {
   for await (const part of req) { size += part.length; if (size > 8192) throw new Error('Payload too large.'); text += part.toString(); }
   return JSON.parse(text);
 }
-export function backendRuntime(stateDir: string) {
+export function backendRuntime(stateDir: string, context?: (mount: MountResourceContext) => Promise<unknown>) {
   type Entry = { root: string; backend: Backend; token: string; operations: Set<string> };
   const entries = new Map<string, Entry>(), roots = new Set<string>();
   return {
@@ -44,7 +44,7 @@ export function backendRuntime(stateDir: string) {
       try {
         const module = await import(pathToFileURL(config.modulePath).href);
         if (module.apiVersion !== 1 || typeof module.createProjectBackend !== 'function') throw new Error('Backend module must export API 1 and a factory.');
-        backend = module.createProjectBackend();
+        backend = module.createProjectBackend(await context?.(mount));
         if (!backend || typeof backend.invoke !== 'function' || typeof backend.close !== 'function') throw new Error('Invalid backend factory contract.');
         const key = `${mount.namespace}/${mount.name}`, entry = { root, backend, token: randomBytes(32).toString('hex'), operations: new Set<string>(config.operations) };
         if (entries.has(key)) throw new Error('Backend scope already mounted.');

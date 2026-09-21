@@ -33,6 +33,10 @@ Surface metadata is a separate decision. If SQLite is later chosen for the servi
 | Upgrade/rollback | Define compatible service schema transitions and preserve callback executables needed by unresolved work. A service rollback does not imply a project database schema rollback. |
 | Uninstall/reinstall | Remove only owned application resources; preserve service/project data according to the explicit contract and verify it remains usable. |
 
+## Worktree follow-up
+
+The [workspace experiment](../experiments/2026-09-21-workspaces.md) now demonstrates one shared service with worktree-scoped resources. It avoids per-worktree service state and keeps lazy domain data outside disposable roots. Source merges through Git; runtime retirement preserves history and data rather than migrating a whole workspace into main. Adoption still needs an explicit migration from the current single-root ledger and integration with the supported launcher.
+
 ## Remaining implementation decisions
 
 The supported launcher distribution, default installation/state paths, default origin/port, exact command flags, and service schema transition policy still need concrete choices. Supported backend declarations, action access discovery, multiple mounts sharing a project connection, and execution budgets also remain open. The optional synchronous backend pilot is not automatically promoted to a supported API by adopting lazy storage.

@@ -16,7 +16,7 @@ type Request = {
 
 /** HTTP adaptation only. Project validation, identity and persistence belong to the core. */
 export function createProjectRoutes(options: Options) {
-  const service = createProjectService({ stateDir: options.stateDir, runtime: options.runtime });
+  const service = createProjectService({ stateDir: options.stateDir, runtime: options.runtime, identity: options.identity });
   return async function route(request: Request): Promise<boolean> {
     if (request.pathname !== '/api/v1/projects/operations') return false;
     const reject = (httpStatus: number, code: string, message: string) => request.json({

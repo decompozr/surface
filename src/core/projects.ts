@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, renameSync, realpathSync, lstatSync, mkdirSync, openSync, closeSync, unlinkSync } from 'node:fs';
 import { join, resolve, relative, sep, isAbsolute, basename, normalize } from 'node:path';
-import type { ProjectArtifact, ProjectManifest, ProjectMount, ProjectOperation, ProjectOperationInput, ProjectOutcome, ProjectRuntime, ProjectScope } from './project-contract.ts';
+import type { ProjectArtifact, ProjectManifest, ProjectMount, ProjectOperation, ProjectOperationInput, ProjectOutcome, ProjectRuntime, ProjectScope, ProjectIdentityResolver } from './project-contract.ts';
 
 export const projectManifestName = 'artifact.project.json';
 type Ledger = { version: 1; projects: { projectId: string; root: string }[] };
@@ -85,11 +85,12 @@ function outcome(error: unknown): ProjectOutcome {
 }
 
 /** Factory is inert. Filesystem ownership and runtime work begin only on execute after transport authorization. */
-export function createProjectService(options: { stateDir: string; runtime: ProjectRuntime }) {
+export function createProjectService(options: { stateDir: string; runtime: ProjectRuntime; identity?: ProjectIdentityResolver }) {
   async function runtime<T>(action: () => Promise<T>): Promise<T> {
     try { return await action(); } catch (error) { throw new ProjectError('RUNTIME_ERROR', error instanceof Error ? error.message : 'Runtime operation failed.', 'failed'); }
   }
   async function bind(root: string, manifest: ProjectManifest) {
+    if (options.identity) return; // The opt-in resolver has already validated this operation.
     mkdirSync(options.stateDir, { recursive: true, mode: 0o700 });
     const file = join(options.stateDir, 'project-bindings.json');
     // Every mutating execute owns its project first, then this short-lived shared ledger lock.
@@ -120,16 +121,14 @@ export function createProjectService(options: { stateDir: string; runtime: Proje
   function checkRuntime(mount: ProjectMount | null, root: string, source: string) {
     if (mount && (mount.projectRoot !== root || mount.source !== source)) reject('RUNTIME_IDENTITY_CONFLICT', 'Runtime mount identity differs from the project manifest. Reconcile it explicitly.');
   }
-  async function observedRuntime(root: string, manifest: ProjectManifest, artifact: ProjectArtifact, source = resolve(root, artifact.source)) {
-    const scope = projectArtifactScope(manifest.projectId, artifact.id);
+  async function observedRuntime(root: string, manifest: ProjectManifest, artifact: ProjectArtifact, scope: ProjectScope, source = resolve(root, artifact.source)) {
     const found = findRuntime(await runtime(() => options.runtime.listMounts()), scope);
     checkRuntime(found, root, source); return found;
   }
-  async function stop(root: string, manifest: ProjectManifest, artifact: ProjectArtifact) {
+  async function stop(root: string, manifest: ProjectManifest, artifact: ProjectArtifact, scope: ProjectScope) {
     await bind(root, manifest);
-    const prior = await observedRuntime(root, manifest, artifact);
+    const prior = await observedRuntime(root, manifest, artifact, scope);
     if (!prior || prior.status === 'unmounted') return prior;
-    const scope = projectArtifactScope(manifest.projectId, artifact.id);
     const stopped = await runtime(() => options.runtime.unmount(scope));
     if (stopped.namespace !== scope.namespace || stopped.name !== scope.name) throw new ProjectError('INVALID_RUNTIME_STATE', 'Runtime confirmed a different unmount scope.', 'failed');
     checkRuntime(stopped, root, resolve(root, artifact.source));
@@ -146,10 +145,12 @@ export function createProjectService(options: { stateDir: string; runtime: Proje
       atomic(file, manifest); return { ...manifest, projectRoot: root };
     }
     const manifest = readManifest(root);
+    const identity = await options.identity?.(root, manifest, input.operation);
+    const scopeFor = (id: string): ProjectScope => ({ ...projectArtifactScope(manifest.projectId, id), ...(identity ? { namespace: identity.namespace } : {}) });
     if (input.operation === 'list') {
       const mounts = await runtime(() => options.runtime.listMounts());
-      return { ...manifest, projectRoot: root, artifacts: manifest.artifacts.map(artifact => {
-        const route = projectArtifactScope(manifest.projectId, artifact.id), observed = findRuntime(mounts, route);
+      return { ...manifest, ...identity, projectRoot: root, artifacts: manifest.artifacts.map(artifact => {
+        const route = scopeFor(artifact.id), observed = findRuntime(mounts, route);
         return { ...artifact, route, ...sourceStatus(root, artifact), runtime: observed, runtimeIdentityMatches: observed === null ? null : observed.projectRoot === root && observed.source === resolve(root, artifact.source) };
       }) };
     }
@@ -158,17 +159,17 @@ export function createProjectService(options: { stateDir: string; runtime: Proje
       if (manifest.artifacts.some(item => item.name === input.name)) reject('NAME_CONFLICT', 'Artifact name already exists in this project.');
       if (manifest.artifacts.some(item => inside(resolve(root, item.source), canonical) || inside(canonical, resolve(root, item.source)))) reject('SOURCE_CONFLICT', 'Artifact source duplicates or overlaps an existing definition.');
       const artifact: ProjectArtifact = { id: crypto.randomUUID(), name: input.name!, source: relative(root, canonical).split(sep).join('/') || '.', archived: false };
-      manifest.artifacts.push(artifact); atomic(file, manifest); return { ...artifact, route: projectArtifactScope(manifest.projectId, artifact.id), projectRoot: root };
+      manifest.artifacts.push(artifact); atomic(file, manifest); return { ...artifact, route: scopeFor(artifact.id), projectRoot: root };
     }
-    if (input.operation === 'register') { await bind(root, manifest); return { projectId: manifest.projectId, projectRoot: root, registered: true }; }
+    if (input.operation === 'register') { await bind(root, manifest); return { projectId: manifest.projectId, ...identity, projectRoot: root, registered: true }; }
     const artifact = selected(manifest, input.artifactId!);
     if (input.operation === 'mount') {
       if (artifact.archived) reject('ARTIFACT_ARCHIVED', 'Artifact is archived. Restore it explicitly before mounting.');
       const source = resolveSource(root, artifact.source);
       // A replaced source symlink must not silently move a manifest's previously canonical path.
       if (source !== resolve(root, artifact.source)) reject('SOURCE_IDENTITY_CONFLICT', 'Stored artifact source now resolves to another path. Reconcile it explicitly.');
-      await bind(root, manifest); await observedRuntime(root, manifest, artifact, source);
-      const scope = projectArtifactScope(manifest.projectId, artifact.id);
+      await bind(root, manifest); await observedRuntime(root, manifest, artifact, scopeFor(artifact.id), source);
+      const scope = scopeFor(artifact.id);
       await runtime(() => options.runtime.namespace(scope.namespace));
       const mounted = await runtime(() => options.runtime.mount({ ...scope, source, projectRoot: root }));
       checkRuntime(mounted, root, source);
@@ -176,9 +177,9 @@ export function createProjectService(options: { stateDir: string; runtime: Proje
       if (mounted.status !== 'ready') throw new ProjectError('RUNTIME_MOUNT_FAILED', mounted.error ?? 'Mount did not become ready.', 'failed', { artifactId: artifact.id, runtime: mounted });
       return { artifactId: artifact.id, label: artifact.name, ...mounted };
     }
-    if (input.operation === 'unmount') return { artifactId: artifact.id, runtime: await stop(root, manifest, artifact) };
+    if (input.operation === 'unmount') return { artifactId: artifact.id, runtime: await stop(root, manifest, artifact, scopeFor(artifact.id)) };
     if (input.operation === 'archive') {
-      const stopped = await stop(root, manifest, artifact);
+      const stopped = await stop(root, manifest, artifact, scopeFor(artifact.id));
       artifact.archived = true;
       try { atomic(file, manifest); }
       catch (error) { throw new ProjectError('ARCHIVE_SAVE_FAILED', error instanceof Error ? error.message : 'Archive flag could not be saved.', 'failed', { artifactId: artifact.id, runtime: stopped, reconciliationRequired: true }); }
@@ -187,7 +188,7 @@ export function createProjectService(options: { stateDir: string; runtime: Proje
     if (!artifact.archived) reject('ARTIFACT_NOT_ARCHIVED', 'Artifact is not archived. Its runtime state is unchanged.');
     const source = resolveSource(root, artifact.source);
     if (source !== resolve(root, artifact.source)) reject('SOURCE_IDENTITY_CONFLICT', 'Stored artifact source now resolves to another path. Reconcile it explicitly.');
-    const observed = await observedRuntime(root, manifest, artifact, source);
+    const observed = await observedRuntime(root, manifest, artifact, scopeFor(artifact.id), source);
     artifact.archived = false; atomic(file, manifest);
     return { ...artifact, runtime: observed, runtimeChanged: false, next: observed?.status === 'ready' ? 'The existing runtime remains ready.' : 'Mount explicitly when ready.' };
   }
