@@ -39,6 +39,6 @@ bun experiments/sveltekit/verify.ts
 
 The script creates temporary project-owned source folders and mounts them after the Kit shell starts. It checks actual browser execution of two nanoid versions, opted-in draft retention through HMR/error recovery, an independently usable second namespace, fixture delivery through the existing interaction core, actual result CLI publication, reload restoration, scoped authorization, sanitized Kit views, unmount/remount, and the single listener/Vite topology. Malformed registry data deliberately produces a diagnostic rather than a false healthy empty view.
 
-The fixture adapter does not contact a model session. Evidence is written to ignored `.artifact/sveltekit-proof/`; temporary services, sources, and the fixture socket are cleaned up. An unmounted view may display its unavailable response. Reload after remounting: revisiting an identical capability-fragment URL can perform only a same-document navigation instead of requesting fresh content.
+The fixture adapter does not contact a model session. Evidence is written to ignored `.decompozr/artifact/sveltekit-proof/`; temporary services, sources, and the fixture socket are cleaned up. An unmounted view may display its unavailable response. Reload after remounting: revisiting an identical capability-fragment URL can perform only a same-document navigation instead of requesting fresh content.
 
 See the [experiment record](../../docs/experiments/2026-09-21-sveltekit-foundation.md) for observations, boundaries, and the foundation recommendation.

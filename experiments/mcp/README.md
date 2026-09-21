@@ -18,7 +18,7 @@ To use the adapter with an MCP host, start the singleton separately and configur
 bun /absolute/artifact/experiments/mcp/server.ts --state-dir /absolute/singleton-state
 ```
 
-The state directory must match the running singleton. Use absolute executable/script paths in host configuration. No host configuration is installed by this experiment. The default state directory is this checkout's `.artifact/singleton`.
+The state directory must match the running singleton. Use absolute executable/script paths in host configuration. No host configuration is installed by this experiment. The default state directory is this checkout's `.decompozr/artifact/singleton`.
 
 The adapter reads `connection.json` for each call, validates a loopback HTTP origin, and uses the management token locally. Restarting the singleton can change its port and token without restarting the MCP connection. Missing service state yields an error; it does not implicitly start a service.
 
@@ -52,4 +52,4 @@ Read the [implementation contract](../../docs/implementation/01-project-core.md)
 
 ## Evidence
 
-[Experiment record](../../docs/experiments/2026-09-21-mcp.md). `verify.ts` starts an isolated singleton and real SDK stdio client, exercises both interface directions with fixture agent delivery, restarts the singleton, and cleans up its temporary project and service. It does not contact a live agent. Summary evidence is written under ignored `.artifact/mcp-proof/`.
+[Experiment record](../../docs/experiments/2026-09-21-mcp.md). `verify.ts` starts an isolated singleton and real SDK stdio client, exercises both interface directions with fixture agent delivery, restarts the singleton, and cleans up its temporary project and service. It does not contact a live agent. Summary evidence is written under ignored `.decompozr/artifact/mcp-proof/`.

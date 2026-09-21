@@ -11,7 +11,7 @@ import { startSingleton } from './server.ts';
 // No live model calls: this regression proves singleton wiring, not provider behavior.
 const directory = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-interaction-')));
 const stateDir = join(directory, 'state');
-const evidenceDir = join(import.meta.dir, '../../.artifact/singleton-interaction-proof');
+const evidenceDir = join(import.meta.dir, '../../.decompozr/artifact/singleton-interaction-proof');
 mkdirSync(evidenceDir, { recursive: true });
 const socketPath = join(directory, 'fixture.sock');
 const socket = createServer(connection => connection.end());

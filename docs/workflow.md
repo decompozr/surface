@@ -32,7 +32,7 @@ artifact serve
 
 This foreground process manages the API on `127.0.0.1:4317`. Keep its terminal running. `artifact doctor` reports service availability without displaying the management token. `--state-dir /absolute/path` selects an independent service's records and must be passed consistently to all commands. `--port` changes the API port.
 
-The default state directory remains this checkout's `.artifact`, including when calling the globally linked CLI from another project. It contains private local records and must not be committed. There is one writer per state directory. This release does not install an OS service or promise background persistence after the terminal is closed.
+The default state directory remains this checkout's `.decompozr/artifact`, including when calling the globally linked CLI from another project. It contains private local records and must not be committed. There is one writer per state directory. This release does not install an OS service or promise background persistence after the terminal is closed.
 
 The bundled A/B demo is still available with `artifact serve --dev` after installing its dependencies. External mounts do not need that demo or its build.
 
@@ -135,6 +135,6 @@ bun test tests
 bun run verify:external
 ```
 
-`verify:external` explicitly installs the pinned starters into temporary projects outside the checkout, checks/builds both, opens Chrome, verifies custom submissions and CLI-published results, and checks stopping/restarting. Svelte hot updates and compile-error recovery are observed in the browser. The test uses a clearly identified fixture adapter and never sends a model message. Screenshots and a receipt are saved under ignored `.artifact/verification/`; temporary projects and managed processes are cleaned up.
+`verify:external` explicitly installs the pinned starters into temporary projects outside the checkout, checks/builds both, opens Chrome, verifies custom submissions and CLI-published results, and checks stopping/restarting. Svelte hot updates and compile-error recovery are observed in the browser. The test uses a clearly identified fixture adapter and never sends a model message. Screenshots and a receipt are saved under ignored `.decompozr/artifact/verification/`; temporary projects and managed processes are cleaned up.
 
 Earlier live Codex steering/idle-continuation evidence is recorded separately in [prototype evidence](prototype.md). Neither automated input nor fixture publication establishes personal user acceptance.

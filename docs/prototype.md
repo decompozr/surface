@@ -11,7 +11,7 @@ The prototype proves one focused loop: a Svelte page submits structured feedback
 - TypeScript 6 is used because the installed Svelte checking tool requires additional integration for TypeScript 7.
 - Ajv validates submitted data against the interaction's JSON schema.
 - The Codex adapter connects over an existing local Unix WebSocket with compression disabled. It does not start, stop, or reconfigure the shared Codex daemon.
-- Local records use JSON with atomic replacement and a single-server lock. `.artifact/` is excluded from Git.
+- Local records use JSON with atomic replacement and a single-server lock. `.decompozr/artifact/` is excluded from Git.
 
 ```text
 src/core/          Interaction records, validation, delivery orchestration
@@ -96,7 +96,7 @@ The page displays published result data separately from delivery acceptance. The
 
 ## Persistence and delivery limits
 
-By default, `.artifact/` belongs to this Artifact checkout, even when the CLI is invoked from another working directory. `--state-dir` chooses a separate state directory. The service includes that directory in the callback CLI command it sends to the agent.
+By default, `.decompozr/artifact/` belongs to this Artifact checkout, even when the CLI is invoked from another working directory. `--state-dir` chooses a separate state directory. The service includes that directory in the callback CLI command it sends to the agent.
 
 The state file contains session bindings, requests, scoped request capabilities, submitted data, receipts, and results. The connection file contains the local management token. Files are private to the local account and must not be committed.
 
@@ -115,7 +115,7 @@ At the original proof checkpoint, the prototype had no response replay queue, ex
 - Live active-turn delivery sent A / 200 from the browser into the exact already-running turn. The same agent invoked the result CLI; the browser displayed its confirmation.
 - The initial idle run reached the correct thread but its callback failed because the test session lacked local network access. After configuring networking for that test session, the callback succeeded. A fresh idle interaction was then used to verify the complete path without a callback retry.
 
-Local proof receipts, thread and turn identities, and screenshots are retained under ignored `.artifact/live-proof/` and `.artifact/screenshots/`. These local records are evidence from this machine, not portable fixtures or claims of phone visibility.
+The original live-proof receipts, thread and turn identities, and screenshots were retained under ignored `.artifact/live-proof/` and `.artifact/screenshots/`. New verification output uses `.decompozr/artifact/` as recorded in [Decision 0001](decisions/0001-artifact-name-and-local-state.md). These local records are evidence from this machine, not portable fixtures or claims of phone visibility.
 
 ## Checks
 

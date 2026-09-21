@@ -41,7 +41,7 @@ Core outcomes contain `version: 1`, `ok`, `status` (`ok`, `rejected`, or `failed
 
 The project HTTP adapter returns the versioned envelope, with HTTP 200 for success, 400 for core rejection, and 500 for core failure. Authentication, method, body, and closing-service failures retain their appropriate transport status. Existing interaction and mount API behavior remains compatible.
 
-The new CLI command is `artifact project OP --project ROOT --state-dir STATE`, with operation-specific flags. Its checkout default is `.artifact/singleton`, matching the singleton host; explicitly pass the state directory when using the Kit wrapper or an installed release. The eight `artifact_project_*` MCP tools call the same endpoint through a shared local management client. All operations, including initialization and listing, require the selected singleton to be running. Neither adapter starts a server implicitly.
+The new CLI command is `artifact project OP --project ROOT --state-dir STATE`, with operation-specific flags. Its checkout default is `.decompozr/artifact/singleton`, matching the singleton host; explicitly pass the state directory when using the Kit wrapper or an installed release. The eight `artifact_project_*` MCP tools call the same endpoint through a shared local management client. All operations, including initialization and listing, require the selected singleton to be running. Neither adapter starts a server implicitly.
 
 The client rereads the connection per call, requires an exact loopback HTTP origin, refuses redirects, keeps the management token local, and never retries automatically. A transport failure after a mutation is `unknown`; the operation may already have committed. A failed read is `unavailable`. Accepted delivery, completed agent work, and published results remain distinct in the existing interaction service.
 
@@ -95,7 +95,7 @@ bun run verify:singleton-interactions
 bun run verify:sveltekit
 ```
 
-The root browser test requires the bundled example UI build (`bun run build:ui`); the Kit browser verifier requires its shell build (`bun run --cwd experiments/sveltekit build`). Private receipts and screenshots remain in ignored `.artifact/` directories. Test-owned servers and browsers are stopped by their verifiers.
+The root browser test requires the bundled example UI build (`bun run build:ui`); the Kit browser verifier requires its shell build (`bun run --cwd experiments/sveltekit build`). Private receipts and screenshots remain in ignored `.decompozr/artifact/` directories. Test-owned servers and browsers are stopped by their verifiers.
 
 The installed SvelteKit lifecycle suite passed against the same integrated source commit `febff5404cf798099b70823c43c505fc1b097c97`. A clean archived release built the Kit shell and loaded the new server core. Its installed MCP advertised all 19 tools, including the eight expected project operations, and existing installed health/inspection calls used the same host. Upgrade/rollback, restart, crash recovery, uninstall/reinstall, and source/state preservation passed; all eight owned host processes exited. The new project-operation browser proof above ran from the integrated checkout, separately from this installed-host check.
 

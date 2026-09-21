@@ -115,4 +115,4 @@ The [resource experiment](experiments/2026-09-21-lifecycle-resources.md) found a
 - [External workflow](workflow.md): earlier CLI/skill setup and `bun run verify:external`.
 - [Original live proof](prototype.md): exact-session setup, delivery limits, and recorded live outcomes. Automated fixture suites do not contact a model session.
 
-Versioned scripts and experiment records make the observations reviewable. Local screenshots, receipts, and diagnostic logs remain in ignored `.artifact/` directories; they are not portable public evidence. The earlier consolidation recorded existing checkpoints. The linked integration follow-up records the subsequent fresh core, singleton, fixture/browser, review, and live-session checks separately.
+Versioned scripts and experiment records make the observations reviewable. Local screenshots, receipts, and diagnostic logs remain in ignored `.decompozr/artifact/` directories; they are not portable public evidence. The earlier consolidation recorded existing checkpoints. The linked integration follow-up records the subsequent fresh core, singleton, fixture/browser, review, and live-session checks separately.

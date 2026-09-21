@@ -63,11 +63,11 @@ try {
       await page.getByLabel('Agent result').filter({ hasText: 'svelte round trip complete' }).waitFor();
       console.log('svelte: hot update and compile-error recovery observed in Chromium');
     }
-    mkdirSync(join(root, '.artifact/verification'), { recursive: true });
-    await page.screenshot({ path: join(root, `.artifact/verification/${framework}-external.png`), fullPage: true });
+    mkdirSync(join(root, '.decompozr/artifact/verification'), { recursive: true });
+    await page.screenshot({ path: join(root, `.decompozr/artifact/verification/${framework}-external.png`), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Mobile viewport overflows.');
-    await page.screenshot({ path: join(root, `.artifact/verification/${framework}-mobile.png`), fullPage: true });
+    await page.screenshot({ path: join(root, `.decompozr/artifact/verification/${framework}-mobile.png`), fullPage: true });
     assert(errors.length === 0, errors.join('\n'));
     const oldUrl = runtime.previewUrl;
     await cli('stop', '--runtime', runtime.id);
@@ -84,7 +84,7 @@ try {
   const runtimes = await cli('runtimes');
   assert(runtimes.length === 2 && runtimes.every((runtime: { status: string }) => runtime.status === 'ready'), 'Two runtimes did not coexist.');
   await cli('doctor');
-  writeFileSync(join(root, '.artifact/verification/external.json'), JSON.stringify({ at: new Date().toISOString(), evidence, concurrentRuntimes: 2, liveAgent: false }, null, 2));
+  writeFileSync(join(root, '.decompozr/artifact/verification/external.json'), JSON.stringify({ at: new Date().toISOString(), evidence, concurrentRuntimes: 2, liveAgent: false }, null, 2));
   console.log('PASS: two independent project runtimes; no model messages sent.');
 } finally {
   await browser.close(); await app.stop(); rmSync(directory, { recursive: true, force: true });

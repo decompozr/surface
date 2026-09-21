@@ -22,7 +22,7 @@ bun run singleton list
 bun run singleton unmount --namespace project-a --name panel
 ```
 
-All commands accept `--state-dir /absolute/path`; `serve` also accepts `--port`. The default experimental state is `.artifact/singleton` in this checkout. A lock rejects a second writer. Ctrl+C stops the singleton. Registrations are restored when it starts again, except mounts explicitly unmounted.
+All commands accept `--state-dir /absolute/path`; `serve` also accepts `--port`. The default experimental state is `.decompozr/artifact/singleton` in this checkout. A lock rejects a second writer. Ctrl+C stops the singleton. Registrations are restored when it starts again, except mounts explicitly unmounted.
 
 ## Source folder contract
 
@@ -102,7 +102,7 @@ bun run singleton request --binding BINDING_ID \
   --title "Choose the next change"
 ```
 
-The component must appear in the ready mount's discovery catalog. `request` returns a `previewUrl` with a request ID in the query and a per-request capability in the fragment. Open that link for interactions; the catalog's plain component link has no request credentials. Do not commit returned tokens or `.artifact` state. An omitted schema uses the earlier A/B feedback schema, so supply a schema matching a custom form.
+The component must appear in the ready mount's discovery catalog. `request` returns a `previewUrl` with a request ID in the query and a per-request capability in the fragment. Open that link for interactions; the catalog's plain component link has no request credentials. Do not commit returned tokens or `.decompozr/artifact` state. An omitted schema uses the earlier A/B feedback schema, so supply a schema matching a custom form.
 
 The host provides a browser client without requiring a package dependency:
 
@@ -193,7 +193,7 @@ bun run verify:singleton
 
 The script creates two clean temporary source folders with no `node_modules`, starts the singleton, creates two namespaces, and mounts the folders through the CLI. It verifies generated hosts/props, two real dependency versions, actual browser interaction, source HMR, component discovery, error recovery, unmount/remount, and registration restoration after an explicit server restart. It also checks management authorization, singleton locking, mount-name binding, and failed installation visibility.
 
-The same server PID, same Vite object, and one HTTP listener are checked across mount/unmount/remount. Screenshots and the observed module URLs are written to ignored `.artifact/singleton-proof/`. Temporary servers and source folders are cleaned up. This rendering verification does not contact a model session or represent a personal user choice.
+The same server PID, same Vite object, and one HTTP listener are checked across mount/unmount/remount. Screenshots and the observed module URLs are written to ignored `.decompozr/artifact/singleton-proof/`. Temporary servers and source folders are cleaned up. This rendering verification does not contact a model session or represent a personal user choice.
 
 The separate interaction regression command is:
 
@@ -202,7 +202,7 @@ bun run verify:singleton-interactions
 bun run test:singleton
 ```
 
-It uses a deterministic adapter and the reusable [interaction form fixture](fixtures/InteractionForm.svelte), with two namespaces, HMR/error recovery, scoped request authorization, deduplication, unavailable/closed/unmounted outcomes, and restart restoration. It stores local evidence in ignored `.artifact/singleton-interaction-proof/`. See the [interaction experiment record](../../docs/experiments/2026-09-20-singleton-interactions.md) for its verification status and the separate live idle/active callback observations. Running the deterministic command does not contact a live model session.
+It uses a deterministic adapter and the reusable [interaction form fixture](fixtures/InteractionForm.svelte), with two namespaces, HMR/error recovery, scoped request authorization, deduplication, unavailable/closed/unmounted outcomes, and restart restoration. It stores local evidence in ignored `.decompozr/artifact/singleton-interaction-proof/`. See the [interaction experiment record](../../docs/experiments/2026-09-20-singleton-interactions.md) for its verification status and the separate live idle/active callback observations. Running the deterministic command does not contact a live model session.
 
 ## Resource boundary
 

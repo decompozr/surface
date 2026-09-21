@@ -10,7 +10,7 @@ import { startSingleton } from '../singleton/server.ts';
 const root = resolve(import.meta.dir, '../..');
 const temporary = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-project-access-')));
 const stateDir = join(temporary, 'server');
-const evidenceDir = join(root, '.artifact/project-access-proof'); mkdirSync(evidenceDir, { recursive: true });
+const evidenceDir = join(root, '.decompozr/artifact/project-access-proof'); mkdirSync(evidenceDir, { recursive: true });
 const observations: string[] = [];
 function observed(message: string) { observations.push(message); console.log(message); }
 const component = `<script lang="ts">

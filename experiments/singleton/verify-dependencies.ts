@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { startSingleton } from './server.ts';
 const directory = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-dependencies-')));
 const stateDir = join(directory, 'state');
-const evidenceDir = join(import.meta.dir, '../../.artifact/dependency-proof'); mkdirSync(evidenceDir, { recursive: true });
+const evidenceDir = join(import.meta.dir, '../../.decompozr/artifact/dependency-proof'); mkdirSync(evidenceDir, { recursive: true });
 const baselineOnly = process.argv.includes('--baseline');
 const observations: string[] = [];
 function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }

@@ -13,7 +13,7 @@ bun experiments/lifecycle/verify.ts
 bun experiments/lifecycle/verify.ts --repo /absolute/artifact --ref COMMIT --host sveltekit
 ```
 
-The SvelteKit ref must contain `experiments/sveltekit/server.ts`, its package/lockfile, and the `startKitFoundation` export. The verifier checks dependency-link realpaths on upgrade/rollback, uninstall followed by reinstall at a different revision, and refusal to replace a real directory or foreign symlink. It also checks that failed starts leave no owner, server lock, or connection record. The verifier uses real Git commits in a temporary fixture repository, frozen installations, real host subprocesses, HTTP requests, and Playwright browser checks. It never contacts an agent. Evidence is written under ignored `.artifact/lifecycle-proof/<host>/`.
+The SvelteKit ref must contain `experiments/sveltekit/server.ts`, its package/lockfile, and the `startKitFoundation` export. The verifier checks dependency-link realpaths on upgrade/rollback, uninstall followed by reinstall at a different revision, and refusal to replace a real directory or foreign symlink. It also checks that failed starts leave no owner, server lock, or connection record. The verifier uses real Git commits in a temporary fixture repository, frozen installations, real host subprocesses, HTTP requests, and Playwright browser checks. It never contacts an agent. Evidence is written under ignored `.decompozr/artifact/lifecycle-proof/<host>/`.
 
 ## Commands
 

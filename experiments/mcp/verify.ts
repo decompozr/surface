@@ -11,7 +11,7 @@ const root = resolve(import.meta.dir, '../..');
 const temporary = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-mcp-')));
 const stateDir = join(temporary, 'state'), source = join(temporary, 'project', 'panel');
 const projectRoot = join(temporary, 'project'), badSource = join(temporary, 'bad');
-const proof = join(root, '.artifact/mcp-proof'); mkdirSync(proof, { recursive: true });
+const proof = join(root, '.decompozr/artifact/mcp-proof'); mkdirSync(proof, { recursive: true });
 for (const path of [source, badSource]) {
   mkdirSync(join(path, 'src'), { recursive: true });
   writeFileSync(join(path, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies: { svelte: path === badSource ? '0.0.0' : '5.57.1' } }));

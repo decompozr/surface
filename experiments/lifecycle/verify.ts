@@ -12,7 +12,7 @@ const sourceRepo = resolve(values.repo ?? root), sourceRef = values.ref ?? 'HEAD
 const host = (values.host ?? 'singleton') as Host;
 const temporary = realpathSync(mkdtempSync('/tmp/artifact-lifecycle-'));
 const home = join(temporary, 'home'), fixtureRepo = join(temporary, 'repository'), project = join(temporary, 'project');
-const proof = join(root, '.artifact/lifecycle-proof', host); mkdirSync(proof, { recursive: true });
+const proof = join(root, '.decompozr/artifact/lifecycle-proof', host); mkdirSync(proof, { recursive: true });
 const observations: Record<string, unknown> = { host, fixtureOnly: true };
 const retainedRequestId = crypto.randomUUID();
 const ownedPids = new Set<number>();

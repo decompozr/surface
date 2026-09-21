@@ -59,6 +59,6 @@ bun run --cwd experiments/projects check
 bun experiments/projects/verify.ts
 ```
 
-The verification creates external temporary projects, runs actual CLI commands, mounts and interacts with a Svelte form in Chrome, then checks archive/restore, restart, source preservation, collisions, source loss, copied identities, and competing manifest/ledger writers. It does not contact a model session. Evidence lives in ignored `.artifact/project-management-proof/`; all temporary projects and the test server are cleaned up.
+The verification creates external temporary projects, runs actual CLI commands, mounts and interacts with a Svelte form in Chrome, then checks archive/restore, restart, source preservation, collisions, source loss, copied identities, and competing manifest/ledger writers. It does not contact a model session. Evidence lives in ignored `.decompozr/artifact/project-management-proof/`; all temporary projects and the test server are cleaned up.
 
 See the [experiment record](../../docs/experiments/2026-09-21-project-artifacts.md) for measured outcomes and remaining scope.

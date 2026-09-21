@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startSingleton } from './server.ts';
 const directory = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-soak-'))), stateDir = join(directory, 'state');
-const evidence = join(import.meta.dir, '../../.artifact/soak-proof'); mkdirSync(evidence, { recursive: true });
+const evidence = join(import.meta.dir, '../../.decompozr/artifact/soak-proof'); mkdirSync(evidence, { recursive: true });
 const probe = process.argv.includes('--probe');
 const samples: Record<string, any>[] = [];
 const started = performance.now();

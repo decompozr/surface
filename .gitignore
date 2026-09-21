@@ -17,6 +17,8 @@ coverage/
 *.log
 
 # Local Artifact sessions and browser verification
+.decompozr/artifact/
+# Keep private state from earlier checkouts ignored.
 .artifact/
 playwright-report/
 test-results/

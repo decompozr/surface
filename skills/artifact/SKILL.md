@@ -47,7 +47,7 @@ Resolve this skill's real directory to locate the checkout two directories above
      --schema-file /project/artifacts/panel/interaction.schema.json \
      --title "Choose a direction"
    ```
-   The component must be discovered in a ready mount. Always supply the custom form's schema; omitting it selects the earlier A/B schema. Share the returned interaction `previewUrl` only with its intended user. A plain component URL lacks interaction credentials. Do not commit tokens or `.artifact` state.
+   The component must be discovered in a ready mount. Always supply the custom form's schema; omitting it selects the earlier A/B schema. Share the returned interaction `previewUrl` only with its intended user. A plain component URL lacks interaction credentials. Do not commit tokens or `.decompozr/artifact` state.
 
 ## Build the interaction component
 

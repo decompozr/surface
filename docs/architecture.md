@@ -20,7 +20,7 @@ The [server readiness review](server-readiness.md) recommends this topology for 
 
 The first implementation uses Bun 1.4.0 and TypeScript for the service and CLI, Bun's HTTP server and test runner, Ajv for response validation, and a Codex adapter using JSON-RPC over a local Unix WebSocket. The example uses Svelte 5 and Vite 8, with TypeScript 6 to match the Svelte checking tool's supported range.
 
-Artifact and the example have separate package manifests and `bun.lock` files. Prototype records live in an ignored `.artifact/` directory as an atomically replaced JSON file, with an exclusive lock preventing two servers from writing the same state directory. This is a single-server prototype store, not a distributed queue.
+Artifact and the example have separate package manifests and `bun.lock` files. Prototype records live in an ignored `.decompozr/artifact/` directory as an atomically replaced JSON file, with an exclusive lock preventing two servers from writing the same state directory. This is a single-server prototype store, not a distributed queue.
 
 The implementation now includes an external-project registry and one supervised process group per mounted frontend. Explicit commands run in project-owned dependency contexts and return direct loopback URLs. Svelte and vanilla starters share a browser client; the reusable skill teaches the CLI workflow. This is the earlier process-based implementation. The singleton now has a verified stdio MCP adapter; broader framework adapters below remain proposals. See the [workflow guide](workflow.md) and earlier [prototype evidence](prototype.md).
 

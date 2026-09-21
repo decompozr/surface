@@ -24,7 +24,7 @@ export async function main(args = process.argv.slice(2)) {
   const command = positionals[0];
   if (command === 'project') {
     const index = tokens.find(token => token.kind === 'positional')!.index;
-    return projectMain(args.filter((_, position) => position !== index), join(root, '.artifact/singleton'));
+    return projectMain(args.filter((_, position) => position !== index), join(root, '.decompozr/artifact/singleton'));
   }
   if (values.help || !command) {
     console.log(`Artifact prototype (Bun + TypeScript)
@@ -47,13 +47,13 @@ export async function main(args = process.argv.slice(2)) {
   result --request ID --data '{"message":"Updated","option":"B","width":120}'
   close --request ID
 
-All commands accept --state-dir PATH (default: this checkout's .artifact).
-Project commands default to this checkout's .artifact/singleton and require an existing singleton server.
+All commands accept --state-dir PATH (default: this checkout's .decompozr/artifact).
+Project commands default to this checkout's .decompozr/artifact/singleton and require an existing singleton server.
 serve runs in the foreground; Ctrl+C stops its own processes. --dev starts the Svelte Vite example.
 Live bind/send commands target the exact registered Codex conversation. No mock agent runs in production.`);
     return;
   }
-  const stateDir = resolve(values['state-dir'] ?? join(root, '.artifact'));
+  const stateDir = resolve(values['state-dir'] ?? join(root, '.decompozr/artifact'));
   const required = (key: keyof typeof values) => {
     const value = values[key];
     if (typeof value !== 'string' || !value) throw new Error(`Missing --${key}.`);

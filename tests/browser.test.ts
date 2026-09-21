@@ -30,11 +30,11 @@ test('real page submits selected data, disables repeats, and displays a separate
     // Explicit test fixture publication; this is not a live agent proof.
     app.service.result(request.id, { message: 'Option B is ready at 180 px.', option: 'B', width: 180 });
     await page.getByRole('heading', { name: 'Option B is ready at 180 px.' }).waitFor();
-    mkdirSync('.artifact/screenshots', { recursive: true });
-    await page.screenshot({ path: '.artifact/screenshots/desktop-fixture.png', fullPage: true });
+    mkdirSync('.decompozr/artifact/screenshots', { recursive: true });
+    await page.screenshot({ path: '.decompozr/artifact/screenshots/desktop-fixture.png', fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: '.artifact/screenshots/mobile-fixture.png', fullPage: true });
+    await page.screenshot({ path: '.decompozr/artifact/screenshots/mobile-fixture.png', fullPage: true });
     expect(errors).toEqual([]);
   } finally { await browser.close(); await app.stop(); rmSync(dir, { recursive: true, force: true }); }
 }, 20_000);

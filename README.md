@@ -8,6 +8,14 @@ This project is exploring the domain. Its executable code is an experimental imp
 
 Two experimental runtime paths currently coexist: the earlier CLI mounts external Svelte or vanilla projects through separate development processes; the preferred singleton pilot hosts discovered Svelte components through one Vite instance and now connects their forms to the existing interaction service. Automated fixture checks and separate live Codex idle/active round trips passed. The September 21 experiments now cover a real MCP adapter, scoped CommonJS prebundles, a built SvelteKit management shell, live agent source edits, bounded resource measurements, pinned repository installation, and project-owned artifact management. See the [server implementation readiness review](docs/server-readiness.md) for the proposed first-server scope and remaining limits. Remote access and additional frameworks remain deferred.
 
+## Local state directory
+
+The server is named **Artifact**; singleton describes its architecture. See [Decision 0001](docs/decisions/0001-artifact-name-and-local-state.md) for naming, path scope, and compatibility.
+
+Checkout defaults now live under `.decompozr/artifact/`: the earlier prototype uses that root, the singleton/`artifact project`/MCP use its `singleton/` subdirectory, and the Kit wrapper uses `sveltekit/`. Verification outputs also use this base. Explicit `--state-dir` values and lifecycle installation homes are unchanged.
+
+Existing `.artifact/` data is retained and remains ignored by Git; it is not automatically moved or merged. To inspect or continue using old state, explicitly pass its absolute path with `--state-dir`. Stored mount paths and callback commands can contain absolute paths, so moving a populated state directory needs deliberate reconciliation. Historical experiment records retain the original evidence paths; new runs use the new base.
+
 ## First implementation increment
 
 Project operations now have a shared core under `src/core`, an authenticated singleton API, an `artifact project` CLI, and eight corresponding MCP tools. Project definitions, canonical identity, archive/restore, and runtime status flow through the same service. See the [milestone contract and usage](docs/implementation/01-project-core.md). The runtime host and installer are still being consolidated; this increment does not complete all server milestones.

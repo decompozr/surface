@@ -118,6 +118,6 @@ export function createMcpServer(stateDir: string) {
 
 if (import.meta.main) {
   const { values } = parseArgs({ options: { 'state-dir': { type: 'string' } } });
-  const stateDir = resolve(values['state-dir'] ?? join(import.meta.dir, '../../.artifact/singleton'));
+  const stateDir = resolve(values['state-dir'] ?? join(import.meta.dir, '../../.decompozr/artifact/singleton'));
   void serveStdio(() => createMcpServer(stateDir));
 }

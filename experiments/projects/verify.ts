@@ -6,7 +6,7 @@ import { startSingleton } from '../singleton/server.ts';
 import { manifestName, withLock } from './project.ts';
 
 const directory = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-projects-'))), stateDir = join(directory, 'server');
-const evidenceDir = join(import.meta.dir, '../../.artifact/project-management-proof');
+const evidenceDir = join(import.meta.dir, '../../.decompozr/artifact/project-management-proof');
 mkdirSync(evidenceDir, { recursive: true });
 const observations: string[] = [];
 function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }

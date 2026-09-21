@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { startSingleton } from './server.ts';
 const directory = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-singleton-proof-')));
 const stateDir = join(directory, 'state');
-const evidenceDir = join(import.meta.dir, '../../.artifact/singleton-proof');
+const evidenceDir = join(import.meta.dir, '../../.decompozr/artifact/singleton-proof');
 mkdirSync(evidenceDir, { recursive: true });
 const versions = ['4.0.2', '5.1.5'];
 function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
