@@ -66,11 +66,14 @@ export function scopedDependencies(isActive: (source: string) => boolean) {
       const manifestPath = join(source, 'artifact.json');
       const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : {};
       const selected = manifest.prebundle ?? [];
-      if (!Array.isArray(selected) || selected.some(value => typeof value !== 'string' || !/^(?:@[a-z\d._-]+\/)?[a-z\d._-]+(?:\/[a-z\d._-]+)*$/i.test(value) || value === 'svelte' || value.startsWith('svelte/'))) throw new InputError('prebundle must list package entry specifiers other than the shared Svelte runtime.');
+      if (!Array.isArray(selected) || selected.some(value => typeof value !== 'string' || value.startsWith('.') || value.split('/').some(segment => segment === '.' || segment === '..') || !/^(?:@[a-z\d._-]+\/)?[a-z\d._-]+(?:\/[a-z\d._-]+)*$/i.test(value) || value === 'svelte' || value.startsWith('svelte/'))) throw new InputError('prebundle must list package entry specifiers other than the shared Svelte runtime.');
       const lock = ['bun.lock', 'bun.lockb'].filter(name => existsSync(join(source, name))).map(name => readFileSync(join(source, name)).toString('base64')).join(':');
       sources.set(source, { selected: new Set(selected), bundles: new Map(), lock });
       try {
-        for (const specifier of selected) await server.environments.client.pluginContainer.resolveId(specifier, join(source, '__artifact_dependency_entry__.js'));
+        for (const specifier of selected) {
+          await server.environments.client.pluginContainer.resolveId(specifier, join(source, '__artifact_dependency_entry__.js'));
+          if (!sources.get(source)?.bundles.has(specifier)) throw new InputError(`Selected package ${specifier} did not produce a scoped dependency bundle.`);
+        }
       } catch (error) { release(source); throw error; }
     },
     checkRequest(pathname: string) {

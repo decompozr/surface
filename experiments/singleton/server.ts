@@ -97,6 +97,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
     const task = pending.then(operation); pending = task.catch(() => {}); return task;
   }
   const installers = new Set<ReturnType<typeof Bun.spawn>>();
+  const retiredWatchPaths = new Map<string, string[]>();
   async function prepare(mount: Mount) {
     mount.log = '';
     try {
@@ -119,16 +120,16 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       if (existsSync(link) || (() => { try { lstatSync(link); return true; } catch { return false; } })()) removeLink(mount);
       symlinkSync(mount.source, link, 'dir');
       if (!vite.config.server.fs.allow.includes(mount.source)) vite.config.server.fs.allow.push(mount.source);
-      vite.watcher.add(mount.source);
+      vite.watcher.add([mount.source, ...(retiredWatchPaths.get(mount.source) ?? []).filter(path => existsSync(path))]);
+      retiredWatchPaths.delete(mount.source);
       await dependencies.prepare(mount.source);
       // Compile discovered components through the SAME Vite instance. This is development transformation, not a production bundle.
       for (const component of mount.components) await vite.transformRequest(`/mounts/${mount.namespace}/${mount.name}/${component}`);
       phase(mount, 'ready');
       return view(mount);
     } catch (error) {
-      dependencies.release(mount.source);
-      removeLink(mount);
       phase(mount, 'failed', error instanceof Error ? error.message : String(error));
+      await releaseMountResources(mount);
       return view(mount);
     }
   }
@@ -155,14 +156,27 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       if (module.id?.startsWith(record.source + '/') || module.id?.includes(`virtual:artifact-component/${record.namespace}/${record.name}/`)) vite.environments.client.moduleGraph.invalidateModule(module);
     }
   }
-  async function unmount(namespace: string, name: string) {
-    const record = find(namespace, name);
-    removeLink(record);
-    phase(record, 'unmounted');
+  async function releaseMountResources(record: Mount) {
     dependencies.release(record.source);
-    await vite.watcher.unwatch(record.source);
+    // Chokidar unwatch(root) closes only that exact path. Explicitly close
+    // descendants too; getWatched may retain empty directory metadata.
+    const roots = [record.source, mountPath(record)];
+    const paths = new Set(roots);
+    for (const [directory, children] of Object.entries(vite.watcher.getWatched())) {
+      if (!roots.some(root => inside(root, directory))) continue;
+      paths.add(directory); for (const child of children) paths.add(join(directory, child));
+    }
+    const ordered = [...paths].sort((a, b) => b.length - a.length);
+    await vite.watcher.unwatch(ordered);
+    retiredWatchPaths.set(record.source, ordered);
+    removeLink(record);
     vite.config.server.fs.allow = vite.config.server.fs.allow.filter(path => path !== record.source);
     invalidateMount(record);
+  }
+  async function unmount(namespace: string, name: string) {
+    const record = find(namespace, name);
+    phase(record, 'unmounted');
+    await releaseMountResources(record);
     vite.ws.send({ type: 'custom', event: 'artifact:unmounted', data: { namespace, name } });
     return view(record);
   }

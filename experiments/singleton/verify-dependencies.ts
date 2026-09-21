@@ -96,7 +96,7 @@ try {
     pkg.dependencies['native-entry'] = 'file:./packages/native-entry'; pkg.dependencies['style-entry'] = 'file:./packages/style-entry';
     writeFileSync(join(unsupported, 'package.json'), JSON.stringify(pkg));
     const failures: Record<string, string> = {};
-    for (const entry of ['missing-entry', 'native-entry', 'style-entry']) {
+    for (const entry of ['../secret', 'lodash/../secret', '.', 'missing-entry', 'native-entry', 'style-entry']) {
       manifest(unsupported, [entry]);
       const failed = await cli('mount', unsupported, '--namespace', 'deps', '--name', 'unsupported');
       assert(failed.status === 'failed' && failed.error, `Unsupported entry ${entry} unexpectedly became ready.`);

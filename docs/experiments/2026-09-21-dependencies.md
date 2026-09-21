@@ -44,7 +44,7 @@ The repeatable script creates clean temporary sources, invokes the real singleto
 - Alpha and Beta request disjoint virtual dependency URLs.
 - Beta mounts after Alpha is open. Alpha's document marker and opted-in counter remain intact.
 - A third mount introduces **slugify 1.6.6**, a new CommonJS entry, while both existing pages are open. It renders without replacing the server/Vite instance or refreshing Alpha.
-- A missing package entry, a Node builtin import, and an entry that emits CSS fail preparation. The failed mount has no usable preview; healthy mounted pages remain interactive.
+- Relative/traversal-like prebundle selections, a missing package entry, a Node builtin import, and an entry that emits CSS fail preparation. The failed mount has no usable preview; healthy mounted pages remain interactive.
 - Correcting the same failed mount's selected entries restores browser rendering using its existing frozen dependencies.
 - Unmount revokes previously loaded virtual dependency URLs, while another source's bundle remains readable. Remount resolves the original package version again.
 
