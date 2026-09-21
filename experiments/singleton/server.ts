@@ -175,8 +175,16 @@ export async function startSingleton(options: { stateDir: string; port?: number;
   }
   async function unmount(namespace: string, name: string) {
     const record = find(namespace, name);
+    // A retired definition may share its source with a later mount. It no
+    // longer owns that source's watchers, allow entry, or dependency bundles.
+    if (record.status === 'unmounted') return view(record);
     phase(record, 'unmounted');
-    await releaseMountResources(record);
+    try { await releaseMountResources(record); }
+    catch (error) {
+      // Keep incomplete cleanup retryable instead of claiming it completed.
+      phase(record, 'failed', error instanceof Error ? error.message : String(error));
+      throw error;
+    }
     vite.ws.send({ type: 'custom', event: 'artifact:unmounted', data: { namespace, name } });
     return view(record);
   }
