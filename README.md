@@ -8,6 +8,10 @@ This project is exploring the domain. Its executable code is an experimental imp
 
 Two experimental runtime paths currently coexist: the earlier CLI mounts external Svelte or vanilla projects through separate development processes; the preferred singleton pilot hosts discovered Svelte components through one Vite instance and now connects their forms to the existing interaction service. Automated fixture checks and separate live Codex idle/active round trips passed. The September 21 experiments now cover a real MCP adapter, scoped CommonJS prebundles, a built SvelteKit management shell, live agent source edits, bounded resource measurements, pinned repository installation, and project-owned artifact management. See the [server implementation readiness review](docs/server-readiness.md) for the proposed first-server scope and remaining limits. Remote access and additional frameworks remain deferred.
 
+## First implementation increment
+
+Project operations now have a shared core under `src/core`, an authenticated singleton API, an `artifact project` CLI, and eight corresponding MCP tools. Project definitions, canonical identity, archive/restore, and runtime status flow through the same service. See the [milestone contract and usage](docs/implementation/01-project-core.md). The runtime host and installer are still being consolidated; this increment does not complete all server milestones.
+
 ## Current exploration: one server with namespaces
 
 The preferred direction is now one singleton server with namespace-scoped symlink mounts, automatic project dependency preparation, component discovery, and a shared Vite instance. The [singleton experiment](experiments/singleton/README.md) is a separate executable pilot; it reuses the existing interaction core and agent adapter while keeping a separate CLI entry point from the earlier implementation. See the [mounting record](docs/experiments/2026-09-20-singleton-namespaces.md) and [integrated interaction evidence](docs/experiments/2026-09-20-singleton-interactions.md) for observed results and limits.

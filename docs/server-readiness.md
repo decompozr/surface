@@ -2,6 +2,8 @@
 
 Date: September 21, 2026 (America/Toronto).
 
+Implementation follow-up: [Milestone 1 — shared project operations](implementation/01-project-core.md) starts the sequence below; its own verification record distinguishes implemented work from the remaining milestones.
+
 ## Recommendation
 
 Start building the first actual server within a bounded local Svelte contract. The seven planned experiments answered the architectural questions needed to begin implementation, including repository installation, service lifecycle, and project artifact ownership. They do not establish that the experimental entry points already constitute a production server.

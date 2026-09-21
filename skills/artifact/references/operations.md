@@ -1,26 +1,28 @@
-# Experimental service and project operations
+# Service and project operations
 
-Read only the section needed for the current task. Examples run from the resolved Artifact checkout; use absolute script paths from other directories. The scripts below are separate experiments that share core operations, not a single stable public CLI. Keep the selected state directory consistent across interfaces.
+Read only the section needed for the current task. Examples run from the resolved Artifact checkout; use absolute script paths from other directories. Project operations now use the shared implementation core; the Kit host and release manager remain experimental entry points. The full public CLI is still being consolidated. Keep the selected state directory consistent across interfaces.
 
 ## Project-owned artifact management
 
-Use this when the project needs persistent artifact definitions, multiple named artifacts, or archive/restore. Read the [project-management guide](../../../experiments/projects/README.md) for source requirements and lifecycle semantics.
+Use this when the project needs persistent artifact definitions, multiple named artifacts, or archive/restore. The [shared-core contract](../../../docs/implementation/01-project-core.md) describes current ownership and failure semantics. Start/connect to the selected singleton first; all these operations require that service:
 
 ```sh
-bun experiments/projects/cli.ts init --project /project --name "My project"
-bun experiments/projects/cli.ts add --project /project --source artifacts/panel --name "Controls"
-bun experiments/projects/cli.ts register --project /project --state-dir /absolute/state
-bun experiments/projects/cli.ts list --project /project
-bun experiments/projects/cli.ts mount --project /project --artifact ARTIFACT_UUID --state-dir /absolute/state
+bun src/cli/index.ts project init --project /project --name "My project" --state-dir /absolute/state
+bun src/cli/index.ts project add --project /project --source artifacts/panel --name "Controls" --state-dir /absolute/state
+bun src/cli/index.ts project register --project /project --state-dir /absolute/state
+bun src/cli/index.ts project list --project /project --state-dir /absolute/state
+bun src/cli/index.ts project mount --project /project --artifact ARTIFACT_UUID --state-dir /absolute/state
 ```
 
-`init` creates only `artifact.project.json` in an existing project and refuses to overwrite it. `add` records an existing source folder; create source with ordinary file tools first. Reuse an existing manifest instead of initializing or regenerating identities. The manifest is versionable and keeps paths relative. Project/artifact UUIDs are identity; names are labels. Use returned `route.namespace`/`route.name` from `list`, or `namespace`/`name` from `mount`, in singleton interaction requests. Bind the canonical project root, not the nested source directory.
+Each response has `version`, `ok`, `status`, and `data` or structured `error`. Read returned IDs from `data`; do not regenerate them. `init` creates only the manifest in an existing root and refuses overwrite. `add` records an existing source folder; create source with ordinary file tools first. Its source argument is project-relative. The manifest is versionable and keeps paths relative. Project/artifact UUIDs are identity; names are labels. Use `data.artifacts[].route` from list, or `data.namespace`/`data.name` from mount, for singleton interactions. Bind the canonical enclosing project root, not the nested source directory.
 
-`archive --artifact ID` requires the selected server and unmounts before setting the archive flag. It preserves source, dependencies, lockfiles, and records. `restore --artifact ID` checks source availability and clears the flag without mounting; run `mount` explicitly. These commands also require `--project`; archive/unmount/mount require `--state-dir`. Do not remove source as a substitute for archive.
+`archive --artifact ID` unmounts before setting the archive flag and preserves source, dependencies, lockfiles, and records. `restore --artifact ID` checks source availability and clears the flag without mounting implicitly; its returned runtime is observed status, not a promise that it is stopped. These commands also require `--project` and the same state directory. Do not remove source as a substitute for archive.
 
-`list` reports missing source separately from archived state; neither is live service status. Copying or relocating the same project UUID to another root is rejected by the selected server's local identity ledger. Do not silently regenerate IDs, rebind namespaces, or delete ledger entries to make the error disappear. Migration/adoption is not implemented. Project and ledger locks protect different writers; inspect ownership on a lock error instead of automatically deleting it.
+`list` separates the archive flag, source availability, and `runtime` (null if no runtime record exists). Inspect `runtimeIdentityMatches` when reconciling direct administrative changes. Copying the same project UUID to a different canonical root is rejected on binding; absolute aliases of the same root are canonicalized. Do not silently regenerate IDs, rebind namespaces, or erase the ledger to bypass conflicts. Relocation/adoption is not implemented.
 
-Archive's runtime change and manifest write are separate steps. If interrupted, inspect both before retrying; an active manifest entry may already have an unmounted preview. The tool does not imply automatic remount, source deletion, or a distributed transaction.
+Project and ledger locks protect different writers; inspect ownership on a lock error rather than automatically deleting it. Archive's runtime change and manifest write are separate steps. If interrupted or failed, inspect both before retrying; an active manifest entry may already have an unmounted preview. The client never retries mutations. A transport `unknown` outcome requires reconciliation.
+
+The earlier `experiments/projects/cli.ts` remains a comparison fixture with direct filesystem writes. Use the new shared operations for current work; do not mix both writers as independent authorities.
 
 ## SvelteKit application-shell candidate
 
@@ -44,7 +46,7 @@ bun /absolute/artifact/experiments/mcp/server.ts --state-dir /absolute/state
 
 The adapter connects to an existing singleton and rereads its connection for each call. It does not start a host, replace the registry, or require a second Vite instance. No MCP-host configuration is installed automatically by the experiment.
 
-Tools cover health, namespace, mount/unmount, list, bind, request, inspect, send, result, and close. Important argument differences from CLI flags: mount uses `projectRoot`, bind uses `threadId`/`socketPath`, interactions use `bindingId`/`requestId`, and request schemas are JSON objects rather than schema-file paths. Discover the tool's actual schema before calling it. `artifact_list` selects `kind: "mounts"` or `"requests"`.
+Tools cover health, namespace, mount/unmount, list, bind, request, inspect, send, result, and close. The eight `artifact_project_*` tools add init/add/list/register/mount/unmount/archive/restore through the shared project core; they use `projectRoot`, `artifactId`, `source`, and `name` as appropriate. Their versioned outcomes match `artifact project`. Important argument differences from CLI flags: mount uses `projectRoot`, bind uses `threadId`/`socketPath`, interactions use `bindingId`/`requestId`, and request schemas are JSON objects rather than schema-file paths. Discover the tool's actual schema before calling it. `artifact_list` selects `kind: "mounts"` or `"requests"`.
 
 Inspect both transport/tool errors and the structured `ok`/`status` outcome. HTTP 200 can still represent failed preparation or failed/unknown delivery. A mutation transport failure is `unknown`, not proof that nothing happened; reconcile existing records before deciding whether to retry. Retain the response ID. The adapter never retries mutations.
 

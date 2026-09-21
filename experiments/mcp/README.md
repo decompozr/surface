@@ -44,6 +44,12 @@ A transport failure during a mutation returns `status: "unknown"`; the server ma
 
 Request creation intentionally returns a private `previewUrl` containing the browser capability in its fragment. It omits the redundant raw `token` property. Inspect/list do not reproduce capabilities. The adapter never returns the management credential. An MCP host connected here has management privileges; tool annotations and namespaces are not access-control boundaries.
 
+## Shared project operations
+
+The eight `artifact_project_init`, `artifact_project_add`, `artifact_project_list`, `artifact_project_register`, `artifact_project_mount`, `artifact_project_unmount`, `artifact_project_archive`, and `artifact_project_restore` tools use the same versioned project API and core as `artifact project`. Discover their strict schemas for required fields. All require an existing singleton, including init/list; only list is annotated read-only. Structured results include `version: 1`, `ok`, `status`, and `data` or an error with `code`/`message`. Transport uncertainty never causes an automatic retry.
+
+Read the [implementation contract](../../docs/implementation/01-project-core.md). Run `bun experiments/mcp/verify-projects.ts` for real SDK/CLI/browser verification of the shared lifecycle. The earlier eleven mount/interaction tools retain their original response contract.
+
 ## Evidence
 
 [Experiment record](../../docs/experiments/2026-09-21-mcp.md). `verify.ts` starts an isolated singleton and real SDK stdio client, exercises both interface directions with fixture agent delivery, restarts the singleton, and cleans up its temporary project and service. It does not contact a live agent. Summary evidence is written under ignored `.artifact/mcp-proof/`.

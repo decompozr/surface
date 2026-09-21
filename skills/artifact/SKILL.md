@@ -11,13 +11,13 @@ Keep sources, manifests, and lockfiles in the user's project. Bind interactions 
 
 For the preferred singleton/namespace workflow, read [the singleton guide](../../experiments/singleton/README.md). It supports component folders using pinned Svelte 5.57.1, automatic Bun dependency preparation, symlink mounts, and agent callbacks through one server/Vite instance. It does not support arbitrary framework configs or package managers. Selected JavaScript CommonJS entries can opt into source-scoped `artifact.json` prebundling; read the [dependency experiment](../../docs/experiments/2026-09-21-dependencies.md) before relying on that limited compatibility path.
 
-The installed `artifact` executable still runs the earlier per-project development-process implementation. For an existing runtime or an explicitly requested Svelte/vanilla application using that topology, follow [the external-project workflow](../../docs/workflow.md). Do not silently substitute it for the singleton. Preserve the user's existing framework/package-manager choices; report unsupported singleton cases instead of converting their project implicitly.
+The root `artifact serve` and legacy runtime commands still use the earlier per-project development-process implementation; the new `artifact project` subcommand targets the singleton shared core. For an existing runtime or an explicitly requested Svelte/vanilla application using that topology, follow [the external-project workflow](../../docs/workflow.md). Do not silently substitute it for the singleton. Preserve the user's existing framework/package-manager choices; report unsupported singleton cases instead of converting their project implicitly.
 
-Choose additional operations only when relevant to the task; read [experimental service and project operations](references/operations.md) for their exact routing:
+Choose additional operations only when relevant to the task; read [service and project operations](references/operations.md) for their exact routing:
 
 | Need | Entry point and boundary |
 | --- | --- |
-| Project-owned artifact catalog, stable identity, archive/restore | `experiments/projects/cli.ts`; versionable manifest, project UUIDs, source-preserving lifecycle |
+| Project-owned artifact catalog, stable identity, archive/restore | `src/cli/index.ts project`; versionable manifest, project UUIDs, source-preserving lifecycle |
 | SvelteKit management overview | `experiments/sveltekit/server.ts`; built application-shell candidate plus the same live component compiler, not a server per mount |
 | MCP tools for existing singleton operations | `experiments/mcp/server.ts`; implemented stdio adapter with CLI interoperability, no separate registry or automatic host startup |
 | Install a repository revision and manage its service | `experiments/lifecycle/manager.ts`; explicitly selected owned home, release/state separation, controlled start/stop/recovery |

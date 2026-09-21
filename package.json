@@ -21,7 +21,8 @@
     "verify:mcp": "bun experiments/mcp/verify.ts",
     "verify:sveltekit": "bun experiments/sveltekit/verify.ts",
     "verify:projects": "bun experiments/projects/verify.ts",
-    "verify:installation": "bun experiments/lifecycle/verify.ts"
+    "verify:installation": "bun experiments/lifecycle/verify.ts",
+    "verify:project-access": "bun experiments/mcp/verify-projects.ts"
   },
   "dependencies": {
     "ajv": "8.20.0",
