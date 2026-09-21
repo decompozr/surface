@@ -19,7 +19,16 @@ const observed=(text:string)=>{observations.push(text);console.log(text);};
 async function run(args:string[],cwd=base) {const result=await command(args,cwd);assert(result.code===0,result.err+'\n'+result.out);return result.out;}
 async function cli(cwd:string,...args:string[]) {return JSON.parse(await run([process.execPath,launcher,...args,'--home',home],cwd));}
 async function project(cwd:string,...args:string[]) {const result=await cli(cwd,'project',...args);assert(result.ok,JSON.stringify(result));return result.data;}
-async function start(port?:number) {const status=await cli(base,'start',...(port===undefined?[]:['--port',String(port)]));pids.push(status.pid);running=true;connection=JSON.parse(readFileSync(join(state,'connection.json'),'utf8'));return status;}
+async function start(port?:number) {
+  // Model a terminal/tool session ending after the CLI returns. Its process group
+  // must not own the long-lived host. Only signal this disposable launch group.
+  const session=Bun.spawn(['sh','-c','"$@" & wait','surface-start-session',process.execPath,launcher,'start',...(port===undefined?[]:['--port',String(port)]),'--home',home],{cwd:base,detached:true,stdin:'ignore',stdout:'pipe',stderr:'pipe'});
+  const [out,err,code]=await Promise.all([new Response(session.stdout).text(),new Response(session.stderr).text(),session.exited]);assert(code===0,err+'\n'+out);
+  const status=JSON.parse(out);pids.push(status.pid);running=true;
+  try{process.kill(-session.pid,'SIGTERM');}catch(error){if((error as NodeJS.ErrnoException).code!=='ESRCH')throw error;}
+  await Bun.sleep(200);assert((await cli(base,'status')).status==='running','Host did not survive launching session teardown.');
+  connection=JSON.parse(readFileSync(join(state,'connection.json'),'utf8'));return status;
+}
 async function stop() {await cli(base,'stop');running=false;assert(!existsSync(join(state,'server.lock')),'Host lock remains.');}
 async function snapshot() {
   const listed=await run(['git','-C',root,'ls-files','-z']);const extra=await run(['git','-C',root,'ls-files','--others','--exclude-standard','-z']);
@@ -38,7 +47,7 @@ try {
   renameSync(repo,repo+'-moved');repo+='-moved';
   const reserve=createServer();await new Promise<void>(done=>reserve.listen(0,'127.0.0.1',done));const port=(reserve.address() as {port:number}).port;await new Promise<void>(done=>reserve.close(()=>done()));
   await start(port);const origin=connection.origin;assert((await cli(base,'status')).status==='running','Status failed.');
-  observed('Pinned release installs the public surface executable; it starts and reports the shared workspace host after the source checkout moves, from an unrelated cwd and a home containing spaces.');
+  observed('Pinned release installs the public surface executable; the shared workspace host survives launching session/process-group teardown after the source checkout moves, from an unrelated cwd and a home containing spaces.');
   const registrations=await Promise.all([project(f.main,'register'),project(f.a,'register'),project(f.b,'register')]);
   const [main,a,b]=registrations;assert(new Set(registrations.map(r=>r.workspaceId)).size===3,'Workspace identities collided.');
   assert((await project(join(f.a,'ui'),'list')).workspaceId===a.workspaceId,'Nested cwd resolved to wrong worktree.');

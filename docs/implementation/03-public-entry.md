@@ -88,14 +88,14 @@ A pending migration blocks host startup. Ordinary failure restores the original 
 
 Install/upgrade/rollback/uninstall require a stopped owned host. Release activation validates declared workspace and interaction schema compatibility. Older releases without this descriptor cannot be selected through the public lifecycle entry. This gate does not invent general future migrations for every service store.
 
-Uninstall retains service metadata, Git source, persistent project data, backups and the bootstrap. Unresolved callback work blocks removal of needed release executables. No launchd/systemd service, login item or shell-profile modification is installed. `recover` is conservative about stale process ownership. Compiler budgets, longer uptime evidence, multiple backend mounts per workspace and general data promotion remain separate work.
+Uninstall retains service metadata, Git source, persistent project data, backups and the bootstrap. Unresolved callback work blocks removal of needed release executables. The owned host runs in its own process group, so the launching terminal/tool session can exit without terminating it. No launchd/systemd service, login item or shell-profile modification is installed. `recover` is conservative about stale process ownership. Compiler budgets, longer uptime evidence, multiple backend mounts per workspace and general data promotion remain separate work.
 
 ## Verification
 
 - `bun test tests experiments/singleton/interactions.test.ts experiments/project-database/backend.test.ts experiments/server-contract/contract.test.ts experiments/workspaces/identity.test.ts`
 - `bun run check`, plus affected experiment typechecks.
 - `bun run verify:surface-workspaces`: public CLI, Git branch/detached identity, browser isolation, exact fixture interaction, source merge/retirement/removal and lazy persistence.
-- `bun run verify:surface`: a pinned installed release and executable bootstrap from unrelated cwd after source move; main plus two worktrees; real Chrome save; real stdio MCP/CLI agreement; retirement, restart, uninstall/reinstall and no owned hosts left running.
+- `bun run verify:surface`: a pinned installed release and executable bootstrap from unrelated cwd after source move and launch-session process-group teardown; main plus two worktrees; real Chrome save; real stdio MCP/CLI agreement; retirement, restart, uninstall/reinstall and no owned hosts left running.
 
 The combined regression checkpoint passed **66 tests / 430 assertions**. Migration checks include a real post-migration mount at the original namespace, preserved accepted interaction identity, injected write failure, and verified-dead-owner recovery. Typechecks and the Surface skill validator passed.
 

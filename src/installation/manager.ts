@@ -156,6 +156,7 @@ export class Installation {
       const secret = randomBytes(32).toString('hex'), nonce = crypto.randomUUID();
       const log = openSync(join(this.home, 'run/host.log'), 'a', 0o600);
       const child = Bun.spawn([process.execPath, runner, this.home, release.release, release.host, String(port)], {
+        detached: true,
         env: { ...process.env, SURFACE_RUNNER_SECRET: secret, SURFACE_RUNNER_NONCE: nonce }, stdin: 'ignore', stdout: log, stderr: log,
       });
       closeSync(log);
