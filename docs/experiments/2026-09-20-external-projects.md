@@ -54,4 +54,6 @@ Automated form submissions are experiment inputs, not personal user choices or a
 
 ## Next experiment
 
+Subsequent user clarification selected singleton namespace/symlink mounting as the preferred direction. The [singleton experiment](2026-09-20-singleton-namespaces.md) supersedes expanding the per-project process topology.
+
 Mount two projects that intentionally require different versions of the same package. Verify module resolution and failure independence, then expose the stable operations through a thin MCP adapter and test CLI/MCP interoperability. Reconsider the API and storage design using those observations before treating them as stable contracts.

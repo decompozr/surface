@@ -7,6 +7,10 @@ description: Create and mount local interactive pages in a project with Artifact
 
 Use the existing project's framework and dependencies when appropriate. For a new interface, create a small workspace within the project; start with Svelte or vanilla HTML/TypeScript. Keep source and lockfiles in the user's project.
 
+## Choose the experiment deliberately
+
+The `artifact` CLI below is the earlier per-project development-process implementation. If the user asks for the singleton server, namespaces, symlink mounting, or automatic dependency preparation, read [the singleton pilot](../../experiments/singleton/README.md) and use its separate entry point. Do not silently substitute the older topology. The singleton pilot does not yet expose the agent callback workflow described below.
+
 ## Locate and diagnose
 
 Use `artifact --help` and `artifact doctor`. If the executable is not on PATH, resolve this skill's real directory: the Artifact checkout is two directories above it. Run `bun <checkout>/src/cli/index.ts` instead. Pass the same absolute `--state-dir` on every command if using a nondefault service.

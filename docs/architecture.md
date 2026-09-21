@@ -2,6 +2,12 @@
 
 This document records initial technical hypotheses, not implementation commitments. Gather evidence through the [experiment roadmap](exploration.md) before settling on stable interfaces.
 
+## Preferred direction after the mounting discussion
+
+The user clarified that the intended product should have one long-running server, namespaces, and symlink-mounted component folders. Mounting should prepare declared dependencies automatically, discover components, and compile/render them through a shared Vite instance. The per-project development-process implementation below is an earlier experiment, not the adopted target topology.
+
+The [singleton pilot](../experiments/singleton/README.md) tests this direction separately. It currently shares one pinned Svelte compiler/runtime, uses each source's ordinary ESM dependency tree, and returns namespace-based component hosts. The existing interaction API has not yet been integrated into this host. Error overlay and discovery-reload isolation need further design work.
+
 ## Prototype stack
 
 The first implementation uses Bun 1.4.0 and TypeScript for the service and CLI, Bun's HTTP server and test runner, Ajv for response validation, and a Codex adapter using JSON-RPC over a local Unix WebSocket. The example uses Svelte 5 and Vite 8, with TypeScript 6 to match the Svelte checking tool's supported range.
@@ -59,7 +65,7 @@ Report TypeScript transformation and type checking as separate diagnostic outcom
 
 - Each workspace keeps its dependency declarations and lockfile, with dependencies resolved in that project's context.
 - Respect existing package managers and workspace structures. Artifact and its initial example use Bun; this does not require externally mounted projects to use Bun.
-- Dependency installation is an explicit operation that reports its target directory and result. It must not be implicit in registration or mounting.
+- In the earlier process experiment, dependency installation was explicit and separate from mounting. The preferred singleton flow now prepares dependencies automatically during mount, using the source manifest and preserving existing lockfiles. The pilot makes installation status and failures visible.
 - Experiments with multiple projects must cover different versions of the same package to confirm that dependencies do not leak between projects.
 - Project scripts may execute local code. The first phase assumes user-trusted local code; separate processes do not provide a security sandbox.
 

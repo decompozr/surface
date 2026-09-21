@@ -1,0 +1,145 @@
+import { chromium } from '@playwright/test';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, realpathSync, lstatSync, existsSync, rmSync, unlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { startSingleton } from './server.ts';
+const directory = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-singleton-proof-')));
+const stateDir = join(directory, 'state');
+const evidenceDir = join(import.meta.dir, '../../.artifact/singleton-proof');
+mkdirSync(evidenceDir, { recursive: true });
+const versions = ['4.0.2', '5.1.5'];
+function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
+function makeProject(name: string, version: string) {
+  const source = join(directory, name); mkdirSync(join(source, 'src'), { recursive: true });
+  writeFileSync(join(source, 'package.json'), JSON.stringify({ name, private: true, type: 'module', dependencies: { svelte: '5.57.1', nanoid: version } }, null, 2));
+  writeFileSync(join(source, 'artifact.json'), JSON.stringify({ framework: 'svelte', components: 'src', props: { 'src/Counter.svelte': { label: name } } }));
+  writeFileSync(join(source, 'src/Counter.svelte'), `<script lang="ts">
+import { nanoid } from 'nanoid';
+import meta from 'nanoid/package.json';
+let {label}: {label:string} = $props();
+let count = $state(0);
+const identifier = nanoid(9);
+</script>
+<main><p>ARTIFACT / SINGLETON EXPERIMENT</p><h1>{label}</h1><p data-testid="version">nanoid {meta.version}</p><p data-testid="id">{identifier}</p><button onclick={()=>count++}>Count {count}</button></main>
+<style>:global(body){font-family:system-ui;background:#f7f6f0;color:#213b31;margin:0}main{max-width:640px;margin:10vh auto;padding:24px}h1{font-size:3rem}button{padding:12px 24px;background:#213b31;color:white;border:0;font:inherit}</style>`);
+  return source;
+}
+const alpha = makeProject('alpha', versions[0]!);
+const beta = makeProject('beta', versions[1]!);
+let app: Awaited<ReturnType<typeof startSingleton>> | undefined;
+let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
+const observations: string[] = [];
+function observed(message: string) { observations.push(message); console.log(message); }
+async function cli(...args: string[]) {
+  const process = Bun.spawn([Bun.which('bun')!, join(import.meta.dir, 'cli.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
+  const [out, error, code] = await Promise.all([new Response(process.stdout).text(), new Response(process.stderr).text(), process.exited]);
+  if (code !== 0) throw new Error(`${args.join(' ')} failed (${code}): ${error}\n${out}`);
+  return JSON.parse(out);
+}
+try {
+  app = await startSingleton({ stateDir, port: 0 });
+  const original = await cli('health');
+  const originalVite = app.vite;
+  const connection = JSON.parse(readFileSync(join(stateDir, 'connection.json'), 'utf8'));
+  const headers = { authorization: `Bearer ${connection.token}`, 'content-type': 'application/json' };
+  assert((await fetch(app.origin + '/api/namespaces')).status === 401, 'Unauthenticated management must be rejected.');
+  assert((await fetch(app.origin + '/api/namespaces', { headers: { ...headers, origin: 'https://example.com' } })).status === 403, 'External browser origins must be rejected.');
+  let duplicateRejected = false;
+  try { await startSingleton({ stateDir, port: 0 }); } catch { duplicateRejected = true; }
+  assert(duplicateRejected, 'A second singleton must not use the same state directory.');
+  assert(!existsSync(join(alpha, 'node_modules')), 'Fixture must start without node_modules.');
+  await cli('namespace', 'design');
+  await cli('namespace', 'analysis');
+  const mountedA = await cli('mount', alpha, '--namespace', 'design', '--name', 'controls');
+  const mountedB = await cli('mount', beta, '--namespace', 'analysis', '--name', 'controls');
+  assert(mountedA.status === 'ready' && mountedB.status === 'ready', 'Both mounts must be ready.');
+  assert(existsSync(join(alpha, 'node_modules')) && existsSync(join(beta, 'bun.lock')), 'Mount must install dependencies and create lockfiles automatically.');
+  assert(lstatSync(join(stateDir, 'workspace/mounts/design/controls')).isSymbolicLink(), 'Mount must be a symlink.');
+  assert(realpathSync(join(stateDir, 'workspace/mounts/analysis/controls')) === beta, 'Symlink must target registered source.');
+  assert(mountedA.history.map((item: {status:string})=>item.status).join(',') === 'registered,installing,preparing,ready', 'Expected installation lifecycle.');
+  observed('Namespaces + symlinks + automatic installs: two clean source folders became ready without separate dev servers.');
+  browser = await chromium.launch({ channel: 'chrome', headless: true });
+  const pageA = await browser.newPage(), pageB = await browser.newPage();
+  const errors: string[] = [], modulesA: string[] = [], modulesB: string[] = [];
+  pageA.on('pageerror', error => errors.push(error.message)); pageB.on('pageerror', error => errors.push(error.message));
+  pageA.on('request', request => { if (request.url().includes('nanoid')) modulesA.push(request.url()); });
+  pageB.on('request', request => { if (request.url().includes('nanoid')) modulesB.push(request.url()); });
+  await pageA.goto(mountedA.previewUrl);
+  await pageA.getByRole('link', { name: 'src/Counter.svelte' }).click();
+  await pageB.goto(mountedB.previewUrl + '?component=src%2FCounter.svelte');
+  await pageA.getByRole('heading', {name:'alpha'}).waitFor();
+  await pageB.getByRole('heading', {name:'beta'}).waitFor();
+  assert(await pageA.getByTestId('version').textContent() === 'nanoid ' + versions[0], 'Alpha resolved wrong dependency version.');
+  assert(await pageB.getByTestId('version').textContent() === 'nanoid ' + versions[1], 'Beta resolved wrong dependency version.');
+  assert((await pageA.getByTestId('id').textContent())?.length === 9, 'Alpha package code did not execute.');
+  assert((await pageB.getByTestId('id').textContent())?.length === 9, 'Beta package code did not execute.');
+  assert(modulesA.some(url => url.includes('/alpha/node_modules/nanoid/')), 'Alpha package was not loaded from alpha node_modules.');
+  assert(modulesB.some(url => url.includes('/beta/node_modules/nanoid/')), 'Beta package was not loaded from beta node_modules.');
+  await pageA.getByRole('button', {name:'Count 0',exact:true}).click();
+  await pageA.getByRole('button', {name:'Count 1',exact:true}).waitFor();
+  observed('One shared Vite rendered interactive Svelte components with nanoid 4.0.2 and 5.1.5 from each source node_modules.');
+  await pageA.evaluate(() => { (window as unknown as { proofMarker: string }).proofMarker = 'same-document'; });
+  const source = readFileSync(join(alpha, 'src/Counter.svelte'), 'utf8');
+  writeFileSync(join(alpha, 'src/Counter.svelte'), source.replace('<h1>{label}</h1>', '<h1>{label} updated</h1>'));
+  await pageA.getByRole('heading', {name:'alpha updated'}).waitFor();
+  assert(await pageA.evaluate(() => (window as unknown as { proofMarker: string }).proofMarker) === 'same-document', 'Source edit caused a document reload instead of HMR.');
+  const stateAfterHMR = await pageA.getByRole('button').textContent();
+  assert(await pageB.getByRole('heading').textContent() === 'beta', 'Beta changed during alpha HMR.');
+  observed(`Editing the real source behind a symlink triggered HMR without reloading the document; local component state became ${stateAfterHMR}.`);
+  writeFileSync(join(alpha, 'src/Added.svelte'), '<h1>Discovered after mount</h1>');
+  const catalog = await browser.newPage(); await catalog.goto(mountedA.previewUrl);
+  await catalog.getByRole('link', {name:'src/Added.svelte'}).waitFor();
+  await catalog.getByRole('link', {name:'src/Added.svelte'}).click();
+  await catalog.getByRole('heading', {name:'Discovered after mount'}).waitFor();
+  unlinkSync(join(alpha, 'src/Added.svelte'));
+  await pageA.waitForTimeout(350);
+  await catalog.goto(mountedA.previewUrl);
+  assert(await catalog.getByRole('link', {name:'src/Added.svelte'}).count() === 0, 'Deleted component stayed in catalog.');
+  observed('Adding and deleting component files updated discovery without restarting the singleton.');
+  writeFileSync(join(alpha, 'src/Counter.svelte'), source + '\n<script>');
+  await pageA.locator('vite-error-overlay').waitFor();
+  const sharedOverlay = await pageB.locator('vite-error-overlay').count() > 0;
+  assert(await pageB.getByRole('heading').textContent() === 'beta', 'Beta content disappeared during alpha compile error.');
+  writeFileSync(join(alpha, 'src/Counter.svelte'), source.replace('<h1>{label}</h1>', '<h1>{label} recovered</h1>'));
+  await pageA.getByRole('heading', {name:'alpha recovered'}).waitFor();
+  await pageB.locator('vite-error-overlay').waitFor({state:'detached'});
+  await pageB.getByRole('button', {name:'Count 0',exact:true}).click();
+  await pageB.getByRole('button', {name:'Count 1',exact:true}).waitFor();
+  observed(`Compile error recovery passed. Error overlay reached the other namespace: ${sharedOverlay}; shared Vite diagnostics are not isolated.`);
+  await pageA.screenshot({path:join(evidenceDir,'alpha.png'),fullPage:true});
+  await pageB.screenshot({path:join(evidenceDir,'beta.png'),fullPage:true});
+  await cli('unmount', '--namespace', 'design', '--name', 'controls');
+  assert(!existsSync(join(stateDir, 'workspace/mounts/design/controls')), 'Unmount must remove only the symlink.');
+  assert(existsSync(join(alpha, 'src/Counter.svelte')), 'Unmount removed source.');
+  assert((await fetch(mountedA.previewUrl)).status === 404, 'Unmounted preview remained available.');
+  assert((await fetch(app.origin + '/@fs' + join(alpha, 'src/Counter.svelte'))).status === 403, 'Unmounted raw source remained available.');
+  assert((await fetch(mountedB.previewUrl)).status === 200, 'Unmount stopped unrelated preview.');
+  const remounted = await cli('mount', alpha, '--namespace', 'design', '--name', 'controls');
+  assert(remounted.previewUrl === mountedA.previewUrl, 'Remount changed namespace URL.');
+  await pageA.goto(remounted.previewUrl + '?component=src%2FCounter.svelte');
+  await pageA.getByRole('heading', {name:'alpha recovered'}).waitFor();
+  const final = await cli('health');
+  assert(app.vite === originalVite && app.vite.httpServer === null, 'Mounting replaced Vite or started another HTTP listener.');
+  assert(final.pid === original.pid && final.instanceId === original.instanceId && final.viteInstances === 1, 'Server or Vite was replaced during mounting.');
+  observed('Unmount/remount preserved source and stable URLs; the original server PID and Vite instance stayed alive.');
+  assert(errors.length === 0, errors.join('\n'));
+  const invalid = makeProject('invalid-lock', versions[0]!);
+  writeFileSync(join(invalid, 'bun.lock'), 'invalid lockfile');
+  const failedResponse = await fetch(app.origin + '/api/mounts', { method: 'POST', headers, body: JSON.stringify({ namespace: 'design', name: 'invalid', source: invalid }) });
+  const failed = await failedResponse.json() as { status: string; log: string };
+  assert(failed.status === 'failed' && failed.log.length > 0, 'Failed installation must have an explicit outcome and log.');
+  assert(!existsSync(join(stateDir, 'workspace/mounts/design/invalid')), 'Failed installation must not expose a source link.');
+  assert((await fetch(mountedB.previewUrl)).status === 200, 'An installation failure stopped another mount.');
+  const redirect = await fetch(app.origin + '/api/mounts', { method: 'POST', headers, body: JSON.stringify({ namespace: 'design', name: 'controls', source: beta }) });
+  assert(redirect.status === 409, 'Reusing a mount name must not silently change its source.');
+  observed('Management authorization, singleton locking, name binding, and failed-install visibility passed without stopping healthy mounts.');
+  await browser.close(); browser = undefined;
+  await app.stop(); app = await startSingleton({ stateDir, port: 0 });
+  const restored = await cli('list');
+  assert(restored.filter((mount: {status:string})=>mount.status === 'ready').length === 2, 'Registered mounts did not restore on singleton restart.');
+  observed('An explicit singleton restart restored both registered mounts and reused their frozen lockfiles.');
+  writeFileSync(join(evidenceDir,'result.json'),JSON.stringify({ at:new Date().toISOString(), observations, sharedFramework:'svelte 5.57.1', versions, sourceModuleRequests:{alpha:modulesA,beta:modulesB}, compileMode:'development', liveAgent:false },null,2));
+  console.log('PASS: singleton namespace/mount experiment.');
+} finally {
+  await browser?.close(); await app?.stop(); rmSync(directory, {recursive:true,force:true});
+}

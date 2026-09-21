@@ -2,6 +2,12 @@
 
 The goal is to progressively validate whether agents in any project can create and run interactive interfaces. Record actual results at each step before expanding the scope. The first prototype covers a bundled Svelte page and live delivery into a dedicated Codex conversation. External project mounting, Svelte/vanilla starters, a generic browser client, custom CLI schemas, and a reusable skill are now implemented. Browser verification covers two external projects with a fixture adapter; dependency-version isolation and MCP remain incomplete. See [prototype evidence](prototype.md#validation-on-2026-09-20).
 
+## Current priority: singleton namespace mounting
+
+The user clarified the target topology: start one server, create a namespace for a project/problem, and symlink source folders into it. Mounting should automatically prepare declared dependencies and discover/render components through one Vite instance. This supersedes expanding the per-project dev-server design as the production direction.
+
+The [singleton experiment](experiments/2026-09-20-singleton-namespaces.md) records a working pilot and its limits. Next validate targeted error/discovery behavior, additional dependency formats, and connecting this host to the existing interaction layer. MCP follows those operations; it does not decide the mounting topology.
+
 ## Exploratory milestones
 
 | Milestone | Status | Evidence or next gate |
@@ -10,7 +16,8 @@ The goal is to progressively validate whether agents in any project can create a
 | External project lifecycle | Implemented and browser-tested | Independent Svelte/vanilla projects; source update/error recovery; stop/restart; manager crash cleanup |
 | Reusable interaction | Implemented and browser-tested | Custom JSON schema, browser client, CLI publication; explicit fixture adapter |
 | Agent self-service | CLI and skill implemented | Independent agent completed a custom Svelte workflow using the skill and a fixture binding; live delivery remains separately evidenced |
-| Multiple dependencies and MCP | Next | Different versions of the same package in two projects; CLI/MCP interoperability |
+| Singleton namespace mounting | Pilot verified | Symlinks, automatic Bun installs, discovered Svelte components, two nanoid versions under one Vite; shared error overlay remains |
+| Singleton interaction integration and MCP | Next | Connect the existing request/result layer, then validate CLI/MCP interoperability |
 | More frameworks and remote access | Later | Per-framework and remote-access acceptance tests |
 
 See [the experiment record](experiments/2026-09-20-external-projects.md) for observations and limits, and [the workflow guide](workflow.md) for executable commands. Installed packages remain project-owned; running two starters does not yet prove conflicting dependency-version isolation.

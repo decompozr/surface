@@ -8,7 +8,11 @@ This project is exploring the domain. Its executable code is an experimental imp
 
 Artifact can now scaffold Svelte or vanilla HTML/TypeScript workspaces, mount external projects with explicit development commands, and connect custom forms through a browser client. The CLI and a reusable agent skill share this workflow. MCP, broader framework validation, component-only previews, and remote access remain future work. Start with the [external-project workflow](docs/workflow.md); the [prototype evidence](docs/prototype.md) records the earlier live Codex proof.
 
-## Use Artifact in another project
+## Current exploration: one server with namespaces
+
+The preferred direction is now one singleton server with namespace-scoped symlink mounts, automatic project dependency preparation, component discovery, and a shared Vite instance. The [singleton experiment](experiments/singleton/README.md) is a separate executable pilot; it does not yet replace the earlier CLI or integrate its agent callback API. See the [experiment record](docs/experiments/2026-09-20-singleton-namespaces.md) for observed results and limits.
+
+## Earlier experiment: independent project runtimes
 
 From this checkout, run `bun install --frozen-lockfile` and `bun link`, then start `artifact serve`. Follow the [workflow guide](docs/workflow.md) to create or register a frontend, mount it, and bind an exact agent session. The [Artifact skill](skills/artifact/SKILL.md) teaches this end-to-end workflow.
 
@@ -74,4 +78,4 @@ Supporting any JS frontend framework is a long-term exploration goal. The sugges
 - [Prototype usage and evidence](docs/prototype.md): setup, implemented behavior, validation, and limits.
 - [Experiment roadmap](docs/exploration.md): small experiments, acceptance criteria, and open questions.
 
-The next expansion is dependency-version isolation testing and a thin MCP interface over the same runtime and interaction operations.
+The next design work is to isolate preview error/discovery behavior inside the singleton, then connect its mounts to the existing agent-interaction layer before adding MCP.

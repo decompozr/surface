@@ -11,7 +11,9 @@
     "check": "tsc --noEmit",
     "check:ui": "bun run --bun --cwd examples/svelte-feedback check",
     "build:ui": "bun run --bun --cwd examples/svelte-feedback build",
-    "verify:external": "bun scripts/verify-external.ts"
+    "verify:external": "bun scripts/verify-external.ts",
+    "singleton": "bun experiments/singleton/cli.ts",
+    "verify:singleton": "bun experiments/singleton/verify.ts"
   },
   "dependencies": {
     "ajv": "8.20.0",
