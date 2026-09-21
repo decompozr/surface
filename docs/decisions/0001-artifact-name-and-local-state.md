@@ -26,8 +26,14 @@ This decision changes default directory paths. Explicit `--state-dir` arguments,
 
 ## Existing data and scope
 
-Existing `.artifact/` data remains intact and ignored. There is no automatic move, merge, or fallback to the old store. An operator can continue using it by supplying its absolute path with `--state-dir`. Persisted source identities and agent callback commands may embed absolute paths, so migration of populated state requires deliberate reconciliation.
+Existing `.artifact/` data from other checkouts remains ignored until explicitly migrated. There is no automatic move, merge, or fallback to the old store. An operator can continue using it by supplying its absolute path with `--state-dir`. Persisted source identities and agent callback commands may embed absolute paths, so migration of populated state requires deliberate reconciliation.
 
 Historical experiment records retain the paths used by their actual runs. Updated commands and new verification runs use the new base.
 
 This decision does not choose a machine-wide installation home, adopt OS background-service integration, rename every experimental symbol or script, or declare the experimental host production-ready. Installed releases, durable service state, and project-owned source remain separate ownership concerns.
+
+## Local migration completed
+
+The user subsequently requested the existing checkout directory be physically renamed. Its `.artifact/` directory was moved to `.decompozr/artifact/` after confirming that the destination was absent, no process referenced the old path, the recorded server PID was absent, and saved requests had no unresolved callbacks. The old directory was not left as a compatibility symlink.
+
+The move preserved 3,908 file/symlink entries. Two persisted mount/preview source references and two generated mount symlinks were updated to the relocated source. The original state files were backed up inside the ignored migration record; all other file contents were verified unchanged. Historical receipts were preserved rather than rewritten. Existing stale ownership metadata was retained; migration did not start a server or claim service recovery. Private migration details are under `.decompozr/artifact/migrations/2026-09-21-directory-rename/`.

@@ -14,7 +14,7 @@ The server is named **Artifact**; singleton describes its architecture. See [Dec
 
 Checkout defaults now live under `.decompozr/artifact/`: the earlier prototype uses that root, the singleton/`artifact project`/MCP use its `singleton/` subdirectory, and the Kit wrapper uses `sveltekit/`. Verification outputs also use this base. Explicit `--state-dir` values and lifecycle installation homes are unchanged.
 
-Existing `.artifact/` data is retained and remains ignored by Git; it is not automatically moved or merged. To inspect or continue using old state, explicitly pass its absolute path with `--state-dir`. Stored mount paths and callback commands can contain absolute paths, so moving a populated state directory needs deliberate reconciliation. Historical experiment records retain the original evidence paths; new runs use the new base.
+Older `.artifact/` data remains ignored by Git and is not automatically moved or merged. This checkout has been explicitly migrated to the new location; see Decision 0001 for the completed migration. To inspect or continue using old state, explicitly pass its absolute path with `--state-dir`. Stored mount paths and callback commands can contain absolute paths, so moving a populated state directory needs deliberate reconciliation. Historical experiment records retain the original evidence paths; new runs use the new base.
 
 ## First implementation increment
 
