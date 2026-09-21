@@ -6,7 +6,7 @@ The goal is to progressively validate whether agents in any project can create a
 
 The user clarified the target topology: start one server, create a namespace for a project/problem, and symlink source folders into it. Mounting should automatically prepare declared dependencies and discover/render components through one Vite instance. This supersedes expanding the per-project dev-server design as the production direction.
 
-The [singleton experiment](experiments/2026-09-20-singleton-namespaces.md) records a working pilot and its limits. Next validate targeted error/discovery behavior, additional dependency formats, and connecting this host to the existing interaction layer. MCP follows those operations; it does not decide the mounting topology.
+The [singleton experiment](experiments/2026-09-20-singleton-namespaces.md) records a working pilot and its limits. The [HMR follow-up](experiments/2026-09-20-scoped-hmr.md) now validates scoped error UI, targeted discovery updates, and opt-in state retention. Next explore additional dependency formats and connect this host to the existing interaction layer. MCP follows those operations; it does not decide the mounting topology.
 
 ## Exploratory milestones
 
@@ -16,7 +16,7 @@ The [singleton experiment](experiments/2026-09-20-singleton-namespaces.md) recor
 | External project lifecycle | Implemented and browser-tested | Independent Svelte/vanilla projects; source update/error recovery; stop/restart; manager crash cleanup |
 | Reusable interaction | Implemented and browser-tested | Custom JSON schema, browser client, CLI publication; explicit fixture adapter |
 | Agent self-service | CLI and skill implemented | Independent agent completed a custom Svelte workflow using the skill and a fixture binding; live delivery remains separately evidenced |
-| Singleton namespace mounting | Pilot verified | Symlinks, automatic Bun installs, discovered Svelte components, two nanoid versions under one Vite; shared error overlay remains |
+| Singleton namespace mounting | Pilot verified | Symlinks, automatic Bun installs, discovered Svelte components, two nanoid versions under one Vite; follow-up verifies scoped error UI and opt-in state retention |
 | Singleton interaction integration and MCP | Next | Connect the existing request/result layer, then validate CLI/MCP interoperability |
 | More frameworks and remote access | Later | Per-framework and remote-access acceptance tests |
 

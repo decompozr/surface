@@ -138,12 +138,17 @@ export async function startSingleton(options: { stateDir: string; port?: number 
     phase(record, 'registered');
     return prepare(record);
   }
+  function invalidateMount(record: Mount) {
+    for (const module of vite.environments.client.moduleGraph.idToModuleMap.values()) {
+      if (module.id?.startsWith(record.source + '/') || module.id?.includes(`virtual:artifact-component/${record.namespace}/${record.name}/`)) vite.environments.client.moduleGraph.invalidateModule(module);
+    }
+  }
   async function unmount(namespace: string, name: string) {
     const record = find(namespace, name);
     removeLink(record);
     await vite.watcher.unwatch(record.source);
     vite.config.server.fs.allow = vite.config.server.fs.allow.filter(path => path !== record.source);
-    vite.environments.client.moduleGraph.invalidateAll();
+    invalidateMount(record);
     phase(record, 'unmounted');
     vite.ws.send({ type: 'full-reload', path: `/n/${namespace}/${name}/` });
     return view(record);
@@ -159,11 +164,12 @@ export async function startSingleton(options: { stateDir: string; port?: number 
   }
   const plugin: Plugin = {
     name: 'artifact-singleton-components',
-    resolveId(id) { if (id.startsWith(virtualPrefix)) { parseVirtual(id); return '\0' + id; } },
+    resolveId(id) { if (id === 'virtual:artifact-preview') return '\0' + id; if (id.startsWith(virtualPrefix)) { parseVirtual(id); return '\0' + id; } },
     load(id) {
+      if (id === '\0virtual:artifact-preview') return readFileSync(join(experimentRoot, 'preview-client.js'), 'utf8');
       if (!id.startsWith('\0' + virtualPrefix)) return;
       const { record, path } = parseVirtual(id);
-      return `import { mount } from 'svelte'; import Component from ${JSON.stringify(`/mounts/${record.namespace}/${record.name}/${path}`)}; mount(Component, {target:document.getElementById('app'), props:${JSON.stringify(record.props[path] ?? {})}});`;
+      return `import { mount } from 'svelte'; import { previewProps } from 'virtual:artifact-preview'; import Component from ${JSON.stringify(`/mounts/${record.namespace}/${record.name}/${path}`)}; mount(Component, {target:document.getElementById('app'), props:previewProps()});`;
     },
   };
   const http = createHTTPServer((req, res) => { void handle(req, res).catch(error => { if (!res.headersSent) json(res, { error: error instanceof Error ? error.message : String(error) }, error instanceof InputError ? error.status : 500); else res.end(); }); });
@@ -193,9 +199,11 @@ export async function startSingleton(options: { stateDir: string; port?: number 
       if (record.status !== 'ready') throw new InputError('Mount is not ready.', 404);
       const component = url.searchParams.get('component');
       if (component && !record.components.includes(component)) throw new InputError('Unknown component.', 404);
+      const context = JSON.stringify({ namespace: record.namespace, name: record.name, source: record.source, component, props: component ? record.props[component] ?? {} : {} }).replaceAll('<', '\\u003c');
+      const client = `<script id="artifact-preview-context" type="application/json">${context}</script><script type="module" src="/@id/__x00__virtual:artifact-preview"></script>`;
       const html = component
-        ? `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHTML(component)}</title></head><body><div id="app"></div><script type="module" src="/@id/__x00__${virtualPrefix}${record.namespace}/${record.name}/${component.split('/').map(encodeURIComponent).join('/')}.entry.js"></script></body></html>`
-        : `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHTML(record.namespace + '/' + record.name)}</title></head><body><h1>${escapeHTML(record.namespace + '/' + record.name)}</h1><ul>${record.components.map(path => `<li><a href="?component=${encodeURIComponent(path)}">${escapeHTML(path)}</a></li>`).join('')}</ul><script type="module" src="/@vite/client"></script></body></html>`;
+        ? `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHTML(component)}</title></head><body>${client}<div id="app"></div><script type="module" src="/@id/__x00__${virtualPrefix}${record.namespace}/${record.name}/${component.split('/').map(encodeURIComponent).join('/')}.entry.js"></script></body></html>`
+        : `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHTML(record.namespace + '/' + record.name)}</title></head><body>${client}<h1>${escapeHTML(record.namespace + '/' + record.name)}</h1><ul data-artifact-catalog>${record.components.map(path => `<li><a href="?component=${encodeURIComponent(path)}">${escapeHTML(path)}</a></li>`).join('')}</ul><script type="module" src="/@vite/client"></script></body></html>`;
       res.writeHead(200, { 'content-type': 'text/html', 'cache-control': 'no-store' });
       res.end(await vite.transformIndexHtml(url.pathname, html)); return;
     }
@@ -211,6 +219,7 @@ export async function startSingleton(options: { stateDir: string; port?: number 
     vite.middlewares(req, res, () => json(res, { error: 'Not found.' }, 404));
   }
   let rescanTimer: ReturnType<typeof setTimeout> | undefined;
+  const rescans = new Set<Mount>();
   try {
     // Shared framework runtime for this compiler experiment; project dependencies remain in their source folders.
     writeFileSync(join(workspace, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies: { svelte: compilerVersion } }));
@@ -222,20 +231,27 @@ export async function startSingleton(options: { stateDir: string; port?: number 
       plugins: [plugin, svelte({ configFile: false, prebundleSvelteLibraries: false })],
       resolve: { preserveSymlinks: false },
       optimizeDeps: { noDiscovery: true, include: [], exclude: ['svelte'] },
-      server: { middlewareMode: true, hmr: { server: http }, fs: { strict: true, allow: [workspace, join(experimentRoot, 'node_modules')] } },
+      server: { middlewareMode: true, hmr: { server: http, overlay: false }, fs: { strict: true, allow: [workspace, join(experimentRoot, 'node_modules')] } },
       logLevel: 'error',
     });
     vite.watcher.on('all', (event, file) => {
       if (closing || !(event === 'add' || event === 'unlink' || file.endsWith('/artifact.json'))) return;
       const affected = registry.mounts.filter(record => record.status === 'ready' && inside(record.source, file));
       if (!affected.length) return;
+      for (const record of affected) rescans.add(record);
       clearTimeout(rescanTimer);
       rescanTimer = setTimeout(() => {
         void mutate(async () => {
-          for (const record of registry.mounts.filter(record => record.status === 'ready')) {
-            try { scan(record); } catch (error) { phase(record, 'failed', String(error)); }
+          for (const record of rescans) {
+            if (record.status !== 'ready') continue;
+            try {
+              const previous = record.props;
+              scan(record);
+              const changedProps = [...new Set([...Object.keys(previous), ...Object.keys(record.props)])].filter(key => JSON.stringify(previous[key]) !== JSON.stringify(record.props[key]));
+              vite.ws.send({ type: 'custom', event: 'artifact:discovery', data: { namespace: record.namespace, name: record.name, components: record.components, changedProps, props: record.props } });
+            } catch (error) { phase(record, 'failed', String(error)); }
           }
-          vite.environments.client.moduleGraph.invalidateAll(); vite.ws.send({ type: 'full-reload' });
+          rescans.clear();
         }).catch(() => {});
       }, 100);
     });

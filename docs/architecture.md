@@ -6,7 +6,7 @@ This document records initial technical hypotheses, not implementation commitmen
 
 The user clarified that the intended product should have one long-running server, namespaces, and symlink-mounted component folders. Mounting should prepare declared dependencies automatically, discover components, and compile/render them through a shared Vite instance. The per-project development-process implementation below is an earlier experiment, not the adopted target topology.
 
-The [singleton pilot](../experiments/singleton/README.md) tests this direction separately. It currently shares one pinned Svelte compiler/runtime, uses each source's ordinary ESM dependency tree, and returns namespace-based component hosts. The existing interaction API has not yet been integrated into this host. Error overlay and discovery-reload isolation need further design work.
+The [singleton pilot](../experiments/singleton/README.md) tests this direction separately. It currently shares one pinned Svelte compiler/runtime, uses each source's ordinary ESM dependency tree, and returns namespace-based component hosts. The existing interaction API has not yet been integrated into this host. A follow-up adds mount-scoped error UI, live catalog updates, and explicit preview-state stores; compiler/transport isolation and transparent preservation of arbitrary component locals are not established.
 
 ## Prototype stack
 

@@ -87,7 +87,7 @@ Example `src/Counter.svelte`:
 
 The lifecycle is `registered → installing → preparing → ready`, or `failed` with an error and bounded install log. Repeating a ready mount is idempotent. To reprepare changed dependency declarations, explicitly unmount, reconcile the source lockfile as needed, and mount again. Automatic installation occurs at mount/restore time; package changes do not trigger an unattended installation loop.
 
-Unmount removes the symlink, revokes source/preview routes, and preserves the source folder, dependencies, lockfile, and server. The namespace URL is stable when remounted under the same server origin. Adding/removing components updates discovery; editing an existing source triggers Vite HMR. Manifest/discovery changes currently reload connected preview pages.
+Unmount removes the symlink, revokes source/preview routes, and preserves the source folder, dependencies, lockfile, and server. The namespace URL is stable when remounted under the same server origin. Adding/removing components updates discovery; editing an existing source triggers Vite HMR. Discovery events update only the affected catalog. Existing component previews keep running. Props changes update the selected host reactively. Removing the currently displayed component refreshes that view to its unavailable response.
 
 ## Dependency and framework boundary
 
@@ -99,12 +99,29 @@ Dependency discovery/prebundling is disabled for this pilot, and the dependency 
 
 The host compiles for development and the browser renders the result. It does not produce deployment bundles or establish successful type checking; those require separate operations.
 
-## Observed tradeoffs
+## Compiler errors and HMR state
 
-- Source HMR retained the browser document but reset the Svelte component's local counter state.
-- A compile error in one namespace displayed Vite's shared error overlay in another namespace. The other component remained rendered; its interaction was checked after recovery. Error UX is not isolated.
-- Namespace paths organize mounts; they are not browser-origin security boundaries. All previews are trusted local code on one origin.
-- Component discovery changes currently broadcast a full reload. Targeted discovery notifications/error routing are follow-up design work.
+The built-in global Vite error overlay is disabled. A preview client displays compiler errors whose source belongs to that mount, keeps the last successful rendering visible, and clears its error after a successful update. Other mounts remain usable. This is UI isolation: Vite still shares the compiler process and WebSocket transport, so console messages and diagnostic payloads can reach other clients. It is not crash, confidentiality, or browser-origin isolation. Unattributed/shared-infrastructure errors remain in Vite diagnostics rather than being falsely assigned to one mount.
+
+Svelte 5 component HMR reconstructs local component state in this tested version. The host does not rewrite arbitrary `$state` variables or promise transparent preservation. Opt important interaction state into the preview-session store:
+
+```svelte
+<script lang="ts">
+  import { previewState } from 'virtual:artifact-preview';
+  const count = previewState('counter', 0, 1);
+  const draft = previewState('draft', '', 1);
+</script>
+<input aria-label="Draft" bind:value={$draft} />
+<button onclick={() => $count++}>Count {$count}</button>
+```
+
+Copy [preview.d.ts](preview.d.ts) into the mounted project's included declarations for TypeScript/editor support. Keys are scoped to the browser document's namespace/mount/component URL. Multiple instances in the same preview must choose distinct keys when their state should be independent.
+
+The helper uses a module-level store registry, retained in `import.meta.hot.data`. It preserves opted-in state across component/template edits, CSS updates, compiler-error recovery, and reactive host-prop updates. No localStorage or server persistence is implied. Bumping a key's version replaces that store with its supplied initial value; it does not reset other keys. This explicit version is the component author's compatibility decision, not automatic schema inference.
+
+A full document refresh/navigation starts a new preview session. Removing an active component, unmounting, or Vite's unsupported-update/server-restart fallback can require a refresh. Additional component discovery and ordinary host-prop changes do not force one.
+
+Verified in Chrome: incremented counter and entered draft survived component edits, CSS edits, a failed compile followed by correction, and props changes. A different namespace remained clickable during the compile error and retained its document. The catalog updated live without refreshing either component preview. An explicit state-version change reset only the counter; a manual page refresh reset the entire preview session.
 
 ## Reproduce the experiment
 
@@ -123,4 +140,4 @@ The same server PID, same Vite object, and one HTTP listener are checked across 
 
 ## Sources
 
-The experiment uses Vite's [middleware API](https://vite.dev/guide/api-javascript), [symlink resolution setting](https://vite.dev/config/shared-options#resolve-preservesymlinks), and [file access/watch configuration](https://vite.dev/config/server-options). These documents explain mechanisms; the local browser experiment supplies the evidence for this topology.
+The experiment uses Vite's [middleware API](https://vite.dev/guide/api-javascript), [symlink resolution setting](https://vite.dev/config/shared-options#resolve-preservesymlinks), [file access/watch configuration](https://vite.dev/config/server-options), and [HMR events/data](https://vite.dev/guide/api-hmr). Svelte tracks transparent local-state preservation in [issue 14434](https://github.com/sveltejs/svelte/issues/14434); the experiment also inspects the installed 5.57.1 runtime and tests actual behavior. These documents explain mechanisms; the local browser experiment supplies the evidence for this topology.

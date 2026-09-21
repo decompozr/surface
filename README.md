@@ -78,4 +78,4 @@ Supporting any JS frontend framework is a long-term exploration goal. The sugges
 - [Prototype usage and evidence](docs/prototype.md): setup, implemented behavior, validation, and limits.
 - [Experiment roadmap](docs/exploration.md): small experiments, acceptance criteria, and open questions.
 
-The next design work is to isolate preview error/discovery behavior inside the singleton, then connect its mounts to the existing agent-interaction layer before adding MCP.
+The singleton now has scoped compiler-error UI, live catalog updates, and opt-in state preservation across HMR; see the [follow-up evidence](docs/experiments/2026-09-20-scoped-hmr.md). The next integration is connecting its mounts to the existing agent-interaction layer before adding MCP.

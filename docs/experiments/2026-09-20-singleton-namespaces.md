@@ -2,6 +2,8 @@
 
 Status: exploratory evidence, not a finalized production design. Run on September 20, 2026 (America/Toronto).
 
+A subsequent [scoped-error and preview-state experiment](2026-09-20-scoped-hmr.md) addresses the error overlay and state-retention limitations observed below. This record preserves the original observations.
+
 ## Design question
 
 Can the intended workflow use one long-running server, namespaces, and symlinked source folders, with automatic dependency preparation and component rendering through one Vite instance?
