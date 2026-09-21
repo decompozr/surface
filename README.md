@@ -6,7 +6,7 @@ Enable agents in any project to create and mount local interactive pages and com
 
 This project is exploring the domain. Its executable code is an experimental implementation for testing design hypotheses; the architecture, API, storage model, and packaging are not finalized product commitments. The first local prototype includes a Bun server and CLI, a Svelte feedback page, and a Codex adapter that delivers page responses to an existing conversation. Active-turn steering and idle continuation have been exercised against a local Codex session.
 
-Two experimental entry points currently coexist: the earlier CLI mounts external Svelte or vanilla projects through separate development processes; the preferred singleton pilot hosts discovered Svelte components through one Vite instance and now connects their forms to the existing interaction service. Automated fixture checks and separate live Codex idle/active round trips passed. MCP, broader dependency/framework validation, and remote access remain future work. Start with the [consolidated findings](docs/findings.md) for evidence, limits, and the next experiment.
+Two experimental runtime paths currently coexist: the earlier CLI mounts external Svelte or vanilla projects through separate development processes; the preferred singleton pilot hosts discovered Svelte components through one Vite instance and now connects their forms to the existing interaction service. Automated fixture checks and separate live Codex idle/active round trips passed. The September 21 experiments now cover a real MCP adapter, scoped CommonJS prebundles, a built SvelteKit management shell, live agent source edits, bounded resource measurements, pinned repository installation, and project-owned artifact management. See the [server implementation readiness review](docs/server-readiness.md) for the proposed first-server scope and remaining limits. Remote access and additional frameworks remain deferred.
 
 ## Current exploration: one server with namespaces
 
@@ -67,11 +67,16 @@ Artifact aims to provide reusable runtime and preview infrastructure for this wo
 | Local experience | Return usable preview URLs, reflect source changes, and expose status and error diagnostics |
 | Source ownership | Keep artifacts as ordinary project files that can be versioned in Git and maintained independently |
 
-The current exploration focuses on Svelte + TypeScript. Additional frameworks are deferred; the broader framework-neutral vision remains a long-term possibility. The next experiments evaluate SvelteKit as the singleton application foundation, dependency compatibility, MCP/CLI interoperability, agent-driven component edits, and lifecycle reliability. SvelteKit is a candidate under test, not an adopted replacement for the current host.
+The current exploration focuses on Svelte + TypeScript. Additional frameworks are deferred; the broader framework-neutral vision remains a long-term possibility. The seven [readiness experiments](docs/experiments/2026-09-21-readiness-plan.md) are complete within their stated boundaries. They support starting implementation with Bun, a built SvelteKit management shell, and one live Vite compiler for Svelte component previews. This is an implementation recommendation; the experimental commands, manifests, storage, and packaging still need a unified server contract.
 
 ## Documentation
 
-- [Findings and next experiment](docs/findings.md): consolidated lessons, evidence boundaries, and singleton-to-agent integration acceptance criteria.
+- [Server readiness and implementation sequence](docs/server-readiness.md): seven experiment outcomes, proposed scope, operational limits, and the next build milestones.
+- [Consolidated findings](docs/findings.md): lessons and evidence boundaries.
+- [Repository installation and lifecycle](experiments/lifecycle/README.md): isolated pinned releases, start/stop/restart, rollback, recovery, and non-destructive uninstall.
+- [Project artifact management](experiments/projects/README.md): project-owned identities, registration, mounting, and archive/restore.
+- [MCP adapter](experiments/mcp/README.md): existing-singleton stdio access and CLI interoperability.
+- [SvelteKit foundation](experiments/sveltekit/README.md): build and run the experimental management shell.
 - [External-project workflow](docs/workflow.md): CLI setup, scaffolding, mounting, custom interactions, skill installation, and verification.
 - [Product vision](docs/vision.md): user value, core concepts, and design principles.
 - [Architecture exploration](docs/architecture.md): initial proposals for the service, project runtimes, interfaces, and dependency boundaries.
@@ -79,4 +84,4 @@ The current exploration focuses on Svelte + TypeScript. Additional frameworks ar
 - [Prototype usage and evidence](docs/prototype.md): setup, implemented behavior, validation, and limits.
 - [Experiment roadmap](docs/exploration.md): small experiments, acceptance criteria, and open questions.
 
-The singleton now has scoped compiler-error UI, live catalog updates, and opt-in state preservation across HMR; see the [follow-up evidence](docs/experiments/2026-09-20-scoped-hmr.md). Singleton-to-agent integration is now verified for the tested workflow. Next expand dependency-format coverage and validate a thin MCP interface against the same operations.
+The singleton now has scoped compiler-error UI, live catalog updates, and opt-in state preservation across HMR; see the [follow-up evidence](docs/experiments/2026-09-20-scoped-hmr.md). The follow-ups also observed a real agent edit with draft retention and MCP/CLI interoperability. Repeated source reuse stabilized measured resources; continuously introducing new sources retained compiler metadata. The first server needs a resource budget and an explicit restart/recreation policy before promising indefinite operation.

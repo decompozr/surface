@@ -1,10 +1,10 @@
-# Findings and next experiment
+# Consolidated findings
 
-Consolidated on September 20, 2026 (America/Toronto), with the subsequent singleton interaction follow-up recorded below. Earlier rendering/state checkpoint: `c6abf5f`. This records executable experiments and the user's intended direction, not a finalized production architecture. The detailed experiment records remain the source for each observation.
+Updated September 21, 2026 (America/Toronto), including the completed seven-track readiness exploration. See the [implementation recommendation](server-readiness.md). Earlier rendering/state checkpoint: `c6abf5f`. This records executable experiments and the user's intended direction, not a finalized production architecture. The detailed experiment records remain the source for each observation.
 
 ## Intended direction
 
-Start or connect to one local singleton server, create a namespace for a project or problem, then mount ordinary source folders through symlinks. Mounting should prepare declared project dependencies, discover components, and render them through shared compilation infrastructure. Sources, manifests, and lockfiles stay project-owned. Agents should perform this workflow through CLI plus skills, with MCP exposing the same operations later.
+Start or connect to one local singleton server, create a namespace for a project or problem, then mount ordinary source folders through symlinks. Mounting should prepare declared project dependencies, discover components, and render them through shared compilation infrastructure. Sources, manifests, and lockfiles stay project-owned. Agents should perform this workflow through CLI plus skills, with a thin MCP adapter exposing the same singleton operations.
 
 A page should send structured input back to the agent session that created its interaction. The adapter should steer an active turn or continue the same idle conversation. It must not silently create a replacement conversation or choose whichever session was most recently active.
 
@@ -35,7 +35,7 @@ Unmounting revoked the mount's preview/source routes and removed its symlink whi
 
 Realpath resolution (`preserveSymlinks: false`) let mounted source load nanoid 4.0.2 and 5.1.5 from separate project-owned `node_modules` trees. Browser checks executed both implementations and recorded module URLs. Merely installing two projects would not have established this.
 
-The shared Svelte compiler/plugin/runtime remains pinned; independent Svelte versions and per-project Vite configurations are unproved. Dependency prebundling is disabled in the pilot. CommonJS, native installation requirements, monorepo resolution, other frameworks, SvelteKit, and SSR need separate experiments.
+The shared Svelte compiler/plugin/runtime remains pinned; independent Svelte versions and per-project Vite configurations are unproved. Automatic dependency optimization remains disabled. A follow-up implements explicit source-scoped JavaScript prebundles, executes distinct lodash versions, and verifies mixed ESM/CommonJS entries. Native installation requirements, general monorepo resolution, other frameworks, arbitrary mounted SvelteKit applications, and mounted SSR remain unsupported or unproved. The built SvelteKit management shell is separately verified.
 
 Automatic preparation uses declared manifests, not guessed imports. It runs Bun with lifecycle scripts disabled, freezes an existing Bun lockfile, and creates one when absent. Non-Bun lockfiles are rejected. Dependency edits currently require explicit reconciliation and remounting; they do not trigger an unattended install loop. A failed installation is a visible mount outcome and did not stop healthy previews.
 
@@ -61,7 +61,7 @@ Repeated submissions with the same response ID and data are deduplicated. Confli
 
 The CLI makes operations executable and inspectable. The skill teaches agents how to create sources, mount them, bind an exact session, interpret receipts, publish results, and recover from failures. An independent agent completed that workflow with a fixture binding, supporting basic usability without claiming another live model-delivery proof.
 
-MCP can expose the same core operations for discovery and invocation. It does not itself wake an agent; the runtime-specific delivery adapter does that. The preferred singleton workflow now has integration evidence; MCP should wrap these operations and undergo explicit interoperability tests.
+MCP can expose the same core operations for discovery and invocation. It does not itself wake an agent; the runtime-specific delivery adapter does that. The stdio MCP experiment now wraps these operations and passes real SDK client/CLI interoperability, including restart discovery and truthful unknown outcomes. It connects to an existing service; it does not start one. Installation additionally verifies the installed MCP dependencies and entry point against the installed host.
 
 ### Rendering and lifecycle checks need direct observations
 
@@ -84,7 +84,7 @@ Acceptance criteria:
 7. Keep the second namespace interactive throughout local compile failure and request processing. Record any shared infrastructure limitations.
 8. Update CLI usage and the skill around the actual integrated workflow. Retain reproducible checks and distinguish automated inputs from user choices.
 
-The next experiments remain within Svelte: evaluate SvelteKit as the singleton application foundation, dependency compatibility including CommonJS/prebundling, a thin MCP interface with CLI/MCP interoperability, actual agent-driven component source edits with HMR draft retention, and long-running lifecycle/resource recovery. Adding another framework is deferred. Background-service packaging, durable preview-state policy, remote access, and broader isolation remain later design work. Do not collapse these into a claim of production readiness.
+The September 21 follow-ups completed these bounded experiments, plus repository installation and project artifact management. The [readiness review](server-readiness.md) maps each result and proposes the first server implementation sequence. A three-minute resource run is not long-duration stability evidence. OS service integration, durable preview-state policy, remote access, and broader isolation remain later work; completing experiments does not mean the production server has been built.
 
 ## Integration follow-up lessons
 
@@ -95,6 +95,18 @@ Unmounting revokes page access and new submissions while preserving receipts and
 Review found two asynchronous admission issues: unmount needed to change status before awaiting watcher cleanup, and shutdown needed to drain binding inspection as well as delivery before releasing the state lock. The fixes and regression checks prevent late writes and post-unmount submissions. CLI option forwarding also now preserves a state directory supplied before the command.
 
 The original live proof used a bundled page. The follow-up reused the exact dedicated conversation and observed singleton browser input, idle continuation or exact-turn steering, the agent's successful result CLI command, browser display, and reload restoration. Automated inputs remain explicitly labeled; this is not personal user approval.
+
+## September 21 follow-up lessons
+
+The [dependency experiment](experiments/2026-09-21-dependencies.md) reproduced a browser failure that compilation readiness alone missed. Explicit JavaScript-only bundles preserve source-specific versions, with unsupported asset output and Node builtins rejected; native module compatibility remains outside the tested contract. It also found that a non-HTML Vite full-reload path refreshed unrelated previews; a mount-scoped custom event corrected that behavior.
+
+The [SvelteKit experiment](experiments/2026-09-21-sveltekit-foundation.md) combines a prebuilt management shell with the live compiler in one process/listener. Management SSR does not imply mounted-component SSR. The [live source-edit experiment](experiments/2026-09-21-live-source-edit.md) separately observed the exact agent changing a layout from one column to two, a successful callback, and retained document/draft state.
+
+The [resource experiment](experiments/2026-09-21-lifecycle-resources.md) found and fixed active watcher/filesystem access retained after an initial compile failure. Across 30 cycles over 180.115 seconds, repeated identities stabilized and all owned descendants exited; distinct sources retained Vite/Chokidar metadata. Unbounded source churn needs a resource budget and restart/recreation policy, not unsupported deletion of compiler internals.
+
+[Repository lifecycle](experiments/2026-09-21-installation.md) now separates pinned release payloads from durable state and project-owned files. Authenticated ownership controls stop; saved PID liveness alone never authorizes killing. Upgrade retains callback executables; uninstall refuses unresolved callbacks. Rollback is proven for equal-schema commits, not schema migration.
+
+[Project management](experiments/2026-09-21-project-artifacts.md) separates UUID identity from labels and paths. A project manifest owns artifact definitions, while a server-local ledger binds IDs to canonical roots. Both project and ledger writer locks are necessary. Archive/restore preserves source and dependencies; relocation and crash-atomic multi-step reconciliation remain explicit design work.
 
 ## Reproduction and evidence retention
 

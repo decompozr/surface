@@ -2,7 +2,7 @@
 
 Status: earlier per-project-process exploration. For the preferred singleton/namespace direction, use the separate [singleton experiment](../experiments/singleton/README.md). This workflow still describes the existing `artifact` CLI. These steps reproduce an experiment; successful checks do not freeze the architecture or establish production readiness.
 
-Artifact now mounts trusted external frontend projects and connects their pages to an exact existing agent conversation. The service and CLI use Bun; a mounted project retains its own package manager, source files, dependencies, and lockfile. Svelte and vanilla HTML/TypeScript starters are included. MCP is not implemented yet.
+Artifact now mounts trusted external frontend projects and connects their pages to an exact existing agent conversation. The service and CLI use Bun; a mounted project retains its own package manager, source files, dependencies, and lockfile. Svelte and vanilla HTML/TypeScript starters are included. This earlier entry point has no MCP adapter; the later [singleton MCP experiment](../experiments/mcp/README.md) supplies that interface for the preferred host.
 
 ## Install the local CLI and skill
 
@@ -123,7 +123,7 @@ Stopping removes the owned process group and preserves source, dependencies, and
 
 After restart, registrations remain, while runtime status is `stopped`; saved URLs are never assumed live. Explicitly mount the desired runtime. If an unclean exit leaves `server.lock`, inspect its PID and confirm the process is gone before removing that specific lock. The server does not automatically kill a process based on a saved PID.
 
-Loopback links work on the host computer only. Phone/remote access, browser origin sandboxing, Windows runtime supervision, MCP, component-only hosting, and framework-specific SSR adapters remain future work.
+Loopback links work on the host computer only. Phone/remote access, browser origin sandboxing, Windows runtime supervision, and framework-specific SSR adapters remain future work. Component-only hosting and MCP are implemented separately in the later singleton experiments; they are not features of this earlier process-based CLI.
 
 ## Verification
 

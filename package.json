@@ -15,7 +15,13 @@
     "verify:external": "bun scripts/verify-external.ts",
     "singleton": "bun experiments/singleton/cli.ts",
     "verify:singleton": "bun experiments/singleton/verify.ts",
-    "verify:singleton-interactions": "bun experiments/singleton/verify-interactions.ts"
+    "verify:singleton-interactions": "bun experiments/singleton/verify-interactions.ts",
+    "verify:dependencies": "bun experiments/singleton/verify-dependencies.ts",
+    "verify:soak": "bun experiments/singleton/verify-soak.ts",
+    "verify:mcp": "bun experiments/mcp/verify.ts",
+    "verify:sveltekit": "bun experiments/sveltekit/verify.ts",
+    "verify:projects": "bun experiments/projects/verify.ts",
+    "verify:installation": "bun experiments/lifecycle/verify.ts"
   },
   "dependencies": {
     "ajv": "8.20.0",

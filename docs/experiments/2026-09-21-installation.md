@@ -62,3 +62,13 @@ bun experiments/lifecycle/verify.ts --repo /absolute/artifact --ref COMMIT --hos
 ```
 
 The verifier accepts a clean integrated Git ref so the coordinator can repeat the installed-host proof after merging other experiments. It uses its own temporary fixture repository, home, projects, ports, and process handles.
+
+## Integration review: compiler dependency links
+
+Review extended the lifecycle past uninstall. The original generated workspace retained a `node_modules` symlink into the first release: upgrades could keep using the old compiler dependencies, and uninstall followed by installation of a different revision left a dangling link that caused `EEXIST` on startup.
+
+The singleton now records ownership of its generated dependency link and atomically retargets it to the current compiler installation. The ownership record tracks both sides during replacement. A regular directory or foreign symlink is preserved and rejected, not overwritten. A markerless legacy link can be adopted only when it already matches the current compiler; a different or dangling markerless legacy link requires inspection. This is a narrow generated-workspace migration, not permission to replace arbitrary project dependencies. The lifecycle verifier now includes uninstall → different-revision reinstall and checks the active compiler dependency realpath through release changes.
+
+Review also found that cached release reuse and launch bypassed the fresh-install Bun version check. Reuse, activation, and launch now require both the declared package-manager version and the release's recorded preparation version to match the running Bun. Wrong-version saved fixtures reject all three operations before activation/launch, preserve the active record byte-for-byte, create no owner/server lock, and do not append a host log. These are injected metadata tests, not a second installed Bun binary experiment.
+
+The coordinator reran the full installed SvelteKit/MCP lifecycle suite against integrated commit `c91a245e3cb3ca597bbe907e4a7d3c6f8ef89112`: all checks passed, including dependency-link upgrade/rollback/reinstall, foreign-path preservation, failed-start cleanup, and Bun-pin refusal. All **eight** successfully launched owned host processes exited. This final installed-release run used fixtures and did not contact a live agent.

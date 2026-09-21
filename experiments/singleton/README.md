@@ -2,7 +2,7 @@
 
 An executable experiment for the preferred direction: start one server, create a namespace, then mount component folders into it. One HTTP listener and one Vite instance serve every mount. Installation uses short-lived Bun subprocesses; no per-project development server is launched.
 
-This does not replace the previous `artifact serve` implementation. Use the separate commands below to reproduce and compare the designs. The host now connects mounted components to the existing interaction service and exact-session adapter. MCP is not implemented. The interaction integration is an experiment; its verification outcomes are recorded separately from the earlier rendering checks.
+This does not replace the previous `artifact serve` implementation. Use the separate commands below to reproduce and compare the designs. The host now connects mounted components to the existing interaction service and exact-session adapter. A separate [MCP adapter](../mcp/README.md) now exposes this same running service. The [SvelteKit wrapper](../sveltekit/README.md), [installation manager](../lifecycle/README.md), and [project artifact manager](../projects/README.md) are additional experimental entry points. The interaction integration is an experiment; its verification outcomes are recorded separately from the earlier rendering checks.
 
 ## Run
 
@@ -150,9 +150,9 @@ Receipt persistence, adapter acceptance, agent completion, result publication, b
 
 `resolve.preserveSymlinks: false` lets Vite resolve mounted source to its real location. Ordinary ESM imports then resolve against that source's dependency tree. The experiment observes nanoid 4.0.2 and 5.1.5 executing from two different `node_modules` trees at the same time.
 
-The Svelte compiler/plugin/runtime is shared and pinned to 5.57.1. The host supplies that runtime to generated component entries, so mounted package manifests must declare that exact version. This does not demonstrate independent Svelte compiler versions, arbitrary per-project Vite configs, SvelteKit, SSR, or arbitrary frameworks.
+The Svelte compiler/plugin/runtime is shared and pinned to 5.57.1. The host supplies that runtime to generated component entries, so mounted package manifests must declare that exact version. This does not demonstrate independent Svelte compiler versions, arbitrary per-project Vite configs, mounted SvelteKit applications, mounted SSR, or arbitrary frameworks. A built SvelteKit management shell is separately verified in the wrapper experiment.
 
-Dependency discovery/prebundling is disabled for this pilot, and the dependency case uses browser-ready ESM. CommonJS packages need another experiment. npm/pnpm/Yarn lockfiles are rejected rather than silently converted. Lifecycle scripts are not run, so dependencies needing install-time native builds need an explicit future contract.
+Automatic dependency optimization is disabled. Browser-ready ESM works directly; explicit package entries in `artifact.json` can opt into `"prebundle": ["lodash"]`. The [dependency experiment](../../docs/experiments/2026-09-21-dependencies.md) verifies source-scoped JavaScript-only CommonJS/mixed bundles. Selected entries must resolve inside the source dependency tree and emit one JavaScript bundle; Node builtins, assets, native modules, and general dynamic require are outside the supported contract. Bundles are prepared on mount/remount, not on an unattended dependency-edit loop. npm/pnpm/Yarn lockfiles are rejected rather than silently converted. Lifecycle scripts are not run, so dependencies needing install-time native builds need an explicit future contract.
 
 The host compiles for development and the browser renders the result. It does not produce deployment bundles or establish successful type checking; those require separate operations.
 
@@ -203,6 +203,12 @@ bun run test:singleton
 ```
 
 It uses a deterministic adapter and the reusable [interaction form fixture](fixtures/InteractionForm.svelte), with two namespaces, HMR/error recovery, scoped request authorization, deduplication, unavailable/closed/unmounted outcomes, and restart restoration. It stores local evidence in ignored `.artifact/singleton-interaction-proof/`. See the [interaction experiment record](../../docs/experiments/2026-09-20-singleton-interactions.md) for its verification status and the separate live idle/active callback observations. Running the deterministic command does not contact a live model session.
+
+## Resource boundary
+
+The [bounded resource run](../../docs/experiments/2026-09-21-lifecycle-resources.md) completed 30 cycles over 180.115 seconds. Active watchers and retained transform bytes returned to the healthy neighbor baseline; repeated source identities stabilized. Distinct source identities retained compiler and watcher metadata, so this experiment does not promise indefinite operation under unbounded source churn. Failed initial compilation now releases its watcher and filesystem allowance as well as its symlink.
+
+Additional checks: `bun run verify:dependencies`, `bun run verify:soak`, and `bun run verify:mcp`. The live source-edit verifier requires explicit target/session arguments and must not be included in unattended regression runs.
 
 ## Sources
 

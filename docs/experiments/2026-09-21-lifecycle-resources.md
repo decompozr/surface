@@ -67,3 +67,7 @@ bun experiments/singleton/verify-soak.ts
 ```
 
 `--probe` records the initial compile-failure cleanup gate only; it is not a substitute for the full soak. The full script writes ignored `.artifact/soak-proof/samples.json`, `result.json`, and `neighbor-after.png`, then stops its own server and browser and removes its temporary sources. The baseline probe is retained separately as `baseline-probe.json`.
+
+## Integration review: retired mount ownership
+
+Cross-track review reproduced another lifecycle defect: after unmounting A and mounting the same source under B, unmounting A again released B's watcher, filesystem allowance, and scoped dependency bundle. Repeated unmount is now idempotent for a retired definition. Failed cleanup remains visibly failed and retryable. A regression transfers ownership A → B → A, checks the new owner's dependency remains accessible, rejects stale remount while another owner is active, and confirms actual unmount revokes access. The four singleton lifecycle tests passed with 44 assertions after this correction.

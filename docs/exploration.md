@@ -1,14 +1,14 @@
 # Experiment roadmap
 
-The goal is to progressively validate whether agents in any project can create and run interactive interfaces. Record actual results at each step before expanding the scope. The first prototype covers a bundled Svelte page and live delivery into a dedicated Codex conversation. External project mounting, Svelte/vanilla starters, a generic browser client, custom CLI schemas, and a reusable skill are now implemented. Browser verification covers two external projects with a fixture adapter. A separate singleton pilot validates two versions of one ESM dependency and component previews; integrated singleton interactions now have fixture and live-session evidence. Broader dependency coverage and MCP remain incomplete. See [prototype evidence](prototype.md#validation-on-2026-09-20).
+The goal is to progressively validate whether agents in any project can create and run interactive interfaces. Record actual results at each step before expanding the scope. The first prototype covers a bundled Svelte page and live delivery into a dedicated Codex conversation. External project mounting, Svelte/vanilla starters, a generic browser client, custom CLI schemas, and a reusable skill are now implemented. Browser verification covers two external projects with a fixture adapter. A separate singleton pilot validates two versions of one ESM dependency and component previews; integrated singleton interactions now have fixture and live-session evidence. The September 21 follow-ups complete a bounded dependency/MCP, SvelteKit, live-edit, resource, installation, and project-management exploration. See the [server readiness review](server-readiness.md) for the implementation recommendation. See [prototype evidence](prototype.md#validation-on-2026-09-20).
 
-## Current priority: Svelte experiments
+## Current priority: first-server implementation plan
 
-Scope update on September 21, 2026: focus upcoming experiments on Svelte only. The active plan covers dependency compatibility, MCP/CLI interoperability, live agent source edits with HMR draft retention, long-running lifecycle/resource recovery, and a proposed SvelteKit singleton application foundation. Additional frameworks are deferred; the longer-term framework-neutral vision remains unchanged. Historical Svelte/vanilla results below remain evidence of the earlier experiments.
+Scope update on September 21, 2026: focus upcoming experiments on Svelte only. The completed bounded plan covers dependency compatibility, MCP/CLI interoperability, live agent source edits with HMR draft retention, measured lifecycle/resource recovery, a SvelteKit singleton shell, repository installation, and project artifact management. Additional frameworks are deferred; the longer-term framework-neutral vision remains unchanged. Historical Svelte/vanilla results below remain evidence of the earlier experiments.
 
 The user clarified the target topology: start one server, create a namespace for a project/problem, and symlink source folders into it. Mounting should automatically prepare declared dependencies and discover/render components through one Vite instance. This supersedes expanding the per-project dev-server design as the production direction.
 
-The [singleton experiment](experiments/2026-09-20-singleton-namespaces.md) records a working pilot and its limits. The [HMR follow-up](experiments/2026-09-20-scoped-hmr.md) now validates scoped error UI, targeted discovery updates, and opt-in state retention. The [singleton interaction experiment](experiments/2026-09-20-singleton-interactions.md) now connects this host to the existing layer with fixture and live idle/active verification. Next expand dependency-format coverage and validate interface interoperability. MCP follows those operations; it does not decide the mounting topology.
+The [singleton experiment](experiments/2026-09-20-singleton-namespaces.md) records a working pilot and its limits. The [HMR follow-up](experiments/2026-09-20-scoped-hmr.md) now validates scoped error UI, targeted discovery updates, and opt-in state retention. The [singleton interaction experiment](experiments/2026-09-20-singleton-interactions.md) now connects this host to the existing layer with fixture and live idle/active verification. The follow-ups now validate bounded dependency formats and interface interoperability. MCP wraps those operations; it does not decide the mounting topology.
 
 ## Exploratory milestones
 
@@ -20,10 +20,12 @@ The [singleton experiment](experiments/2026-09-20-singleton-namespaces.md) recor
 | Agent self-service | CLI and skill implemented | Independent agent completed a custom Svelte workflow using the skill and a fixture binding; live delivery remains separately evidenced |
 | Singleton namespace mounting | Pilot verified | Symlinks, automatic Bun installs, discovered Svelte components, two nanoid versions under one Vite; follow-up verifies scoped error UI and opt-in state retention |
 | Singleton interaction integration | Verified for the tested workflow | Two-namespace fixtures, scoped request access, lifecycle races, and separate live idle/active callbacks displayed in Chrome |
-| Svelte dependency formats and MCP | Next | CommonJS/prebundling boundary, then CLI/MCP interoperability using the same operations |
-| Live source editing and HMR draft retention | Next | A bound agent edits mounted Svelte source; rendered change and unsent draft retention are observed together |
-| Long-running lifecycle and resource recovery | Next | Repeated mount/update/unmount cycles, resource measurements, and recovery without orphaned resources |
-| SvelteKit singleton application foundation | Proposed experiment | One host for management UI/routes/API and dynamically mounted Svelte components; compatibility and adoption remain unproved |
+| Svelte dependency formats and MCP | Bounded experiments passed | Source-scoped JavaScript prebundles and real SDK stdio/CLI interoperability |
+| Live source editing and HMR draft retention | Observed with exact live session | Actual layout edit and result CLI; retained document and opted-in draft |
+| Lifecycle and resource recovery | Bounded run completed; operating limit identified | 30 cycles / 180.115 seconds; repeated identities stabilize, distinct identities retain metadata; no indefinite stability claim |
+| SvelteKit singleton application foundation | Viable candidate verified | Built shell, dynamic CSR components, one listener/compiler; mounted SSR and full Kit apps excluded |
+| Repository installation and lifecycle | Bounded experiment passed | Pinned releases, frozen dependencies, installed MCP/Kit, authenticated lifecycle, mechanical rollback and conservative recovery |
+| Project artifact management | Bounded experiment passed | Stable project-owned IDs, canonical binding, writer locks, non-destructive archive/restore |
 | Additional frameworks and remote access | Deferred | Outside the current Svelte-only experiment plan |
 
 See [the experiment record](experiments/2026-09-20-external-projects.md) for observations and limits, and [the workflow guide](workflow.md) for executable commands. Installed packages remain project-owned. The external-project run alone did not prove conflicting dependency-version resolution; the subsequent singleton run separately observed nanoid 4.0.2 and 5.1.5 executing from their own source trees.
@@ -73,9 +75,11 @@ Acceptance criteria:
 - Status and logs are clearly attributable to a project and runtime instance.
 - Repeated mounting, occupied ports, and service restarts produce understandable outcomes without leaving unmanaged processes behind.
 
-The earlier process experiment provides comparison evidence. Continue dependency and failure-boundary testing under the preferred singleton topology; the nanoid ESM case is proven, while CommonJS/prebundling remains an active question. Independent framework versions are deferred with broader framework coverage.
+The earlier process experiment provides comparison evidence. Continue dependency and failure-boundary testing under the preferred singleton topology; the nanoid ESM case is proven, and the September 21 follow-up establishes an explicit JavaScript-only CommonJS/mixed prebundle boundary. Independent framework versions are deferred with broader framework coverage.
 
 ## Experiment 3: MCP and CLI interoperability
+
+Status: [bounded stdio/CLI interoperability passed](experiments/2026-09-21-mcp.md). The adapter operates on existing singleton mounts and requests; the later project-manifest wrapper is not yet an MCP tool surface.
 
 Expose minimal MCP access to the core operations used in the first two experiments, and write a skill based on the actual workflow.
 
@@ -89,6 +93,8 @@ Acceptance criteria:
 
 ## Experiment 4: Live agent source edits with HMR draft retention
 
+Status: [live exact-session proof passed](experiments/2026-09-21-live-source-edit.md).
+
 Extend the live interaction proof from result-data publication to an actual source edit in a mounted Svelte component. Keep an unsent draft in another form or field opted into `previewState` while the bound agent makes the requested change.
 
 Acceptance criteria:
@@ -99,6 +105,8 @@ Acceptance criteria:
 - Record any required full refresh or state reset explicitly; do not infer preservation of arbitrary component-local state from the opted-in store.
 
 ## Experiment 5: Long-running lifecycle and resource recovery
+
+Status: [bounded resource run completed](experiments/2026-09-21-lifecycle-resources.md); [installation lifecycle](experiments/2026-09-21-installation.md) separately covers owned process crash/recovery. Neither proves installed delivery-in-flight crash reconciliation or indefinite resource stability.
 
 Exercise the Svelte singleton through a bounded soak run with repeated mount, source-update, and unmount cycles. Record the duration and cycle count so the result has a clear scope.
 
@@ -111,7 +119,7 @@ Acceptance criteria:
 
 ## Experiment 6: SvelteKit as the singleton application foundation
 
-Evaluate one SvelteKit host for the management UI, application routes, and API, alongside dynamically mounted Svelte components. This is a proposed foundation experiment within the Svelte-only scope, not an adopted architecture or evidence of compatibility. Preserve the singleton topology; do not introduce a separate SvelteKit development server per mount.
+Evaluate one SvelteKit host for the management UI, application routes, and API, alongside dynamically mounted Svelte components. The [bounded foundation experiment passed](experiments/2026-09-21-sveltekit-foundation.md) and supports the first-server recommendation; its commands are still experimental. Preserve the singleton topology; do not introduce a separate SvelteKit development server per mount.
 
 Use client-side rendering (CSR) as the baseline for mounted components. Server-side rendering (SSR) of mounted project code has a separate, unresolved execution and dependency contract; it is not required or established by this experiment.
 
@@ -140,4 +148,4 @@ Record the code revision, project configuration, startup procedure, expected and
 - What response schema, expiry rules, delivery receipts, and retry behavior are sufficient for reliable interaction?
 - What evidence establishes support for a framework rather than just one example built with it?
 
-The integrated singleton interaction gate is now recorded in [the experiment evidence](experiments/2026-09-20-singleton-interactions.md). Next test CommonJS/prebundling within Svelte mounts without regressing source-specific ESM resolution, expose proven operations through MCP, complete the live source-edit/HMR and lifecycle/resource experiments, and evaluate the proposed SvelteKit foundation above. Preserve the distinction between repeatable fixtures and live-session proof; neither establishes arbitrary-framework or production readiness.
+The seven-track [readiness plan](experiments/2026-09-21-readiness-plan.md) now has bounded results. Next implement a unified server contract, project registry, release/state lifecycle, and CLI/MCP surface in the sequence proposed by the [readiness review](server-readiness.md). Preserve the distinction between repeatable fixtures and live-session proof; neither establishes arbitrary-framework or production readiness.

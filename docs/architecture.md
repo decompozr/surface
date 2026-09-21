@@ -10,11 +10,11 @@ The [singleton pilot](../experiments/singleton/README.md) tests this direction s
 
 ## SvelteKit foundation candidate (September 21)
 
-The user proposed evaluating SvelteKit while keeping the near-term scope within Svelte. A candidate design uses one SvelteKit application for Artifact's management pages, namespace routes, and interaction API, with Artifact's mount registry and custom Vite integration supplying dynamically registered component sources. It retains one long-running service rather than launching one application per mount.
+The [foundation experiment](experiments/2026-09-21-sveltekit-foundation.md) now supports using a built SvelteKit application shell alongside Artifact's existing live Vite compiler. The adapter-node handler serves management pages and a sanitized read-only status API in the same process and application HTTP listener. Authenticated mutations and mount-scoped interaction routes remain in the shared core. Dynamically registered folders remain generated CSR component previews; each mount does not become a separate Kit application.
 
-SvelteKit uses a Vite plugin and provides page/server routing ([project structure](https://svelte.dev/docs/kit/project-structure), [routing](https://svelte.dev/docs/kit/routing)). Those mechanisms make it a candidate; they do not establish compatibility with this host's dynamic symlinks, project-specific dependencies, error attribution, or HMR state. A fixed namespace/preview route backed by the mount registry is an initial hypothesis to test, without assuming every mounted folder must become a generated SvelteKit route.
+The shell is built during installation. Updating it requires rebuild/restart, while future mounted source is compiled at runtime through the retained development compiler. Management SSR does not establish mounted SSR, arbitrary project Kit routes, or independent project Vite configuration. Scoped HMR, source-specific dependencies, callbacks, and one-listener topology passed the browser experiment.
 
-Start with client-rendered mounted previews and retain the existing callback flow. Per-mount SSR is a separate contract. A built SvelteKit host also does not by itself establish runtime compilation of newly mounted source: the experiment must document where the development compiler runs and distinguish that lifecycle from an eventual packaged server. No migration or production-stack decision is implied before these checks pass.
+The [server readiness review](server-readiness.md) recommends this topology for implementation, with pinned releases separated from durable service state and project-owned manifests/sources. A resource budget and restart/recreation policy are required before claiming indefinite operation under distinct-source churn. The experimental interfaces remain candidates until the first-server contract is implemented and validated.
 
 ## Prototype stack
 
@@ -22,7 +22,7 @@ The first implementation uses Bun 1.4.0 and TypeScript for the service and CLI, 
 
 Artifact and the example have separate package manifests and `bun.lock` files. Prototype records live in an ignored `.artifact/` directory as an atomically replaced JSON file, with an exclusive lock preventing two servers from writing the same state directory. This is a single-server prototype store, not a distributed queue.
 
-The implementation now includes an external-project registry and one supervised process group per mounted frontend. Explicit commands run in project-owned dependency contexts and return direct loopback URLs. Svelte and vanilla starters share a browser client; the reusable skill teaches the CLI workflow. MCP and broader framework adapters below remain proposals. See the [workflow guide](workflow.md) and earlier [prototype evidence](prototype.md).
+The implementation now includes an external-project registry and one supervised process group per mounted frontend. Explicit commands run in project-owned dependency contexts and return direct loopback URLs. Svelte and vanilla starters share a browser client; the reusable skill teaches the CLI workflow. This is the earlier process-based implementation. The singleton now has a verified stdio MCP adapter; broader framework adapters below remain proposals. See the [workflow guide](workflow.md) and earlier [prototype evidence](prototype.md).
 
 ## Earlier process topology (comparison)
 
@@ -41,6 +41,10 @@ Agent / user
 The earlier root CLI implementation uses one management service with a separate runtime process group per registered frontend. The management service handles lifecycle and discovery; projects retain their own development servers, module resolution, and framework environments.
 
 The first experiment can return each project's loopback URL directly. A shared domain or path proxy remains to be validated: it requires separate handling for asset paths, client-side routing, and hot-update WebSockets, and should not be a prerequisite for the smallest experiment.
+
+## Historical hypotheses below
+
+The following sections preserve the initial cross-framework/process-oriented questions. They are not current setup instructions or the recommended first-server contract. For implemented singleton behavior, use the [singleton guide](../experiments/singleton/README.md); for the bounded implementation scope and ownership/lifecycle decisions, use the [readiness review](server-readiness.md). Existing session routing, scoped access checks, MCP, and project management are recorded there and in the linked experiments. General package-manager, framework-adapter, and application-configuration ideas below remain unadopted.
 
 ## Source files and workspaces
 
@@ -72,7 +76,7 @@ Report TypeScript transformation and type checking as separate diagnostic outcom
 ## Dependency ownership
 
 - Each workspace keeps its dependency declarations and lockfile, with dependencies resolved in that project's context.
-- Respect existing package managers and workspace structures. Artifact and its initial example use Bun; this does not require externally mounted projects to use Bun.
+- Respect existing package managers and workspace structures. The broader vision may support other package managers. The current singleton contract explicitly requires Bun-compatible declarations/lockfiles and rejects npm/pnpm/Yarn locks rather than converting them.
 - In the earlier process experiment, dependency installation was explicit and separate from mounting. The preferred singleton flow now prepares dependencies automatically during mount, using the source manifest and preserving existing lockfiles. The pilot makes installation status and failures visible.
 - Experiments with multiple projects must cover different versions of the same package to confirm that dependencies do not leak between projects.
 - Project scripts may execute local code. The first phase assumes user-trusted local code; separate processes do not provide a security sandbox.
@@ -90,7 +94,7 @@ Validate core operations through the CLI first, then expose the same semantics t
 
 The CLI should support machine-readable results and explicit exit codes. MCP operations can map to tools, while status and diagnostics may be exposed as resources, following MCP's definitions of these server concepts. [MCP server concepts](https://modelcontextprotocol.io/docs/learn/server-concepts)
 
-Agents can initially use their existing file-editing capabilities to create pages and components. Whether dedicated generation, file-writing, or template tools are needed should be determined from actual workflows. The first [Artifact skill](../skills/artifact/SKILL.md) covers discovery, creation, previewing, callback handling, and troubleshooting through the implemented CLI. Singleton interaction integration has passed its scoped experiment; MCP remains an interface extension to validate. See the [consolidated findings](findings.md).
+Agents can initially use their existing file-editing capabilities to create pages and components. Whether dedicated generation, file-writing, or template tools are needed should be determined from actual workflows. The first [Artifact skill](../skills/artifact/SKILL.md) covers discovery, creation, previewing, callback handling, and troubleshooting through the implemented CLI. Singleton interaction integration and the thin MCP adapter have passed scoped experiments. Repository/project lifecycle wrappers are separate experimental CLIs; unifying them with the core and MCP is first-server implementation work. See the [consolidated findings](findings.md).
 
 ## Returning page input to an agent
 
