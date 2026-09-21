@@ -8,7 +8,7 @@ Start or connect to one local singleton server, create a namespace for a project
 
 A page should send structured input back to the agent session that created its interaction. The adapter should steer an active turn or continue the same idle conversation. It must not silently create a replacement conversation or choose whichever session was most recently active.
 
-These are the intended product behaviors. Bun, shared Vite, pinned Svelte, local JSON storage, command names, and the current preview-state helper are experimental implementation choices. Framework-neutral support remains a goal; it is not established by the Svelte pilot.
+These are the intended product behaviors. Bun, shared Vite, pinned Svelte, local JSON storage, command names, and the current preview-state helper are experimental implementation choices. Framework-neutral support remains a long-term goal; it is not established by the Svelte pilot. On September 21, the user narrowed current experiments to Svelte, deferred adding a second framework, and proposed trying SvelteKit as the singleton application foundation.
 
 ## Evidence map
 
@@ -84,7 +84,7 @@ Acceptance criteria:
 7. Keep the second namespace interactive throughout local compile failure and request processing. Record any shared infrastructure limitations.
 8. Update CLI usage and the skill around the actual integrated workflow. Retain reproducible checks and distinguish automated inputs from user choices.
 
-Next validate CommonJS/prebundling and framework boundaries, then add a thin MCP interface with CLI/MCP interoperability tests. Background-service packaging, durable preview-state policy, remote access, and broader isolation remain later design work. Do not collapse these into a claim of production readiness.
+The next experiments remain within Svelte: evaluate SvelteKit as the singleton application foundation, dependency compatibility including CommonJS/prebundling, a thin MCP interface with CLI/MCP interoperability, actual agent-driven component source edits with HMR draft retention, and long-running lifecycle/resource recovery. Adding another framework is deferred. Background-service packaging, durable preview-state policy, remote access, and broader isolation remain later design work. Do not collapse these into a claim of production readiness.
 
 ## Integration follow-up lessons
 

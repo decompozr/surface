@@ -59,7 +59,7 @@ Artifact aims to provide reusable runtime and preview infrastructure for this wo
 | Area | Goal |
 | --- | --- |
 | Web foundations | Support HTML, CSS, JavaScript, and TypeScript |
-| Framework choice | Validate Svelte first, then explore other JS frontend frameworks |
+| Framework choice | Focus current experiments on Svelte; defer additional frameworks |
 | Project dependencies | Give each project its own dependency declarations, lockfile, and resolution context |
 | Pages and components | Run complete pages and provide component preview entries with props, styles, and context |
 | Agent access | Share core capabilities between MCP and CLI, with skills describing the workflow |
@@ -67,7 +67,7 @@ Artifact aims to provide reusable runtime and preview infrastructure for this wo
 | Local experience | Return usable preview URLs, reflect source changes, and expose status and error diagnostics |
 | Source ownership | Keep artifacts as ordinary project files that can be versioned in Git and maintained independently |
 
-Supporting any JS frontend framework is a long-term exploration goal. The suggested starting point is plain HTML/JS and Svelte + TypeScript, validating integration boundaries one at a time.
+The current exploration focuses on Svelte + TypeScript. Additional frameworks are deferred; the broader framework-neutral vision remains a long-term possibility. The next experiments evaluate SvelteKit as the singleton application foundation, dependency compatibility, MCP/CLI interoperability, agent-driven component edits, and lifecycle reliability. SvelteKit is a candidate under test, not an adopted replacement for the current host.
 
 ## Documentation
 

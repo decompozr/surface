@@ -8,6 +8,14 @@ The user clarified that the intended product should have one long-running server
 
 The [singleton pilot](../experiments/singleton/README.md) tests this direction separately. It currently shares one pinned Svelte compiler/runtime, uses each source's ordinary ESM dependency tree, and returns namespace-based component hosts. The host now reuses the existing interaction core and Codex adapter through mount-scoped page routes, with a separate singleton CLI entry point. [Integration evidence](experiments/2026-09-20-singleton-interactions.md) records fixture and live-session outcomes. A follow-up adds mount-scoped error UI, live catalog updates, and explicit preview-state stores; compiler/transport isolation and transparent preservation of arbitrary component locals are not established.
 
+## SvelteKit foundation candidate (September 21)
+
+The user proposed evaluating SvelteKit while keeping the near-term scope within Svelte. A candidate design uses one SvelteKit application for Artifact's management pages, namespace routes, and interaction API, with Artifact's mount registry and custom Vite integration supplying dynamically registered component sources. It retains one long-running service rather than launching one application per mount.
+
+SvelteKit uses a Vite plugin and provides page/server routing ([project structure](https://svelte.dev/docs/kit/project-structure), [routing](https://svelte.dev/docs/kit/routing)). Those mechanisms make it a candidate; they do not establish compatibility with this host's dynamic symlinks, project-specific dependencies, error attribution, or HMR state. A fixed namespace/preview route backed by the mount registry is an initial hypothesis to test, without assuming every mounted folder must become a generated SvelteKit route.
+
+Start with client-rendered mounted previews and retain the existing callback flow. Per-mount SSR is a separate contract. A built SvelteKit host also does not by itself establish runtime compilation of newly mounted source: the experiment must document where the development compiler runs and distinguish that lifecycle from an eventual packaged server. No migration or production-stack decision is implied before these checks pass.
+
 ## Prototype stack
 
 The first implementation uses Bun 1.4.0 and TypeScript for the service and CLI, Bun's HTTP server and test runner, Ajv for response validation, and a Codex adapter using JSON-RPC over a local Unix WebSocket. The example uses Svelte 5 and Vite 8, with TypeScript 6 to match the Svelte checking tool's supported range.
