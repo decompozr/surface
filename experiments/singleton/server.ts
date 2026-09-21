@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync, renameSync, realpathSync, exist
 import { join, resolve, relative, sep } from 'node:path';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer as createViteServer, type ViteDevServer, type Plugin } from 'vite';
+import { scopedDependencies } from './dependencies.ts';
 import { createInteractions } from './interactions.ts';
 import { InputError } from '../../src/core/service.ts';
 import type { AgentAdapter } from '../../src/adapters/codex.ts';
@@ -33,7 +34,7 @@ async function body(req: IncomingMessage) {
 }
 
 /** Exploratory one-process, one-Vite component host. Separate from the previous runtime experiment. */
-export async function startSingleton(options: { stateDir: string; port?: number; adapter?: AgentAdapter }) {
+export async function startSingleton(options: { stateDir: string; port?: number; adapter?: AgentAdapter; application?: (req: IncomingMessage, res: ServerResponse) => boolean | Promise<boolean> }) {
   const stateDir = resolve(options.stateDir), workspace = join(stateDir, 'workspace');
   mkdirSync(workspace, { recursive: true, mode: 0o700 });
   const lockPath = join(stateDir, 'server.lock');
@@ -61,6 +62,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
   };
   let interactions: ReturnType<typeof createInteractions>;
   const active = (mount: Mount) => mount.status === 'ready' || mount.status === 'preparing';
+  const dependencies = scopedDependencies(source => registry.mounts.some(mount => mount.source === source && active(mount)));
   const view = (mount: Mount) => ({ ...mount, previewUrl: mount.status === 'ready' ? `${origin}/n/${mount.namespace}/${mount.name}/` : undefined });
   const allowedFile = (path: string) => inside(workspace, path) || inside(join(experimentRoot, 'node_modules'), path) || registry.mounts.some(mount => active(mount) && inside(mount.source, path));
   function removeLink(mount: Mount) {
@@ -118,11 +120,13 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       symlinkSync(mount.source, link, 'dir');
       if (!vite.config.server.fs.allow.includes(mount.source)) vite.config.server.fs.allow.push(mount.source);
       vite.watcher.add(mount.source);
+      await dependencies.prepare(mount.source);
       // Compile discovered components through the SAME Vite instance. This is development transformation, not a production bundle.
       for (const component of mount.components) await vite.transformRequest(`/mounts/${mount.namespace}/${mount.name}/${component}`);
       phase(mount, 'ready');
       return view(mount);
     } catch (error) {
+      dependencies.release(mount.source);
       removeLink(mount);
       phase(mount, 'failed', error instanceof Error ? error.message : String(error));
       return view(mount);
@@ -155,10 +159,11 @@ export async function startSingleton(options: { stateDir: string; port?: number;
     const record = find(namespace, name);
     removeLink(record);
     phase(record, 'unmounted');
+    dependencies.release(record.source);
     await vite.watcher.unwatch(record.source);
     vite.config.server.fs.allow = vite.config.server.fs.allow.filter(path => path !== record.source);
     invalidateMount(record);
-    vite.ws.send({ type: 'full-reload', path: `/n/${namespace}/${name}/` });
+    vite.ws.send({ type: 'custom', event: 'artifact:unmounted', data: { namespace, name } });
     return view(record);
   }
   const virtualPrefix = 'virtual:artifact-component/';
@@ -204,6 +209,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       if (req.method === 'POST' && url.pathname === '/api/unmount') { const input = await body(req); return json(res, await mutate(() => unmount(slug(input.namespace), slug(input.name)))); }
       throw new InputError('Unknown operation.', 404);
     }
+    if (await options.application?.(req, res)) return;
     if (req.method !== 'GET' && req.method !== 'HEAD') throw new InputError('Method not allowed.', 405);
     const catalog = /^\/n\/([a-z0-9-]+)\/([a-z0-9-]+)\/?$/.exec(url.pathname);
     if (catalog) {
@@ -230,6 +236,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       if (!allowedFile(file)) throw new InputError('Source is not mounted.', 403);
     }
     if (url.pathname.startsWith('/@id/__x00__' + virtualPrefix)) parseVirtual(decodeURIComponent(url.pathname.slice('/@id/__x00__'.length)));
+    dependencies.checkRequest(url.pathname);
     vite.middlewares(req, res, () => json(res, { error: 'Not found.' }, 404));
   }
   let rescanTimer: ReturnType<typeof setTimeout> | undefined;
@@ -243,7 +250,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
     vite = await createViteServer({
       configFile: false, root: workspace, appType: 'custom', publicDir: false,
       cacheDir: join(workspace, '.vite'),
-      plugins: [plugin, svelte({ configFile: false, prebundleSvelteLibraries: false })],
+      plugins: [dependencies.plugin, plugin, svelte({ configFile: false, prebundleSvelteLibraries: false })],
       resolve: { preserveSymlinks: false },
       optimizeDeps: { noDiscovery: true, include: [], exclude: ['svelte'] },
       server: { middlewareMode: true, hmr: { server: http, overlay: false }, fs: { strict: true, allow: [workspace, join(experimentRoot, 'node_modules')] } },

@@ -64,6 +64,9 @@ if (context && import.meta.hot) {
     if (pendingRevision !== undefined && pendingRevision === revision) clear();
     pendingRevision = undefined;
   });
+  import.meta.hot.on('artifact:unmounted', event => {
+    if (event.namespace === context.namespace && event.name === context.name) location.reload();
+  });
   import.meta.hot.on('artifact:discovery', event => {
     if (event.namespace !== context.namespace || event.name !== context.name) return;
     if (context.component) {
