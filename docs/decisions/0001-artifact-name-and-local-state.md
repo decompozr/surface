@@ -1,7 +1,7 @@
 # Decision 0001: Artifact naming and local state namespace
 
 Date: September 21, 2026.
-Status: accepted by the user.
+Status: accepted at the time; product name and default namespace superseded by [Decision 0002](0002-surface-name-and-local-state.md).
 
 ## Decision
 

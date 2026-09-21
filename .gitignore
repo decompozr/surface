@@ -16,7 +16,9 @@ coverage/
 !.env.example
 *.log
 
-# Local Artifact sessions and browser verification
+# Local Surface sessions and browser verification
+.decompozr/surface/
+# Legacy local state stays private until explicitly migrated.
 .decompozr/artifact/
 # Keep private state from earlier checkouts ignored.
 .artifact/
