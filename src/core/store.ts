@@ -3,9 +3,10 @@ import { dirname } from 'node:path';
 import type { RuntimeDefinition } from './runtime.ts';
 import type { Binding, Receipt } from '../adapters/codex.ts';
 
+export type PreviewScope = { namespace: string; name: string; source: string; projectRoot: string; component: string };
 export type RequestRecord = {
   id: string; bindingId: string; title: string; token: string; schema: Record<string, unknown>;
-  runtimeId?: string; previewPath?: string; createdAt: string; closed: boolean; response?: ResponseRecord; result?: Record<string, unknown>;
+  previewScope?: PreviewScope; runtimeId?: string; previewPath?: string; createdAt: string; closed: boolean; response?: ResponseRecord; result?: Record<string, unknown>;
 };
 export type ResponseRecord = {
   id: string; data: Record<string, unknown>; createdAt: string;

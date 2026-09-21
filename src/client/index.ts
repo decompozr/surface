@@ -13,7 +13,10 @@ export function createArtifactClient(options?: { api: string; requestId: string;
   if (!requestId || !token) throw new Error('Open the interaction preview URL returned by Artifact.');
   const endpoint = new URL(api);
   if (endpoint.protocol !== 'http:' || endpoint.hostname !== '127.0.0.1' || endpoint.username || endpoint.password) throw new Error('Expected a local Artifact API.');
-  const base = new URL(`/api/requests/${encodeURIComponent(requestId)}`, endpoint).href;
+  const context = document.getElementById('artifact-preview-context');
+  const scopedBase = context ? JSON.parse(context.textContent ?? '{}').interactionBase : undefined;
+  if (scopedBase !== undefined && (typeof scopedBase !== 'string' || !/^\/api\/n\/[a-z0-9-]+\/[a-z0-9-]+\/requests\/$/.test(scopedBase))) throw new Error('Invalid preview interaction scope.');
+  const base = new URL(`${scopedBase ?? '/api/requests/'}${encodeURIComponent(requestId)}`, endpoint).href;
   async function call(path: string, data?: unknown): Promise<Interaction> {
     const response = await fetch(base + path, {
       method: data === undefined ? 'GET' : 'POST',

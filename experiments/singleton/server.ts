@@ -3,18 +3,20 @@ import { mkdirSync, readFileSync, writeFileSync, renameSync, realpathSync, exist
 import { join, resolve, relative, sep } from 'node:path';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer as createViteServer, type ViteDevServer, type Plugin } from 'vite';
+import { createInteractions } from './interactions.ts';
+import { InputError } from '../../src/core/service.ts';
+import type { AgentAdapter } from '../../src/adapters/codex.ts';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 
 const compilerVersion = '5.57.1';
 const experimentRoot = import.meta.dir;
 type Phase = 'registered' | 'installing' | 'preparing' | 'ready' | 'failed' | 'unmounted';
 type Mount = {
-  namespace: string; name: string; source: string; status: Phase; components: string[];
+  namespace: string; name: string; source: string; projectRoot: string; status: Phase; components: string[];
   props: Record<string, Record<string, unknown>>; error?: string; log: string;
   history: { status: Phase; at: string }[];
 };
 type Registry = { namespaces: string[]; mounts: Mount[] };
-class InputError extends Error { constructor(message: string, public status = 400) { super(message); } }
 function slug(value: unknown) {
   if (typeof value !== 'string' || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(value)) throw new InputError('Use a lowercase namespace/name containing letters, digits, or hyphens.');
   return value;
@@ -31,7 +33,7 @@ async function body(req: IncomingMessage) {
 }
 
 /** Exploratory one-process, one-Vite component host. Separate from the previous runtime experiment. */
-export async function startSingleton(options: { stateDir: string; port?: number }) {
+export async function startSingleton(options: { stateDir: string; port?: number; adapter?: AgentAdapter }) {
   const stateDir = resolve(options.stateDir), workspace = join(stateDir, 'workspace');
   mkdirSync(workspace, { recursive: true, mode: 0o700 });
   const lockPath = join(stateDir, 'server.lock');
@@ -42,12 +44,14 @@ export async function startSingleton(options: { stateDir: string; port?: number 
   let registry: Registry;
   try {
     registry = existsSync(registryPath) ? JSON.parse(readFileSync(registryPath, 'utf8')) : { namespaces: [], mounts: [] };
+    for (const mount of registry.mounts ?? []) mount.projectRoot ??= mount.source;
     if (!Array.isArray(registry.namespaces) || !Array.isArray(registry.mounts)) throw new Error('Invalid singleton registry.');
   } catch (error) { closeSync(lock); unlinkSync(lockPath); throw error; }
   const save = () => { writeFileSync(registryPath + '.tmp', JSON.stringify(registry, null, 2), { mode: 0o600 }); renameSync(registryPath + '.tmp', registryPath); };
   const phase = (mount: Mount, status: Phase, error?: string) => { mount.status = status; mount.error = error; mount.history.push({ status, at: new Date().toISOString() }); mount.history = mount.history.slice(-30); save(); };
   const token = randomBytes(32).toString('hex');
   let origin = '', vite: ViteDevServer, closing = false;
+  let stopTask: Promise<void> | undefined;
   const instanceId = crypto.randomUUID();
   const mountPath = (mount: Mount) => join(workspace, 'mounts', mount.namespace, mount.name);
   const find = (namespace: string, name: string) => {
@@ -55,6 +59,7 @@ export async function startSingleton(options: { stateDir: string; port?: number 
     if (!mount) throw new InputError('Unknown mount.', 404);
     return mount;
   };
+  let interactions: ReturnType<typeof createInteractions>;
   const active = (mount: Mount) => mount.status === 'ready' || mount.status === 'preparing';
   const view = (mount: Mount) => ({ ...mount, previewUrl: mount.status === 'ready' ? `${origin}/n/${mount.namespace}/${mount.name}/` : undefined });
   const allowedFile = (path: string) => inside(workspace, path) || inside(join(experimentRoot, 'node_modules'), path) || registry.mounts.some(mount => active(mount) && inside(mount.source, path));
@@ -128,13 +133,16 @@ export async function startSingleton(options: { stateDir: string; port?: number 
     if (!registry.namespaces.includes(namespace)) throw new InputError('Create the namespace first.', 404);
     if (typeof input.source !== 'string') throw new InputError('Expected a source directory.');
     const source = realpathSync(input.source);
+    if (input.projectRoot !== undefined && typeof input.projectRoot !== 'string') throw new InputError('Invalid project root.');
+    const projectRoot = realpathSync((input.projectRoot as string | undefined) ?? source);
+    if (!lstatSync(projectRoot).isDirectory() || !inside(projectRoot, source)) throw new InputError('Mounted source must be inside its canonical project root.');
     if (!lstatSync(source).isDirectory()) throw new InputError('Expected a source directory.');
     if (inside(source, stateDir) || inside(stateDir, source)) throw new InputError('Source and singleton state directories must be separate.');
     let record = registry.mounts.find(item => item.namespace === namespace && item.name === name);
-    if (record && record.source !== source) throw new InputError('A mount name cannot silently change its source.', 409);
+    if (record && (record.source !== source || record.projectRoot !== projectRoot)) throw new InputError('A mount name cannot silently change its source or project root.', 409);
     if (registry.mounts.some(item => item !== record && item.status !== 'unmounted' && (inside(item.source, source) || inside(source, item.source)))) throw new InputError('Overlapping active source directories are not supported in this experiment.', 409);
     if (record?.status === 'ready') return view(record);
-    if (!record) { record = { namespace, name, source, status: 'registered', components: [], props: {}, log: '', history: [] }; registry.mounts.push(record); }
+    if (!record) { record = { namespace, name, source, projectRoot, status: 'registered', components: [], props: {}, log: '', history: [] }; registry.mounts.push(record); }
     phase(record, 'registered');
     return prepare(record);
   }
@@ -146,10 +154,10 @@ export async function startSingleton(options: { stateDir: string; port?: number 
   async function unmount(namespace: string, name: string) {
     const record = find(namespace, name);
     removeLink(record);
+    phase(record, 'unmounted');
     await vite.watcher.unwatch(record.source);
     vite.config.server.fs.allow = vite.config.server.fs.allow.filter(path => path !== record.source);
     invalidateMount(record);
-    phase(record, 'unmounted');
     vite.ws.send({ type: 'full-reload', path: `/n/${namespace}/${name}/` });
     return view(record);
   }
@@ -164,8 +172,9 @@ export async function startSingleton(options: { stateDir: string; port?: number 
   }
   const plugin: Plugin = {
     name: 'artifact-singleton-components',
-    resolveId(id) { if (id === 'virtual:artifact-preview') return '\0' + id; if (id.startsWith(virtualPrefix)) { parseVirtual(id); return '\0' + id; } },
+    resolveId(id) { if (id === 'virtual:artifact-client') return '\0' + id; if (id === 'virtual:artifact-preview') return '\0' + id; if (id.startsWith(virtualPrefix)) { parseVirtual(id); return '\0' + id; } },
     load(id) {
+      if (id === '\0virtual:artifact-client') return new Bun.Transpiler({ loader: 'ts' }).transformSync(readFileSync(join(experimentRoot, '../../src/client/index.ts'), 'utf8'));
       if (id === '\0virtual:artifact-preview') return readFileSync(join(experimentRoot, 'preview-client.js'), 'utf8');
       if (!id.startsWith('\0' + virtualPrefix)) return;
       const { record, path } = parseVirtual(id);
@@ -174,6 +183,7 @@ export async function startSingleton(options: { stateDir: string; port?: number 
   };
   const http = createHTTPServer((req, res) => { void handle(req, res).catch(error => { if (!res.headersSent) json(res, { error: error instanceof Error ? error.message : String(error) }, error instanceof InputError ? error.status : 500); else res.end(); }); });
   async function handle(req: IncomingMessage, res: ServerResponse) {
+    if (closing) throw new InputError('Server is closing.', 503);
     if (req.headers.host !== new URL(origin).host) throw new InputError('Invalid Host.', 403);
     if (req.headers.origin && req.headers.origin !== origin) throw new InputError('Invalid Origin.', 403);
     const url = new URL(req.url!, origin);
@@ -181,7 +191,9 @@ export async function startSingleton(options: { stateDir: string; port?: number 
     if (url.pathname.startsWith('/api/')) {
       if (req.method === 'GET' && url.pathname === '/api/health') return json(res, { status: 'ready', experiment: 'singleton', pid: process.pid, instanceId, viteInstances: 1 });
       const received = Buffer.from(req.headers.authorization?.replace(/^Bearer /, '') ?? ''), expected = Buffer.from(token);
-      if (received.length !== expected.length || !timingSafeEqual(received, expected)) throw new InputError('Management authorization required.', 401);
+      const admin = received.length === expected.length && timingSafeEqual(received, expected);
+      if (await interactions.route(req, res, url, admin, () => body(req), (value, status) => json(res, value, status))) return;
+      if (!admin) throw new InputError('Management authorization required.', 401);
       if (req.method === 'GET' && url.pathname === '/api/mounts') return json(res, registry.mounts.map(view));
       if (req.method === 'GET' && url.pathname === '/api/namespaces') return json(res, registry.namespaces);
       if (req.method === 'POST' && url.pathname === '/api/namespaces') {
@@ -199,7 +211,9 @@ export async function startSingleton(options: { stateDir: string; port?: number 
       if (record.status !== 'ready') throw new InputError('Mount is not ready.', 404);
       const component = url.searchParams.get('component');
       if (component && !record.components.includes(component)) throw new InputError('Unknown component.', 404);
-      const context = JSON.stringify({ namespace: record.namespace, name: record.name, source: record.source, component, props: component ? record.props[component] ?? {} : {} }).replaceAll('<', '\\u003c');
+      const requestId = url.searchParams.get('request');
+      if (requestId) interactions.checkPage(requestId, record.namespace, record.name, component ?? '');
+      const context = JSON.stringify({ interactionBase: `/api/n/${record.namespace}/${record.name}/requests/`, namespace: record.namespace, name: record.name, source: record.source, component, props: component ? record.props[component] ?? {} : {} }).replaceAll('<', '\\u003c');
       const client = `<script id="artifact-preview-context" type="application/json">${context}</script><script type="module" src="/@id/__x00__virtual:artifact-preview"></script>`;
       const html = component
         ? `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHTML(component)}</title></head><body>${client}<div id="app"></div><script type="module" src="/@id/__x00__${virtualPrefix}${record.namespace}/${record.name}/${component.split('/').map(encodeURIComponent).join('/')}.entry.js"></script></body></html>`
@@ -221,6 +235,7 @@ export async function startSingleton(options: { stateDir: string; port?: number 
   let rescanTimer: ReturnType<typeof setTimeout> | undefined;
   const rescans = new Set<Mount>();
   try {
+    interactions = createInteractions({ stateDir, adapter: options.adapter, find });
     // Shared framework runtime for this compiler experiment; project dependencies remain in their source folders.
     writeFileSync(join(workspace, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies: { svelte: compilerVersion } }));
     const modules = join(workspace, 'node_modules');
@@ -260,13 +275,20 @@ export async function startSingleton(options: { stateDir: string; port?: number 
     writeFileSync(join(stateDir, 'connection.json'), JSON.stringify({ origin, token, pid: process.pid, instanceId }), { mode: 0o600 });
     // Restore intended mounts using this same Vite instance, not saved URLs or spawned dev servers.
     for (const record of registry.mounts.filter(record => record.status !== 'unmounted')) await prepare(record);
-    return { origin, instanceId, pid: process.pid, vite, async stop() {
-      if (closing) return; closing = true; clearTimeout(rescanTimer);
-      for (const child of installers) child.kill();
-      await pending;
-      await vite.close();
-      http.closeAllConnections(); await new Promise<void>(done => http.close(() => done()));
-      closeSync(lock); unlinkSync(lockPath); unlinkSync(join(stateDir, 'connection.json'));
+    return { origin, instanceId, pid: process.pid, vite, stop() {
+      if (stopTask) return stopTask;
+      closing = true;
+      stopTask = (async () => {
+        clearTimeout(rescanTimer);
+        const interactionsStopped = interactions.stop();
+        for (const child of installers) child.kill();
+        await pending;
+        await interactionsStopped;
+        await vite.close();
+        http.closeAllConnections(); await new Promise<void>(done => http.close(() => done()));
+        closeSync(lock); unlinkSync(lockPath); unlinkSync(join(stateDir, 'connection.json'));
+      })();
+      return stopTask;
     } };
   } catch (error) {
     await vite!?.close(); http.close(); closeSync(lock);

@@ -1,6 +1,6 @@
 # Findings and next experiment
 
-Consolidated on September 20, 2026 (America/Toronto). Evidence checkpoint: `c6abf5f`. This records executable experiments and the user's intended direction, not a finalized production architecture. The detailed experiment records remain the source for each observation.
+Consolidated on September 20, 2026 (America/Toronto), with the subsequent singleton interaction follow-up recorded below. Earlier rendering/state checkpoint: `c6abf5f`. This records executable experiments and the user's intended direction, not a finalized production architecture. The detailed experiment records remain the source for each observation.
 
 ## Intended direction
 
@@ -19,7 +19,7 @@ These are the intended product behaviors. Bun, shared Vite, pinned Svelte, local
 | `181243c`: [singleton namespaces](experiments/2026-09-20-singleton-namespaces.md) | One server and Vite instance hosted symlinked components in two namespaces, installed missing dependencies, executed two nanoid versions, and restored mounts after restart. | Svelte 5.57.1 and browser-ready ESM; no agent delivery in this pilot. |
 | `c6abf5f`: [scoped errors and HMR](experiments/2026-09-20-scoped-hmr.md) | Mount-scoped error UI, a usable neighboring preview during failure, live catalog/props updates, and explicit counter/draft state retention through edits and error recovery. | UI isolation and opt-in state preservation; no compiler-process or browser-origin isolation. |
 
-Two executable paths currently coexist. The root `artifact` CLI implements the earlier external-process and interaction workflow. `bun run singleton` runs the separate preferred-topology experiment. They are not yet one integrated product. The skill points to the singleton pilot when that topology is requested; its complete interaction workflow still follows the earlier CLI.
+Two executable paths currently coexist. The root `artifact` CLI implements the earlier external-process and interaction workflow. `bun run singleton` runs the separate preferred-topology experiment. The singleton now reuses the interaction core and Codex adapter, while the two CLI entry points remain separate experiments. The skill now teaches the integrated singleton interaction workflow as well as identifying the earlier process-based path.
 
 ## What we learned
 
@@ -61,7 +61,7 @@ Repeated submissions with the same response ID and data are deduplicated. Confli
 
 The CLI makes operations executable and inspectable. The skill teaches agents how to create sources, mount them, bind an exact session, interpret receipts, publish results, and recover from failures. An independent agent completed that workflow with a fixture binding, supporting basic usability without claiming another live model-delivery proof.
 
-MCP can expose the same core operations for discovery and invocation. It does not itself wake an agent; the runtime-specific delivery adapter does that. Integrate the preferred singleton workflow before duplicating its interface in MCP.
+MCP can expose the same core operations for discovery and invocation. It does not itself wake an agent; the runtime-specific delivery adapter does that. The preferred singleton workflow now has integration evidence; MCP should wrap these operations and undergo explicit interoperability tests.
 
 ### Rendering and lifecycle checks need direct observations
 
@@ -69,9 +69,9 @@ HTTP readiness alone does not establish successful compilation, browser behavior
 
 The earlier process supervisor covered normal stop, stop/remount ordering, and manager-crash cleanup. Those observations belong to that topology, not an untested singleton crash-recovery guarantee. All experiments assume trusted local source. Namespace names organize mounts; they are not security boundaries.
 
-## Next: one singleton-to-agent round trip
+## Completed gate: one singleton-to-agent round trip
 
-The next experiment should connect the existing interaction core and adapter to the singleton host. Preserve the known session and delivery semantics while validating the changed mounting and browser-origin model.
+The [integration experiment](experiments/2026-09-20-singleton-interactions.md) completed this scoped gate: fixture/browser checks passed, and separate live idle and active runs returned actual agent CLI results to the singleton page. The acceptance criteria below record the gate; they do not establish general support across agent runtimes.
 
 Acceptance criteria:
 
@@ -84,12 +84,23 @@ Acceptance criteria:
 7. Keep the second namespace interactive throughout local compile failure and request processing. Record any shared infrastructure limitations.
 8. Update CLI usage and the skill around the actual integrated workflow. Retain reproducible checks and distinguish automated inputs from user choices.
 
-After that gate, validate CommonJS/prebundling and framework boundaries, then add a thin MCP interface with CLI/MCP interoperability tests. Background-service packaging, durable preview-state policy, remote access, and broader isolation remain later design work. Do not collapse these into a claim of production readiness.
+Next validate CommonJS/prebundling and framework boundaries, then add a thin MCP interface with CLI/MCP interoperability tests. Background-service packaging, durable preview-state policy, remote access, and broader isolation remain later design work. Do not collapse these into a claim of production readiness.
+
+## Integration follow-up lessons
+
+The joined workflow retains canonical project identity separately from namespace labels. A nested source folder must identify its owning project root with `mount --project`; the binding must match that root. Each request also records its mount and component, and page capabilities use a mount-scoped API path. A request token cannot authorize management or another request by changing an ID; shared-origin scripts remain within the same trust boundary.
+
+Unmounting revokes page access and new submissions while preserving receipts and ongoing agent work. Administrative inspection and result publication remain available for reconciliation. Remounting the same identity/component restores page access. Closing blocks new submissions and preserves historical records; neither close nor unmount cancels an agent turn.
+
+Review found two asynchronous admission issues: unmount needed to change status before awaiting watcher cleanup, and shutdown needed to drain binding inspection as well as delivery before releasing the state lock. The fixes and regression checks prevent late writes and post-unmount submissions. CLI option forwarding also now preserves a state directory supplied before the command.
+
+The original live proof used a bundled page. The follow-up reused the exact dedicated conversation and observed singleton browser input, idle continuation or exact-turn steering, the agent's successful result CLI command, browser display, and reload restoration. Automated inputs remain explicitly labeled; this is not personal user approval.
 
 ## Reproduction and evidence retention
 
 - [Singleton commands and verification](../experiments/singleton/README.md#reproduce-the-experiment): install root/experiment dependencies, run the experiment type check and `bun run verify:singleton`.
+- [Singleton interaction verification](experiments/2026-09-20-singleton-interactions.md): `bun run verify:singleton-interactions`, using deterministic fixtures separately from live-session checks.
 - [External workflow](workflow.md): earlier CLI/skill setup and `bun run verify:external`.
 - [Original live proof](prototype.md): exact-session setup, delivery limits, and recorded live outcomes. Automated fixture suites do not contact a model session.
 
-Versioned scripts and experiment records make the observations reviewable. Local screenshots, receipts, and diagnostic logs remain in ignored `.artifact/` directories; they are not portable public evidence. This consolidation records the existing checkpoints and does not claim a fresh runtime verification run.
+Versioned scripts and experiment records make the observations reviewable. Local screenshots, receipts, and diagnostic logs remain in ignored `.artifact/` directories; they are not portable public evidence. The earlier consolidation recorded existing checkpoints. The linked integration follow-up records the subsequent fresh core, singleton, fixture/browser, review, and live-session checks separately.

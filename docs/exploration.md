@@ -1,12 +1,12 @@
 # Experiment roadmap
 
-The goal is to progressively validate whether agents in any project can create and run interactive interfaces. Record actual results at each step before expanding the scope. The first prototype covers a bundled Svelte page and live delivery into a dedicated Codex conversation. External project mounting, Svelte/vanilla starters, a generic browser client, custom CLI schemas, and a reusable skill are now implemented. Browser verification covers two external projects with a fixture adapter. A separate singleton pilot validates two versions of one ESM dependency and component previews; integrated singleton interactions, broader dependency coverage, and MCP remain incomplete. See [prototype evidence](prototype.md#validation-on-2026-09-20).
+The goal is to progressively validate whether agents in any project can create and run interactive interfaces. Record actual results at each step before expanding the scope. The first prototype covers a bundled Svelte page and live delivery into a dedicated Codex conversation. External project mounting, Svelte/vanilla starters, a generic browser client, custom CLI schemas, and a reusable skill are now implemented. Browser verification covers two external projects with a fixture adapter. A separate singleton pilot validates two versions of one ESM dependency and component previews; integrated singleton interactions now have fixture and live-session evidence. Broader dependency coverage and MCP remain incomplete. See [prototype evidence](prototype.md#validation-on-2026-09-20).
 
-## Current priority: singleton namespace mounting
+## Current priority: dependency coverage and shared interfaces
 
 The user clarified the target topology: start one server, create a namespace for a project/problem, and symlink source folders into it. Mounting should automatically prepare declared dependencies and discover/render components through one Vite instance. This supersedes expanding the per-project dev-server design as the production direction.
 
-The [singleton experiment](experiments/2026-09-20-singleton-namespaces.md) records a working pilot and its limits. The [HMR follow-up](experiments/2026-09-20-scoped-hmr.md) now validates scoped error UI, targeted discovery updates, and opt-in state retention. Next connect this host to the existing interaction layer using the [integration acceptance criteria](findings.md#next-one-singleton-to-agent-round-trip), then expand dependency-format coverage. MCP follows those operations; it does not decide the mounting topology.
+The [singleton experiment](experiments/2026-09-20-singleton-namespaces.md) records a working pilot and its limits. The [HMR follow-up](experiments/2026-09-20-scoped-hmr.md) now validates scoped error UI, targeted discovery updates, and opt-in state retention. The [singleton interaction experiment](experiments/2026-09-20-singleton-interactions.md) now connects this host to the existing layer with fixture and live idle/active verification. Next expand dependency-format coverage and validate interface interoperability. MCP follows those operations; it does not decide the mounting topology.
 
 ## Exploratory milestones
 
@@ -17,7 +17,8 @@ The [singleton experiment](experiments/2026-09-20-singleton-namespaces.md) recor
 | Reusable interaction | Implemented and browser-tested | Custom JSON schema, browser client, CLI publication; explicit fixture adapter |
 | Agent self-service | CLI and skill implemented | Independent agent completed a custom Svelte workflow using the skill and a fixture binding; live delivery remains separately evidenced |
 | Singleton namespace mounting | Pilot verified | Symlinks, automatic Bun installs, discovered Svelte components, two nanoid versions under one Vite; follow-up verifies scoped error UI and opt-in state retention |
-| Singleton interaction integration and MCP | Next | Connect the existing request/result layer, then validate CLI/MCP interoperability |
+| Singleton interaction integration | Verified for the tested workflow | Two-namespace fixtures, scoped request access, lifecycle races, and separate live idle/active callbacks displayed in Chrome |
+| Dependency formats and MCP | Next | CommonJS/prebundling boundary, then CLI/MCP interoperability using the same operations |
 | More frameworks and remote access | Later | Per-framework and remote-access acceptance tests |
 
 See [the experiment record](experiments/2026-09-20-external-projects.md) for observations and limits, and [the workflow guide](workflow.md) for executable commands. Installed packages remain project-owned. The external-project run alone did not prove conflicting dependency-version resolution; the subsequent singleton run separately observed nanoid 4.0.2 and 5.1.5 executing from their own source trees.
@@ -102,4 +103,4 @@ Record the code revision, project configuration, startup procedure, expected and
 - What response schema, expiry rules, delivery receipts, and retry behavior are sufficient for reliable interaction?
 - What evidence establishes support for a framework rather than just one example built with it?
 
-Next, join the separately proven singleton host and agent interaction layer. Use the [consolidated findings and integration gate](findings.md) to preserve exact-session delivery, scoped request access, HMR behavior, and truthful receipts. Validate fixture and live runs separately before introducing MCP.
+The integrated singleton interaction gate is now recorded in [the experiment evidence](experiments/2026-09-20-singleton-interactions.md). Next test CommonJS/prebundling without regressing source-specific ESM resolution, and expose proven operations through MCP. Preserve the distinction between repeatable fixtures and live-session proof; neither establishes arbitrary-framework or production readiness.

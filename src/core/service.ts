@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { isAbsolute } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { DeliveryError, type AgentAdapter, type Binding } from '../adapters/codex.ts';
-import { Store, type RequestRecord } from './store.ts';
+import { Store, type RequestRecord, type PreviewScope } from './store.ts';
 
 export class InputError extends Error {
   constructor(message: string, public status = 400) { super(message); }
@@ -47,7 +47,7 @@ export class Service {
       return binding;
     });
   }
-  create(input: unknown) {
+  create(input: unknown, previewScope?: PreviewScope) {
     const data = object(input);
     const bindingId = text(data.bindingId, 'binding ID');
     if (!this.store.state.bindings.some(binding => binding.id === bindingId)) throw new InputError('Unknown agent binding.', 404);
@@ -57,7 +57,7 @@ export class Service {
       id: crypto.randomUUID(), bindingId, title: text(data.title, 'title', 200),
       runtimeId: data.runtimeId === undefined ? undefined : text(data.runtimeId, 'runtime ID'),
       previewPath: data.previewPath === undefined ? undefined : text(data.previewPath, 'preview path'),
-      schema, token: randomBytes(32).toString('hex'), createdAt: new Date().toISOString(), closed: false,
+      previewScope, schema, token: randomBytes(32).toString('hex'), createdAt: new Date().toISOString(), closed: false,
     };
     return this.store.update(state => { state.requests.push(record); return record; });
   }

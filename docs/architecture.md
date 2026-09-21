@@ -6,7 +6,7 @@ This document records initial technical hypotheses, not implementation commitmen
 
 The user clarified that the intended product should have one long-running server, namespaces, and symlink-mounted component folders. Mounting should prepare declared dependencies automatically, discover components, and compile/render them through a shared Vite instance. The per-project development-process implementation below is an earlier experiment, not the adopted target topology.
 
-The [singleton pilot](../experiments/singleton/README.md) tests this direction separately. It currently shares one pinned Svelte compiler/runtime, uses each source's ordinary ESM dependency tree, and returns namespace-based component hosts. The existing interaction API has not yet been integrated into this host. A follow-up adds mount-scoped error UI, live catalog updates, and explicit preview-state stores; compiler/transport isolation and transparent preservation of arbitrary component locals are not established.
+The [singleton pilot](../experiments/singleton/README.md) tests this direction separately. It currently shares one pinned Svelte compiler/runtime, uses each source's ordinary ESM dependency tree, and returns namespace-based component hosts. The host now reuses the existing interaction core and Codex adapter through mount-scoped page routes, with a separate singleton CLI entry point. [Integration evidence](experiments/2026-09-20-singleton-interactions.md) records fixture and live-session outcomes. A follow-up adds mount-scoped error UI, live catalog updates, and explicit preview-state stores; compiler/transport isolation and transparent preservation of arbitrary component locals are not established.
 
 ## Prototype stack
 
@@ -82,7 +82,7 @@ Validate core operations through the CLI first, then expose the same semantics t
 
 The CLI should support machine-readable results and explicit exit codes. MCP operations can map to tools, while status and diagnostics may be exposed as resources, following MCP's definitions of these server concepts. [MCP server concepts](https://modelcontextprotocol.io/docs/learn/server-concepts)
 
-Agents can initially use their existing file-editing capabilities to create pages and components. Whether dedicated generation, file-writing, or template tools are needed should be determined from actual workflows. The first [Artifact skill](../skills/artifact/SKILL.md) covers discovery, creation, previewing, callback handling, and troubleshooting through the implemented CLI. The next gate is singleton interaction integration; MCP follows as an interface extension. See the [consolidated findings](findings.md).
+Agents can initially use their existing file-editing capabilities to create pages and components. Whether dedicated generation, file-writing, or template tools are needed should be determined from actual workflows. The first [Artifact skill](../skills/artifact/SKILL.md) covers discovery, creation, previewing, callback handling, and troubleshooting through the implemented CLI. Singleton interaction integration has passed its scoped experiment; MCP remains an interface extension to validate. See the [consolidated findings](findings.md).
 
 ## Returning page input to an agent
 

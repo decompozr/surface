@@ -4,3 +4,26 @@ declare module 'virtual:artifact-preview' {
   /** Preview-session state. Same key/version survives component HMR; full navigation resets it. */
   export function previewState<T>(key: string, initial: T, version?: number | string): Writable<T>;
 }
+
+/** The singleton host supplies this module; do not add it as a package dependency. */
+declare module 'virtual:artifact-client' {
+  export type Interaction = {
+    id: string;
+    title: string;
+    closed: boolean;
+    schema: Record<string, unknown>;
+    response?: {
+      id: string;
+      status: 'delivering' | 'accepted' | 'failed' | 'unknown';
+      error?: string;
+      data: Record<string, unknown>;
+    };
+    result?: Record<string, unknown>;
+  };
+  /** Reads the request capability and mount scope from the returned interaction preview URL. */
+  export function createArtifactClient(options?: { api: string; requestId: string; token: string }): {
+    read(): Promise<Interaction>;
+    submit(data: Record<string, unknown>, responseId: string): Promise<Interaction>;
+    waitForResult(options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<Record<string, unknown>>;
+  };
+}

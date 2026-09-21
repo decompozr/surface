@@ -6,11 +6,11 @@ Enable agents in any project to create and mount local interactive pages and com
 
 This project is exploring the domain. Its executable code is an experimental implementation for testing design hypotheses; the architecture, API, storage model, and packaging are not finalized product commitments. The first local prototype includes a Bun server and CLI, a Svelte feedback page, and a Codex adapter that delivers page responses to an existing conversation. Active-turn steering and idle continuation have been exercised against a local Codex session.
 
-Two experimental paths currently coexist: the earlier CLI/skill workflow mounts external Svelte or vanilla projects and connects custom forms to the interaction API; the separate singleton pilot hosts discovered Svelte components through one Vite instance. Their integration is the next gate. MCP, broader framework validation, and remote access remain future work. Start with the [consolidated findings](docs/findings.md) for evidence, limits, and the next experiment.
+Two experimental entry points currently coexist: the earlier CLI mounts external Svelte or vanilla projects through separate development processes; the preferred singleton pilot hosts discovered Svelte components through one Vite instance and now connects their forms to the existing interaction service. Automated fixture checks and separate live Codex idle/active round trips passed. MCP, broader dependency/framework validation, and remote access remain future work. Start with the [consolidated findings](docs/findings.md) for evidence, limits, and the next experiment.
 
 ## Current exploration: one server with namespaces
 
-The preferred direction is now one singleton server with namespace-scoped symlink mounts, automatic project dependency preparation, component discovery, and a shared Vite instance. The [singleton experiment](experiments/singleton/README.md) is a separate executable pilot; it does not yet replace the earlier CLI or integrate its agent callback API. See the [experiment record](docs/experiments/2026-09-20-singleton-namespaces.md) for observed results and limits.
+The preferred direction is now one singleton server with namespace-scoped symlink mounts, automatic project dependency preparation, component discovery, and a shared Vite instance. The [singleton experiment](experiments/singleton/README.md) is a separate executable pilot; it reuses the existing interaction core and agent adapter while keeping a separate CLI entry point from the earlier implementation. See the [mounting record](docs/experiments/2026-09-20-singleton-namespaces.md) and [integrated interaction evidence](docs/experiments/2026-09-20-singleton-interactions.md) for observed results and limits.
 
 ## Earlier experiment: independent project runtimes
 
@@ -79,4 +79,4 @@ Supporting any JS frontend framework is a long-term exploration goal. The sugges
 - [Prototype usage and evidence](docs/prototype.md): setup, implemented behavior, validation, and limits.
 - [Experiment roadmap](docs/exploration.md): small experiments, acceptance criteria, and open questions.
 
-The singleton now has scoped compiler-error UI, live catalog updates, and opt-in state preservation across HMR; see the [follow-up evidence](docs/experiments/2026-09-20-scoped-hmr.md). The next integration is connecting its mounts to the existing agent-interaction layer before adding MCP.
+The singleton now has scoped compiler-error UI, live catalog updates, and opt-in state preservation across HMR; see the [follow-up evidence](docs/experiments/2026-09-20-scoped-hmr.md). Singleton-to-agent integration is now verified for the tested workflow. Next expand dependency-format coverage and validate a thin MCP interface against the same operations.

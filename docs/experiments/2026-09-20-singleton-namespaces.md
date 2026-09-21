@@ -2,7 +2,7 @@
 
 Status: exploratory evidence, not a finalized production design. Run on September 20, 2026 (America/Toronto).
 
-A subsequent [scoped-error and preview-state experiment](2026-09-20-scoped-hmr.md) addresses the error overlay and state-retention limitations observed below. This record preserves the original observations.
+A subsequent [scoped-error and preview-state experiment](2026-09-20-scoped-hmr.md) addresses the error overlay and state-retention limitations observed below. The later [interaction integration](2026-09-20-singleton-interactions.md) connects this host to agent callbacks. This record preserves the original observations.
 
 ## Design question
 
