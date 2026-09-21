@@ -4,15 +4,17 @@ import { fileURLToPath } from 'node:url';
 import { join, resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { scaffold } from './scaffold.ts';
+import { projectMain } from './projects.ts';
 import { startServer } from '../server/index.ts';
 
 export const root = fileURLToPath(new URL('../../', import.meta.url));
 const cliPath = fileURLToPath(import.meta.url);
 
 export async function main(args = process.argv.slice(2)) {
-  const { values, positionals } = parseArgs({ args, allowPositionals: true, options: {
+  const { values, positionals, tokens } = parseArgs({ args, allowPositionals: true, tokens: true, options: {
     directory: { type: 'string' }, framework: { type: 'string' }, runtime: { type: 'string' },
     'command-json': { type: 'string' }, 'schema-file': { type: 'string' }, 'preview-path': { type: 'string' },
+    artifact: { type: 'string' }, source: { type: 'string' }, name: { type: 'string' },
     project: { type: 'string' }, thread: { type: 'string' }, socket: { type: 'string' },
     binding: { type: 'string' }, title: { type: 'string' }, request: { type: 'string' },
     data: { type: 'string' }, 'response-id': { type: 'string' }, port: { type: 'string' },
@@ -20,9 +22,14 @@ export async function main(args = process.argv.slice(2)) {
     help: { type: 'boolean', short: 'h' },
   } });
   const command = positionals[0];
+  if (command === 'project') {
+    const index = tokens.find(token => token.kind === 'positional')!.index;
+    return projectMain(args.filter((_, position) => position !== index), join(root, '.artifact/singleton'));
+  }
   if (values.help || !command) {
     console.log(`Artifact prototype (Bun + TypeScript)
 
+  project <operation> --project ROOT [--state-dir STATE] (use project --help)
   serve [--dev] [--port 4317] [--ui-port 5173]
   init --directory /path/to/project/artifacts/demo --framework svelte|vanilla
   doctor
@@ -41,6 +48,7 @@ export async function main(args = process.argv.slice(2)) {
   close --request ID
 
 All commands accept --state-dir PATH (default: this checkout's .artifact).
+Project commands default to this checkout's .artifact/singleton and require an existing singleton server.
 serve runs in the foreground; Ctrl+C stops its own processes. --dev starts the Svelte Vite example.
 Live bind/send commands target the exact registered Codex conversation. No mock agent runs in production.`);
     return;

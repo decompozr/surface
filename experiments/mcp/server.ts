@@ -4,6 +4,7 @@ import { parseArgs } from 'node:util';
 import { McpServer } from '@modelcontextprotocol/server';
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import * as z from 'zod/v4';
+import { projectOperation } from '../../src/client/management.ts';
 
 const slug = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
 const absolutePath = z.string().min(1).refine(isAbsolute, 'Expected an absolute path.');
@@ -81,6 +82,27 @@ export function createMcpServer(stateDir: string) {
   }, ({ requestId, ...data }) => api(`/api/requests/${requestId}/responses`, data));
   register('artifact_result', 'Publish result JSON for a submitted interaction. This is result publication, not proof of agent authorship.', { requestId: id, data: jsonObject }, input => api(`/api/requests/${input.requestId}/result`, input.data));
   register('artifact_close', 'Close an interaction to new submissions; does not cancel an already delivered agent turn.', { requestId: id }, input => api(`/api/requests/${input.requestId}/close`, {}));
+  const projectOutputSchema = z.object({
+    version: z.literal(1), ok: z.boolean(), status: z.enum(['ok', 'rejected', 'failed', 'unknown', 'unavailable', 'invalid_connection']),
+    data: z.unknown().optional(), error: z.object({ code: z.string(), message: z.string() }).optional(), httpStatus: z.number().optional(),
+  });
+  const projectShapes = {
+    init: { projectRoot: absolutePath, name: z.string().min(1).optional() },
+    add: { projectRoot: absolutePath, source: z.string().min(1), name: z.string().min(1) },
+    list: { projectRoot: absolutePath }, register: { projectRoot: absolutePath },
+    mount: { projectRoot: absolutePath, artifactId: id }, unmount: { projectRoot: absolutePath, artifactId: id },
+    archive: { projectRoot: absolutePath, artifactId: id }, restore: { projectRoot: absolutePath, artifactId: id },
+  };
+  for (const operation of Object.keys(projectShapes) as (keyof typeof projectShapes)[]) {
+    server.registerTool(`artifact_project_${operation}`, {
+      description: `Run project ${operation} through the existing Artifact server. Project identity and lifecycle rules are enforced by the server. Does not start a server.`,
+      inputSchema: z.strictObject(projectShapes[operation]), outputSchema: projectOutputSchema,
+      annotations: { readOnlyHint: operation === 'list', destructiveHint: operation !== 'list', openWorldHint: operation !== 'list' },
+    }, async input => {
+      const outcome = await projectOperation(stateDir, { ...input, operation });
+      return { content: [{ type: 'text' as const, text: JSON.stringify(outcome) }], structuredContent: outcome, isError: !outcome.ok };
+    });
+  }
   return server;
 }
 

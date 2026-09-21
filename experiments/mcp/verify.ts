@@ -56,7 +56,7 @@ try {
   const managementToken = JSON.parse(initialConnection).token;
   await client.connect(transport);
   const listing = await client.listTools();
-  assert.equal(listing.tools.length, 11);
+  assert.equal(listing.tools.length, 19);
   assert.ok(listing.tools.every(tool => tool.inputSchema && tool.outputSchema));
   observations.tools = listing.tools.map(tool => tool.name);
   const invalid = await tool('namespace', { name: '../invalid' }, true);
