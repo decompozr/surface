@@ -146,6 +146,7 @@ try {
   await pageA.waitForFunction(() => document.body.textContent?.includes('Mount is not ready.')); // Wait for the expected unmount navigation before revisiting.
   assert((await fetch(new URL(a.previewUrl).origin + '/n/design/panel/')).status === 404, 'Unmount still serves preview.');
   await dashboard.reload();
+  assert(await pageB.evaluate(() => (window as any).documentMarker) === 'beta', 'Unmount refreshed unrelated namespace.');
   const statuses = await dashboard.getByTestId('mount-status').allTextContents();
   assert(statuses.includes('unmounted') && statuses.includes('ready'), 'Kit lifecycle view is stale.');
   const remounted = await cli('mount', alpha.source, '--project', alpha.root, '--namespace', 'design', '--name', 'panel');
@@ -159,7 +160,7 @@ try {
   const listeners = [...new Set(listenerOutput.split('\n').filter(line => line.startsWith('n')).map(line => line.slice(1)))];
   assert(listeners.length === 1 && listeners[0] === new URL(app.origin).host, 'Expected exactly one TCP listener: ' + listeners.join(', '));
   assert(errors.length === 0, errors.join('\n'));
-  observed('Unmount/re-mount updates Kit routes and restores interactions without restart; lsof observes exactly one TCP listener and the same Vite middleware instance.');
+  observed('Unmount/re-mount updates Kit routes and restores interactions without restarting or reloading the neighboring namespace; lsof observes exactly one TCP listener and the same Vite middleware instance.');
   writeFileSync(join(evidenceDir, 'result.json'), JSON.stringify({ at: new Date().toISOString(), liveAgent: false, application: 'built-sveltekit-handler', previewRendering: 'CSR', compiler: 'one Vite development instance', observations, moduleURLs: [...moduleURLs], listeners, versions: { kit: '2.70.3', adapterNode: '5.5.7', svelte: '5.57.1', vite: '8.3.0' } }, null, 2));
   console.log('PASS: SvelteKit singleton foundation experiment.');
 } finally {
