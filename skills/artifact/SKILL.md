@@ -5,25 +5,38 @@ description: Create and mount local interactive pages in a project with Artifact
 
 # Artifact
 
-Keep sources, manifests, and lockfiles in the user's project. Bind interactions to the exact originating conversation and follow the result through to the page. Artifact is an experimental local host for trusted source; namespace names are not security boundaries.
+Keep sources, manifests, and lockfiles in the user's project. Bind interactions to the exact originating conversation and follow the result through to the page. Artifact is an experimental local host for trusted source; namespace names are not security boundaries. Current implementation work focuses on Svelte. Executable experiments and their command names are not yet one adopted production interface.
 
 ## Select and locate the workflow
 
-For the preferred singleton/namespace workflow, read [the singleton guide](../../experiments/singleton/README.md). It supports component folders using pinned Svelte 5.57.1, automatic Bun dependency preparation, symlink mounts, and agent callbacks through one server/Vite instance. It does not yet support arbitrary framework configs or package managers.
+For the preferred singleton/namespace workflow, read [the singleton guide](../../experiments/singleton/README.md). It supports component folders using pinned Svelte 5.57.1, automatic Bun dependency preparation, symlink mounts, and agent callbacks through one server/Vite instance. It does not support arbitrary framework configs or package managers. Selected JavaScript CommonJS entries can opt into source-scoped `artifact.json` prebundling; read the [dependency experiment](../../docs/experiments/2026-09-21-dependencies.md) before relying on that limited compatibility path.
 
 The installed `artifact` executable still runs the earlier per-project development-process implementation. For an existing runtime or an explicitly requested Svelte/vanilla application using that topology, follow [the external-project workflow](../../docs/workflow.md). Do not silently substitute it for the singleton. Preserve the user's existing framework/package-manager choices; report unsupported singleton cases instead of converting their project implicitly.
+
+Choose additional operations only when relevant to the task; read [experimental service and project operations](references/operations.md) for their exact routing:
+
+| Need | Entry point and boundary |
+| --- | --- |
+| Project-owned artifact catalog, stable identity, archive/restore | `experiments/projects/cli.ts`; versionable manifest, project UUIDs, source-preserving lifecycle |
+| SvelteKit management overview | `experiments/sveltekit/server.ts`; built application-shell candidate plus the same live component compiler, not a server per mount |
+| MCP tools for existing singleton operations | `experiments/mcp/server.ts`; implemented stdio adapter with CLI interoperability, no separate registry or automatic host startup |
+| Install a repository revision and manage its service | `experiments/lifecycle/manager.ts`; explicitly selected owned home, release/state separation, controlled start/stop/recovery |
+
+Do not replace an existing service or migrate its sources just to use another interface. For installed releases, use the release's CLI with its installation's state directory; the checkout default addresses a different service.
 
 Resolve this skill's real directory to locate the checkout two directories above it. The singleton entry point is `bun <checkout>/experiments/singleton/cli.ts`; the examples below use `bun run singleton` from the checkout. Pass the same absolute `--state-dir` on every command when using a nondefault service.
 
 ## Singleton mount and request
 
-1. Check `bun run singleton health`. If stopped, install the experiment's declared dependencies as described in the guide, then start `bun run singleton serve` in an owned long-running terminal and retain its handle. Do not start a second writer against the same state directory. Inspect the recorded PID before diagnosing a stale lock. Never stop a shared Codex daemon. Health establishes host availability, not session connectivity.
+1. Check `bun run singleton health` with the selected state directory. If it belongs to a lifecycle-managed installation, use that manager's `health`/`start` instead of launching a competing foreground process. For a checkout-owned foreground host that is stopped, install the experiment's declared dependencies as described in the guide, then start `bun run singleton serve` in an owned long-running terminal and retain its handle. Do not start a second writer against the same state directory. Inspect the recorded PID before diagnosing a stale lock. Never stop a shared Codex daemon. Health establishes host availability, not session connectivity.
 2. Create or edit an ordinary component folder inside the selected project. Read the guide's source contract; the minimal folder has a package manifest and `src/Panel.svelte`, with optional `artifact.json` for discovery/props. Mounting installs declared dependencies with Bun and lifecycle scripts disabled. Keep the manifest/lockfile and form schema consistent.
    ```sh
    bun run singleton namespace project-a
    bun run singleton mount /project/artifacts/panel \
      --namespace project-a --name panel --project /project
    ```
+   When using the project-management workflow, obtain namespace/mount identity from its actual `list`/`mount` output instead of deriving it from a display label. Use those identities in `request` below.
+
    `--project` must match the agent's canonical session root. It defaults to the source folder, which is usually wrong for a component nested inside the session's repository. `list` reports mounts. Inspect the generated component in a browser and run source type checks separately from startup.
 3. Obtain the exact existing session identity from the execution environment or host. Never infer it from the most recent conversation. For Codex, `codex app-server daemon version` reports the control socket. If identity is unavailable, ask for that identity; do not create a replacement thread.
    ```sh
@@ -60,6 +73,6 @@ Include fields expected by the page and verify rendered source changes when appl
 
 If the session cannot contact the service, report that boundary without changing its permissions. On `failed` or `unknown`, inspect the existing request and exact session before deciding what to do; do not blindly resend. `close --request ID` prevents a new submission but does not cancel running work. It preserves records and allows administrative publication for an already submitted request.
 
-Use `unmount --namespace NAME --name NAME` for previews you own when done. It blocks page reads/new submissions and preserves source, dependencies, interaction records, and in-flight delivery. Administrative `inspect`, `result`, and `close` still work; remounting the original source/project/component restores page access. Do not stop a shared singleton to clean up one mount. Leave requested review previews mounted and provide their URL and observed status. Loopback links work only on the host; mobile/remote access is not implemented.
+Use `unmount --namespace NAME --name NAME` for previews you own when done. It blocks page reads/new submissions and preserves source, dependencies, interaction records, and in-flight delivery. Administrative `inspect`, `result`, and `close` still work; remounting the original source/project/component restores page access. Reload the unavailable preview after remount: revisiting an identical capability-fragment URL can be only a same-document navigation. Do not stop a shared singleton to clean up one mount. Leave requested review previews mounted and provide their URL and observed status. Loopback links work only on the host; mobile/remote access is not implemented.
 
-This skill ships as a link to its Artifact checkout so the CLI and references remain together. Neither this skill nor the CLI requires MCP; MCP is a future interface to the same operations.
+This skill ships as a link to its Artifact checkout so its CLI and references remain together. The experimental MCP adapter exposes the same core operations, but neither the CLI workflow nor this skill requires an MCP connection. MCP does not itself wake a session; the existing runtime adapter performs delivery.
