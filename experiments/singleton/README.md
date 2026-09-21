@@ -2,11 +2,11 @@
 
 An executable experiment for the preferred direction: start one server, create a namespace, then mount component folders into it. One HTTP listener and one Vite instance serve every mount. Installation uses short-lived Bun subprocesses; no per-project development server is launched.
 
-This does not replace the previous `artifact serve` implementation. Use the separate commands below to reproduce and compare the designs. The host now connects mounted components to the existing interaction service and exact-session adapter. A separate [MCP adapter](../mcp/README.md) now exposes this same running service. The [SvelteKit wrapper](../sveltekit/README.md), [installation manager](../lifecycle/README.md), and [project artifact manager](../projects/README.md) are additional experimental entry points. The interaction integration is an experiment; its verification outcomes are recorded separately from the earlier rendering checks.
+This does not replace the previous `surface serve` implementation. Use the separate commands below to reproduce and compare the designs. The host now connects mounted components to the existing interaction service and exact-session adapter. A separate [MCP adapter](../mcp/README.md) now exposes this same running service. The [SvelteKit wrapper](../sveltekit/README.md), [installation manager](../lifecycle/README.md), and [project artifact manager](../projects/README.md) are additional experimental entry points. The interaction integration is an experiment; its verification outcomes are recorded separately from the earlier rendering checks.
 
 ## Run
 
-From the Artifact checkout:
+From the Surface checkout:
 
 ```sh
 bun install --cwd experiments/singleton --frozen-lockfile
@@ -22,7 +22,7 @@ bun run singleton list
 bun run singleton unmount --namespace project-a --name panel
 ```
 
-All commands accept `--state-dir /absolute/path`; `serve` also accepts `--port`. The default experimental state is `.decompozr/artifact/singleton` in this checkout. A lock rejects a second writer. Ctrl+C stops the singleton. Registrations are restored when it starts again, except mounts explicitly unmounted.
+All commands accept `--state-dir /absolute/path`; `serve` also accepts `--port`. The default experimental state is `.decompozr/surface/singleton` in this checkout. A lock rejects a second writer. Ctrl+C stops the singleton. Registrations are restored when it starts again, except mounts explicitly unmounted.
 
 ## Source folder contract
 
@@ -102,14 +102,14 @@ bun run singleton request --binding BINDING_ID \
   --title "Choose the next change"
 ```
 
-The component must appear in the ready mount's discovery catalog. `request` returns a `previewUrl` with a request ID in the query and a per-request capability in the fragment. Open that link for interactions; the catalog's plain component link has no request credentials. Do not commit returned tokens or `.decompozr/artifact` state. An omitted schema uses the earlier A/B feedback schema, so supply a schema matching a custom form.
+The component must appear in the ready mount's discovery catalog. `request` returns a `previewUrl` with a request ID in the query and a per-request capability in the fragment. Open that link for interactions; the catalog's plain component link has no request credentials. Do not commit returned tokens or `.decompozr/surface` state. An omitted schema uses the earlier A/B feedback schema, so supply a schema matching a custom form.
 
 The host provides a browser client without requiring a package dependency:
 
 ```ts
-import { createArtifactClient } from 'virtual:artifact-client';
+import { createSurfaceClient } from 'virtual:surface-client';
 
-const client = createArtifactClient();
+const client = createSurfaceClient();
 const current = await client.read(); // Restore the persisted receipt/result after reload.
 
 // Call only from an explicit form action. Generate and retain responseId before calling.
@@ -144,7 +144,7 @@ The browser client uses `/api/n/<namespace>/<name>/requests/<id>`. The server ch
 - Unmount blocks page reads and new submissions, preserves request records, and does not cancel delivery already in flight. Administrative `inspect`, `result`, and `close` remain available.
 - Remounting the original source/project and restoring the selected component restores page access. Replacing the source under the same mount name is rejected. A full service restart retains requests and restores registered mounts; use the current server origin if its port changes.
 
-Receipt persistence, adapter acceptance, agent completion, result publication, browser display, and personal user acceptance are separate observations. The session must be able to contact the local service for the CLI callback; Artifact does not alter its permissions. Local links work only on the host computer; remote/mobile access is outside this pilot.
+Receipt persistence, adapter acceptance, agent completion, result publication, browser display, and personal user acceptance are separate observations. The session must be able to contact the local service for the CLI callback; Surface does not alter its permissions. Local links work only on the host computer; remote/mobile access is outside this pilot.
 
 ## Dependency and framework boundary
 
@@ -164,7 +164,7 @@ Svelte 5 component HMR reconstructs local component state in this tested version
 
 ```svelte
 <script lang="ts">
-  import { previewState } from 'virtual:artifact-preview';
+  import { previewState } from 'virtual:surface-preview';
   const count = previewState('counter', 0, 1);
   const draft = previewState('draft', '', 1);
 </script>
@@ -193,7 +193,7 @@ bun run verify:singleton
 
 The script creates two clean temporary source folders with no `node_modules`, starts the singleton, creates two namespaces, and mounts the folders through the CLI. It verifies generated hosts/props, two real dependency versions, actual browser interaction, source HMR, component discovery, error recovery, unmount/remount, and registration restoration after an explicit server restart. It also checks management authorization, singleton locking, mount-name binding, and failed installation visibility.
 
-The same server PID, same Vite object, and one HTTP listener are checked across mount/unmount/remount. Screenshots and the observed module URLs are written to ignored `.decompozr/artifact/singleton-proof/`. Temporary servers and source folders are cleaned up. This rendering verification does not contact a model session or represent a personal user choice.
+The same server PID, same Vite object, and one HTTP listener are checked across mount/unmount/remount. Screenshots and the observed module URLs are written to ignored `.decompozr/surface/singleton-proof/`. Temporary servers and source folders are cleaned up. This rendering verification does not contact a model session or represent a personal user choice.
 
 The separate interaction regression command is:
 
@@ -202,7 +202,7 @@ bun run verify:singleton-interactions
 bun run test:singleton
 ```
 
-It uses a deterministic adapter and the reusable [interaction form fixture](fixtures/InteractionForm.svelte), with two namespaces, HMR/error recovery, scoped request authorization, deduplication, unavailable/closed/unmounted outcomes, and restart restoration. It stores local evidence in ignored `.decompozr/artifact/singleton-interaction-proof/`. See the [interaction experiment record](../../docs/experiments/2026-09-20-singleton-interactions.md) for its verification status and the separate live idle/active callback observations. Running the deterministic command does not contact a live model session.
+It uses a deterministic adapter and the reusable [interaction form fixture](fixtures/InteractionForm.svelte), with two namespaces, HMR/error recovery, scoped request authorization, deduplication, unavailable/closed/unmounted outcomes, and restart restoration. It stores local evidence in ignored `.decompozr/surface/singleton-interaction-proof/`. See the [interaction experiment record](../../docs/experiments/2026-09-20-singleton-interactions.md) for its verification status and the separate live idle/active callback observations. Running the deterministic command does not contact a live model session.
 
 ## Resource boundary
 

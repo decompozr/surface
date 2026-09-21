@@ -1,5 +1,7 @@
 # Consolidated findings
 
+Current commands and defaults in this document use Surface after [Decision 0002](decisions/0002-surface-name-and-local-state.md). Earlier checkpoints and experiment records retain their original Artifact names, commands, and evidence paths; renaming does not constitute a new verification run.
+
 Updated September 21, 2026 (America/Toronto), including the completed seven-track readiness exploration. See the [implementation recommendation](server-readiness.md). Earlier rendering/state checkpoint: `c6abf5f`. This records executable experiments and the user's intended direction, not a finalized production architecture. The detailed experiment records remain the source for each observation.
 
 ## Intended direction
@@ -19,13 +21,13 @@ These are the intended product behaviors. Bun, shared Vite, pinned Svelte, local
 | `181243c`: [singleton namespaces](experiments/2026-09-20-singleton-namespaces.md) | One server and Vite instance hosted symlinked components in two namespaces, installed missing dependencies, executed two nanoid versions, and restored mounts after restart. | Svelte 5.57.1 and browser-ready ESM; no agent delivery in this pilot. |
 | `c6abf5f`: [scoped errors and HMR](experiments/2026-09-20-scoped-hmr.md) | Mount-scoped error UI, a usable neighboring preview during failure, live catalog/props updates, and explicit counter/draft state retention through edits and error recovery. | UI isolation and opt-in state preservation; no compiler-process or browser-origin isolation. |
 
-Two executable paths currently coexist. The root `artifact` CLI implements the earlier external-process and interaction workflow. `bun run singleton` runs the separate preferred-topology experiment. The singleton now reuses the interaction core and Codex adapter, while the two CLI entry points remain separate experiments. The skill now teaches the integrated singleton interaction workflow as well as identifying the earlier process-based path.
+Two executable paths currently coexist. The root `surface` CLI implements the earlier external-process and interaction workflow. `bun run singleton` runs the separate preferred-topology experiment. The singleton now reuses the interaction core and Codex adapter, while the two CLI entry points remain separate experiments. The skill now teaches the integrated singleton interaction workflow as well as identifying the earlier process-based path.
 
 ## What we learned
 
 ### Mounting requires a host layer
 
-A symlink supplies source indirection, not a complete frontend runtime. Artifact still needs canonical source identity, registration, dependency preparation, discovery, generated entries, props, diagnostics, and lifecycle management. Vite supplies transformation, module resolution, watching, and HMR.
+A symlink supplies source indirection, not a complete frontend runtime. Surface still needs canonical source identity, registration, dependency preparation, discovery, generated entries, props, diagnostics, and lifecycle management. Vite supplies transformation, module resolution, watching, and HMR.
 
 The singleton generated working component hosts without a source project `index.html` or development command. Generated JavaScript entries must use an appropriate module identity: an early `.svelte` suffix made the plugin parse host JavaScript as component source; `.entry.js` fixed that failure.
 
@@ -53,7 +55,7 @@ The live adapter used the existing Codex App Server Unix WebSocket, with compres
 
 A saved submission, runtime acceptance, observed agent action, published result, browser display, and personal user acceptance are different outcomes. The screenshot confirmation for option B at width 160 came from an automated browser test, not a choice made by the user. It was valid test evidence, not personal approval.
 
-The first idle callback failed because the target agent session could receive input but could not contact the local API. A dedicated test session with appropriate networking subsequently completed the loop. Message delivery does not establish callback reachability; Artifact does not change a session's permissions.
+The first idle callback failed because the target agent session could receive input but could not contact the local API. A dedicated test session with appropriate networking subsequently completed the loop. Message delivery does not establish callback reachability; Surface does not change a session's permissions.
 
 Repeated submissions with the same response ID and data are deduplicated. Conflicting repeats are rejected. Ambiguous transport outcomes remain visible as unknown instead of triggering blind retries. This does not promise exactly-once agent execution. Result publication through a local credential is also not cryptographic proof of model authorship; the live proof separately observed the actual agent command.
 
@@ -115,4 +117,4 @@ The [resource experiment](experiments/2026-09-21-lifecycle-resources.md) found a
 - [External workflow](workflow.md): earlier CLI/skill setup and `bun run verify:external`.
 - [Original live proof](prototype.md): exact-session setup, delivery limits, and recorded live outcomes. Automated fixture suites do not contact a model session.
 
-Versioned scripts and experiment records make the observations reviewable. Local screenshots, receipts, and diagnostic logs remain in ignored `.decompozr/artifact/` directories; they are not portable public evidence. The earlier consolidation recorded existing checkpoints. The linked integration follow-up records the subsequent fresh core, singleton, fixture/browser, review, and live-session checks separately.
+Versioned scripts and experiment records make the observations reviewable. New local screenshots, receipts, and diagnostic logs use ignored `.decompozr/surface/` directories; earlier runs used `.artifact/` or `.decompozr/artifact/`. These records are not portable public evidence. The earlier consolidation recorded existing checkpoints. The linked integration follow-up records the subsequent fresh core, singleton, fixture/browser, review, and live-session checks separately.

@@ -50,7 +50,7 @@ Use this experiment to decide whether a minimal management service is necessary,
 
 Status: the primary live loop has passed for active and idle conversations. The agent published result data through the CLI, and the browser displayed it. This is evidence of a page data update, not autonomous source-code modification. Failure handling has automated coverage; the full acceptance list below is not yet proven against every live runtime condition.
 
-Extend the first page with two options, an adjustable parameter, and a submit button. The agent registers its existing session and creates an interaction request. Submitting the page sends structured user data through Artifact's backend to that session; the agent then updates the page based on the selection. The agent does not need to keep a waiting tool call open.
+Extend the first page with two options, an adjustable parameter, and a submit button. The agent registers its existing session and creates an interaction request. Submitting the page sends structured user data through Surface's backend to that session; the agent then updates the page based on the selection. The agent does not need to keep a waiting tool call open.
 
 Acceptance criteria:
 

@@ -2,7 +2,7 @@
 
 This document records the original bundled prototype and its live-agent evidence. External mounting and the reusable client/skill are now available; see [the current workflow](workflow.md). Historical limitations below refer to that original proof.
 
-The prototype proves one focused loop: a Svelte page submits structured feedback, Artifact delivers it to an existing Codex conversation, and that agent publishes a result which appears on the page.
+The prototype proves one focused loop: a Svelte page submits structured feedback, Surface delivers it to an existing Codex conversation, and that agent publishes a result which appears on the page.
 
 ## Stack and layout
 
@@ -11,7 +11,7 @@ The prototype proves one focused loop: a Svelte page submits structured feedback
 - TypeScript 6 is used because the installed Svelte checking tool requires additional integration for TypeScript 7.
 - Ajv validates submitted data against the interaction's JSON schema.
 - The Codex adapter connects over an existing local Unix WebSocket with compression disabled. It does not start, stop, or reconfigure the shared Codex daemon.
-- Local records use JSON with atomic replacement and a single-server lock. `.decompozr/artifact/` is excluded from Git.
+- Local records use JSON with atomic replacement and a single-server lock. `.decompozr/surface/` is excluded from Git.
 
 ```text
 src/core/          Interaction records, validation, delivery orchestration
@@ -45,15 +45,15 @@ Open `http://127.0.0.1:4317` for the landing page, or use a request's returned p
 
 ## Bind a conversation and create a request
 
-Use an existing Codex conversation whose working directory matches the project. `codex app-server daemon version` reports the current control socket path without changing daemon configuration. Supply the exact thread ID; Artifact never selects the latest conversation automatically.
+Use an existing Codex conversation whose working directory matches the project. `codex app-server daemon version` reports the current control socket path without changing daemon configuration. Supply the exact thread ID; Surface never selects the latest conversation automatically.
 
 ```bash
-bun run artifact bind \
+bun run surface bind \
   --project "$PWD" \
   --thread "YOUR_THREAD_ID" \
   --socket "/absolute/path/to/app-server-control.sock"
 
-bun run artifact request \
+bun run surface request \
   --binding "BINDING_ID_FROM_BIND" \
   --title "Choose the next direction."
 ```
@@ -67,13 +67,13 @@ The built-in request schema accepts option A or B, an integer width from 80 to 2
 The browser and CLI use the same submission operation:
 
 ```bash
-bun run artifact send \
+bun run surface send \
   --request "REQUEST_ID" \
   --response-id "UNIQUE_RESPONSE_ID" \
   --data '{"option":"B","width":160,"comment":"Use this version"}'
 
-bun run artifact inspect --request "REQUEST_ID"
-bun run artifact list
+bun run surface inspect --request "REQUEST_ID"
+bun run surface list
 ```
 
 Each request accepts one response. Repeating the same response ID and data reads the existing outcome without sending again. A changed response or another response ID is rejected once a submission exists. Create a new request for the next interaction.
@@ -85,18 +85,18 @@ The adapter checks the exact thread and project. An active session uses `turn/st
 The message delivered to the agent includes the absolute CLI path and request identity. The agent can publish a result using:
 
 ```bash
-bun run artifact result \
+bun run surface result \
   --request "REQUEST_ID" \
   --data '{"message":"Confirmed option B at width 160.","option":"B","width":160}'
 ```
 
-The CLI contacts the local API. The agent's execution environment must permit that connection; a workspace sandbox with networking disabled may receive the steering message successfully but be unable to publish its result. Artifact does not change an existing session's permissions. The live proof used a dedicated workspace-scoped test session with networking enabled.
+The CLI contacts the local API. The agent's execution environment must permit that connection; a workspace sandbox with networking disabled may receive the steering message successfully but be unable to publish its result. Surface does not change an existing session's permissions. The live proof used a dedicated workspace-scoped test session with networking enabled.
 
 The page displays published result data separately from delivery acceptance. The service does not independently authenticate which local process invoked the management CLI, so a published result is not a cryptographic attestation of agent authorship. The live proof verified the actual command in the test conversation.
 
 ## Persistence and delivery limits
 
-By default, `.decompozr/artifact/` belongs to this Artifact checkout, even when the CLI is invoked from another working directory. `--state-dir` chooses a separate state directory. The service includes that directory in the callback CLI command it sends to the agent.
+By default, `.decompozr/surface/` belongs to this Surface checkout, even when the CLI is invoked from another working directory. `--state-dir` chooses a separate state directory. The service includes that directory in the callback CLI command it sends to the agent.
 
 The state file contains session bindings, requests, scoped request capabilities, submitted data, receipts, and results. The connection file contains the local management token. Files are private to the local account and must not be committed.
 
@@ -115,7 +115,7 @@ At the original proof checkpoint, the prototype had no response replay queue, ex
 - Live active-turn delivery sent A / 200 from the browser into the exact already-running turn. The same agent invoked the result CLI; the browser displayed its confirmation.
 - The initial idle run reached the correct thread but its callback failed because the test session lacked local network access. After configuring networking for that test session, the callback succeeded. A fresh idle interaction was then used to verify the complete path without a callback retry.
 
-The original live-proof receipts, thread and turn identities, and screenshots were retained under ignored `.artifact/live-proof/` and `.artifact/screenshots/`. New verification output uses `.decompozr/artifact/` as recorded in [Decision 0001](decisions/0001-artifact-name-and-local-state.md). These local records are evidence from this machine, not portable fixtures or claims of phone visibility.
+The original live-proof receipts, thread and turn identities, and screenshots were retained under ignored `.artifact/live-proof/` and `.artifact/screenshots/`. New verification output uses `.decompozr/surface/` as recorded in [Decision 0002](decisions/0002-surface-name-and-local-state.md). These local records are evidence from this machine, not portable fixtures or claims of phone visibility.
 
 ## Checks
 

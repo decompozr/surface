@@ -1,4 +1,4 @@
-# Artifact
+# Surface
 
 Enable agents in any project to create and mount local interactive pages and components through MCP or CLI with skills, receive user input back in their existing sessions, and preserve each project's dependencies and choice of frontend framework.
 
@@ -10,15 +10,15 @@ Two experimental runtime paths currently coexist: the earlier CLI mounts externa
 
 ## Local state directory
 
-The server is named **Artifact**; singleton describes its architecture. See [Decision 0001](docs/decisions/0001-artifact-name-and-local-state.md) for naming, path scope, and compatibility.
+The product and server are named **Surface**; singleton describes the architecture. The repository is [decompozr/surface](https://github.com/decompozr/surface), the package is `@decompozr/surface`, and the CLI is `surface`. See [Decision 0002](docs/decisions/0002-surface-name-and-local-state.md) for the rename, path scope, and compatibility.
 
-Checkout defaults now live under `.decompozr/artifact/`: the earlier prototype uses that root, the singleton/`artifact project`/MCP use its `singleton/` subdirectory, and the Kit wrapper uses `sveltekit/`. Verification outputs also use this base. Explicit `--state-dir` values and lifecycle installation homes are unchanged.
+Checkout defaults now live under `.decompozr/surface/`: the earlier prototype uses that root, the singleton/`surface project`/MCP use its `singleton/` subdirectory, and the Kit wrapper uses `sveltekit/`. Verification outputs also use this base. Explicit `--state-dir` values and lifecycle installation homes are unchanged.
 
-Older `.artifact/` data remains ignored by Git and is not automatically moved or merged. This checkout has been explicitly migrated to the new location; see Decision 0001 for the completed migration. To inspect or continue using old state, explicitly pass its absolute path with `--state-dir`. Stored mount paths and callback commands can contain absolute paths, so moving a populated state directory needs deliberate reconciliation. Historical experiment records retain the original evidence paths; new runs use the new base.
+Older `.artifact/` and `.decompozr/artifact/` data remains ignored by Git and is not automatically moved or merged by the application. Decision 0002 records any explicit checkout/state relocation separately. To inspect or continue using old state, explicitly pass its absolute path with `--state-dir`. Stored mount paths and callback commands can contain absolute paths, so moving a populated state directory needs deliberate reconciliation. Historical experiment records retain the original evidence paths; new runs use the new base.
 
 ## First implementation increment
 
-Project operations now have a shared core under `src/core`, an authenticated singleton API, an `artifact project` CLI, and eight corresponding MCP tools. Project definitions, canonical identity, archive/restore, and runtime status flow through the same service. See the [milestone contract and usage](docs/implementation/01-project-core.md). The runtime host and installer are still being consolidated; this increment does not complete all server milestones.
+Project operations now have a shared core under `src/core`, an authenticated singleton API, a `surface project` CLI, and eight corresponding MCP tools. Project definitions, canonical identity, archive/restore, and runtime status flow through the same service. See the [milestone contract and usage](docs/implementation/01-project-core.md). The runtime host and installer are still being consolidated; this increment does not complete all server milestones.
 
 ## Current exploration: one server with namespaces
 
@@ -26,7 +26,7 @@ The preferred direction is now one singleton server with namespace-scoped symlin
 
 ## Earlier experiment: independent project runtimes
 
-From this checkout, run `bun install --frozen-lockfile` and `bun link`, then start `artifact serve`. Follow the [workflow guide](docs/workflow.md) to create or register a frontend, mount it, and bind an exact agent session. The [Artifact skill](skills/artifact/SKILL.md) teaches this end-to-end workflow.
+From this checkout, run `bun install --frozen-lockfile` and `bun link`, then start `surface serve`. Follow the [workflow guide](docs/workflow.md) to create or register a frontend, mount it, and bind an exact agent session. The [Surface skill](skills/surface/SKILL.md) teaches this end-to-end workflow.
 
 ## Run the bundled prototype
 
@@ -41,25 +41,25 @@ bun run dev --dev
 This starts the API on `http://127.0.0.1:4317` and the Svelte preview on `http://127.0.0.1:5173`. In another terminal, bind an exact Codex thread and create an interaction:
 
 ```bash
-bun run artifact bind \
+bun run surface bind \
   --project "$PWD" \
   --thread "YOUR_THREAD_ID" \
   --socket "/absolute/path/to/app-server-control.sock"
 
-bun run artifact request --binding "BINDING_ID" --title "Choose a direction"
+bun run surface request --binding "BINDING_ID" --title "Choose a direction"
 ```
 
-Open the returned `previewUrl`, choose A or B, adjust the width, and submit. Artifact delivers the data to the bound conversation; that agent can publish its result back through the CLI. The preview link grants access to this interaction, so keep it private. The target session needs permission to contact the local API when publishing a result.
+Open the returned `previewUrl`, choose A or B, adjust the width, and submit. Surface delivers the data to the bound conversation; that agent can publish its result back through the CLI. The preview link grants access to this interaction, so keep it private. The target session needs permission to contact the local API when publishing a result.
 
-Use `bun run artifact --help` for commands. Stop the development server with Ctrl+C; source files and local interaction records remain intact.
+Use `bun run surface --help` for commands. Stop the development server with Ctrl+C; source files and local interaction records remain intact.
 
 ## What we want to explore
 
 When an agent needs to present an idea, validate an interaction, explain data, or build a small tool, it should be able to create real frontend source files in the current project and give the user a local page they can open, modify, and iterate on.
 
-Artifact aims to provide reusable runtime and preview infrastructure for this workflow across projects and agents:
+Surface aims to provide reusable runtime and preview infrastructure for this workflow across projects and agents:
 
-1. Start or connect to a local Artifact service.
+1. Start or connect to a local Surface service.
 2. Register a project directory and select an existing frontend application or create a separate workspace for pages.
 3. Have the agent create pages, components, and the required project dependencies.
 4. Mount the project and obtain a preview URL.

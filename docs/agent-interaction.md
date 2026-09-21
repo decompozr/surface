@@ -2,7 +2,7 @@
 
 ## Intent and status
 
-Artifact should let a user submit a choice, form, or parameter set from a page directly into the agent session that created the interaction. The agent introduces itself to Artifact, which binds page responses to that existing conversation and delivers them through an adapter.
+Surface should let a user submit a choice, form, or parameter set from a page directly into the agent session that created the interaction. The agent introduces itself to Surface, which binds page responses to that existing conversation and delivers them through an adapter.
 
 The preferred design is direct session input: steer an active turn, or continue an idle conversation with a new turn when the agent runtime supports it. Keeping an agent blocked on a waiting tool call is not required.
 
@@ -10,13 +10,13 @@ This is an agreed product direction with an initial implementation. The prototyp
 
 ## Interaction flow
 
-1. An agent registers its project, existing session identity, and delivery mechanism with Artifact.
+1. An agent registers its project, existing session identity, and delivery mechanism with Surface.
 2. The agent creates a page and an interaction request bound to that session.
 3. The user opens the page, selects an option or edits parameters, and presses a submit button.
-4. The page sends structured data to Artifact's backend using its scoped interaction reference.
+4. The page sends structured data to Surface's backend using its scoped interaction reference.
 5. The backend validates the request binding and payload, saves the response, and resolves the registered agent adapter.
 6. The adapter delivers the input to the existing conversation using the runtime's supported steering or continuation mechanism.
-7. Artifact records what the runtime acknowledged. The agent interprets the response and can update the page through its normal project tools.
+7. Surface records what the runtime acknowledged. The agent interprets the response and can update the page through its normal project tools.
 
 The browser does not need to know which agent CLI or protocol is used. A page remains ordinary frontend code with an explicit submission action.
 
@@ -26,7 +26,7 @@ The proposed registration records:
 
 | Field | Purpose |
 | --- | --- |
-| Artifact session binding ID | Local reference used by Artifact to identify the registration |
+| Surface session binding ID | Local reference used by Surface to identify the registration |
 | Agent provider and adapter | Select the supported delivery implementation |
 | Provider session or thread ID | Identify the existing conversation; use an exact ID rather than the most-recent session |
 | Project identity | Associate the conversation with its source workspace |
@@ -65,7 +65,7 @@ Delivery should preserve the request and response identity alongside user data s
 The prototype CLI exposes the shared delivery path with an explicit request and response identity:
 
 ```bash
-bun run artifact send \
+bun run surface send \
   --request "REQUEST_ID" \
   --response-id "RESPONSE_ID" \
   --data '{"option":"B","width":120,"comment":"Use this version"}'
@@ -98,7 +98,7 @@ These are provider-specific capabilities. Other agents need adapters with their 
 
 ## Delivery outcomes
 
-Distinguish a response saved by Artifact, input accepted by the agent runtime, and an agent action observed afterward. A successful CLI exit or protocol acknowledgement is not proof that the agent finished the requested work.
+Distinguish a response saved by Surface, input accepted by the agent runtime, and an agent action observed afterward. A successful CLI exit or protocol acknowledgement is not proof that the agent finished the requested work.
 
 The proposed backend retains response and attempt records so failures can be inspected. Repeated delivery of an already accepted response should not deliberately trigger another action. If a timeout leaves acceptance uncertain, report that uncertainty and reconcile it where possible instead of blindly resending. Exactly-once execution is not assumed.
 

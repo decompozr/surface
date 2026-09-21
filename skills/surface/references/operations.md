@@ -1,6 +1,6 @@
 # Service and project operations
 
-Read only the section needed for the current task. Examples run from the resolved Artifact checkout; use absolute script paths from other directories. Project operations now use the shared implementation core; the Kit host and release manager remain experimental entry points. The full public CLI is still being consolidated. Keep the selected state directory consistent across interfaces.
+Read only the section needed for the current task. Examples run from the resolved Surface checkout; use absolute script paths from other directories. Project operations now use the shared implementation core; the Kit host and release manager remain experimental entry points. The full public CLI is still being consolidated. Keep the selected state directory consistent across interfaces.
 
 ## Project-owned artifact management
 
@@ -38,15 +38,15 @@ Mounted source uses CSR; SSR of the management page does not establish SSR for m
 
 ## MCP adapter
 
-Use already available Artifact tools when the task calls for MCP. To configure a requested connection, read the [MCP guide](../../../experiments/mcp/README.md); the host launches:
+Use already available Surface tools when the task calls for MCP. To configure a requested connection, read the [MCP guide](../../../experiments/mcp/README.md); the host launches:
 
 ```sh
-bun /absolute/artifact/experiments/mcp/server.ts --state-dir /absolute/state
+bun /absolute/surface/experiments/mcp/server.ts --state-dir /absolute/state
 ```
 
 The adapter connects to an existing singleton and rereads its connection for each call. It does not start a host, replace the registry, or require a second Vite instance. No MCP-host configuration is installed automatically by the experiment.
 
-Tools cover health, namespace, mount/unmount, list, bind, request, inspect, send, result, and close. The eight `artifact_project_*` tools add init/add/list/register/mount/unmount/archive/restore through the shared project core; they use `projectRoot`, `artifactId`, `source`, and `name` as appropriate. Their versioned outcomes match `artifact project`. Important argument differences from CLI flags: mount uses `projectRoot`, bind uses `threadId`/`socketPath`, interactions use `bindingId`/`requestId`, and request schemas are JSON objects rather than schema-file paths. Discover the tool's actual schema before calling it. `artifact_list` selects `kind: "mounts"` or `"requests"`.
+Tools cover health, namespace, mount/unmount, list, bind, request, inspect, send, result, and close. The eight `surface_project_*` tools add init/add/list/register/mount/unmount/archive/restore through the shared project core; they use `projectRoot`, `artifactId`, `source`, and `name` as appropriate. Their versioned outcomes match `surface project`. Important argument differences from CLI flags: mount uses `projectRoot`, bind uses `threadId`/`socketPath`, interactions use `bindingId`/`requestId`, and request schemas are JSON objects rather than schema-file paths. Discover the tool's actual schema before calling it. `surface_list` selects `kind: "mounts"` or `"requests"`.
 
 Inspect both transport/tool errors and the structured `ok`/`status` outcome. HTTP 200 can still represent failed preparation or failed/unknown delivery. A mutation transport failure is `unknown`, not proof that nothing happened; reconcile existing records before deciding whether to retry. Retain the response ID. The adapter never retries mutations.
 
@@ -57,15 +57,15 @@ A request result intentionally contains a private `previewUrl` capability; list/
 Use this only when the task calls for installing/managing a service, rather than creating a single preview on an existing one. Follow the [lifecycle guide](../../../experiments/lifecycle/README.md) and explicitly select an owned installation home and exact repository revision:
 
 ```sh
-bun experiments/lifecycle/manager.ts install --home /absolute/artifact-home \
-  --repo /absolute/artifact --ref COMMIT --host sveltekit
-bun experiments/lifecycle/manager.ts start --home /absolute/artifact-home --port 4321
-bun experiments/lifecycle/manager.ts health --home /absolute/artifact-home
+bun experiments/lifecycle/manager.ts install --home /absolute/surface-home \
+  --repo /absolute/surface --ref COMMIT --host sveltekit
+bun experiments/lifecycle/manager.ts start --home /absolute/surface-home --port 4321
+bun experiments/lifecycle/manager.ts health --home /absolute/surface-home
 ```
 
 `--host singleton` is also supported. Releases are pinned Git archives; local uncommitted edits are not installed. The lifecycle manager requires the repository's exact Bun version and frozen dependencies. It does not alter global CLI/skill installation, shell profiles, or OS login/service configuration.
 
-Use `releases/COMMIT-HOST/experiments/singleton/cli.ts` with `--state-dir /absolute/artifact-home/state` for application operations; MCP and project management must address that same state directory. A fixed port is retained for later start/restart; port 0 intentionally changes origins. Port conflicts fail rather than silently choosing another origin.
+Use `releases/COMMIT-HOST/experiments/singleton/cli.ts` with `--state-dir /absolute/surface-home/state` for application operations; MCP and project management must address that same state directory. A fixed port is retained for later start/restart; port 0 intentionally changes origins. Port conflicts fail rather than silently choosing another origin.
 
 `stop` and `restart` operate through verified private lifecycle control, not a PID taken from a saved file. Install/activate/uninstall require a stopped host with resolved ownership metadata. `recover` handles only verified dead-owner metadata; ambiguous ownership requires inspection. Do not kill a process or erase locks merely because a recorded PID exists.
 

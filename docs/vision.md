@@ -1,6 +1,6 @@
 # Product vision
 
-Artifact aims to let agents in any project create local interactive interfaces on demand through MCP or CLI with skills, and receive user responses in their existing sessions so users can observe, interact, and guide iteration directly.
+Surface aims to let agents in any project create local interactive interfaces on demand through MCP or CLI with skills, and receive user responses in their existing sessions so users can observe, interact, and guide iteration directly.
 
 ## Why this project
 
@@ -8,7 +8,7 @@ Text, code, and static screenshots do not always communicate an idea fully. Inte
 
 The opportunity is to turn recurring work around service startup, dependency management, preview discovery, and error feedback into reliable capabilities that agents can reuse.
 
-The project's value depends on a smooth feedback loop: an agent creates real source files, Artifact runs them, the user understands and validates the result through a page, and page responses reach the originating agent session so it can continue working. The interface becomes a shared workspace for interaction with the agent.
+The project's value depends on a smooth feedback loop: an agent creates real source files, Surface runs them, the user understands and validates the result through a page, and page responses reach the originating agent session so it can continue working. The interface becomes a shared workspace for interaction with the agent.
 
 ## Main use cases
 
@@ -27,11 +27,11 @@ A **page** is a browser-accessible entry point that combines components, data, a
 
 A **component** is reusable source code interpreted by its framework. A component preview needs a host page to supply props, styles, and the necessary context; it does not assume a Svelte component can be used directly as a React component.
 
-**Mounting** brings a registered project and its runtime entry point under Artifact's management, associating project identity, runtime status, and a preview URL. Mounting alone does not mean copying an entire repository, automatically installing dependencies, or changing an existing application's configuration.
+**Mounting** brings a registered project and its runtime entry point under Surface's management, associating project identity, runtime status, and a preview URL. Mounting alone does not mean copying an entire repository, automatically installing dependencies, or changing an existing application's configuration.
 
 A **skill** describes how an agent discovers a project, selects an entry point, creates or modifies source files, runs a preview, and handles errors. CLI and MCP provide the executable capabilities; a skill should not be the only place where business rules are defined.
 
-An **agent session binding** records which existing conversation owns an interaction and how Artifact can reach its execution environment. The agent introduces itself by registering its project, session identity, and supported delivery mechanism.
+An **agent session binding** records which existing conversation owns an interaction and how Surface can reach its execution environment. The agent introduces itself by registering its project, session identity, and supported delivery mechanism.
 
 An **interaction request** associates a page action with the input the agent is asking for. A response carries structured user data and is routed through that request to the bound session.
 
@@ -39,7 +39,7 @@ An **interaction request** associates a page action with the input the agent is 
 
 ### Projects own their artifacts
 
-Pages, components, configuration, and dependency declarations stay within the user's project. Artifact's runtime state can be reconstructed; continued use of the source files should not depend on a particular session or agent.
+Pages, components, configuration, and dependency declarations stay within the user's project. Surface's runtime state can be reconstructed; continued use of the source files should not depend on a particular session or agent.
 
 ### Users choose the framework
 
@@ -47,7 +47,7 @@ Prioritize a good Svelte experience and use plain HTML/JS to validate the basic 
 
 ### Dependencies have clear ownership
 
-Different projects may use different versions of the same package. Manage Artifact's own dependencies separately from mounted projects' dependencies, avoiding global installations that conceal missing project dependencies.
+Different projects may use different versions of the same package. Manage Surface's own dependencies separately from mounted projects' dependencies, avoiding global installations that conceal missing project dependencies.
 
 ### Access methods share semantics
 

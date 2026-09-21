@@ -10,17 +10,17 @@ From the repository root:
 bun install --frozen-lockfile --ignore-scripts
 bun node_modules/typescript/bin/tsc --project experiments/lifecycle/tsconfig.json
 bun experiments/lifecycle/verify.ts
-bun experiments/lifecycle/verify.ts --repo /absolute/artifact --ref COMMIT --host sveltekit
+bun experiments/lifecycle/verify.ts --repo /absolute/surface --ref COMMIT --host sveltekit
 ```
 
-The SvelteKit ref must contain `experiments/sveltekit/server.ts`, its package/lockfile, and the `startKitFoundation` export. The verifier checks dependency-link realpaths on upgrade/rollback, uninstall followed by reinstall at a different revision, and refusal to replace a real directory or foreign symlink. It also checks that failed starts leave no owner, server lock, or connection record. The verifier uses real Git commits in a temporary fixture repository, frozen installations, real host subprocesses, HTTP requests, and Playwright browser checks. It never contacts an agent. Evidence is written under ignored `.decompozr/artifact/lifecycle-proof/<host>/`.
+The SvelteKit ref must contain `experiments/sveltekit/server.ts`, its package/lockfile, and the `startKitFoundation` export. The verifier checks dependency-link realpaths on upgrade/rollback, uninstall followed by reinstall at a different revision, and refusal to replace a real directory or foreign symlink. It also checks that failed starts leave no owner, server lock, or connection record. The verifier uses real Git commits in a temporary fixture repository, frozen installations, real host subprocesses, HTTP requests, and Playwright browser checks. It never contacts an agent. Evidence is written under ignored `.decompozr/surface/lifecycle-proof/<host>/`.
 
 ## Commands
 
-Always select an isolated home explicitly through `--home` or `ARTIFACT_HOME`:
+Always select an isolated home explicitly through `--home` or `SURFACE_HOME` (the older `ARTIFACT_HOME` remains a read fallback):
 
 ```sh
-bun experiments/lifecycle/manager.ts install --home /absolute/test-install --repo /absolute/artifact --ref COMMIT --host sveltekit
+bun experiments/lifecycle/manager.ts install --home /absolute/test-install --repo /absolute/surface --ref COMMIT --host sveltekit
 bun experiments/lifecycle/manager.ts start --home /absolute/test-install --port 4321
 bun experiments/lifecycle/manager.ts health --home /absolute/test-install
 bun experiments/lifecycle/manager.ts stop --home /absolute/test-install

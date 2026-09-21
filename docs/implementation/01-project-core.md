@@ -1,5 +1,7 @@
 # Milestone 1: shared project operations
 
+Current commands and defaults in this document use Surface after [Decision 0002](../decisions/0002-surface-name-and-local-state.md). Earlier checkpoints and experiment records retain their original Artifact names, commands, and evidence paths; renaming does not constitute a new verification run.
+
 Status: implemented and integration-tested; final review and installed-release verification are recorded below. Baseline: `5b77096` (September 21, 2026).
 
 The readiness experiments left project management in a filesystem-aware CLI wrapper. That makes it difficult for MCP or a management page to share project identity, writer ownership, and archive behavior without duplicating them. This first implementation increment moves those decisions into a transport-independent core and connects it to the existing singleton host.
@@ -41,7 +43,7 @@ Core outcomes contain `version: 1`, `ok`, `status` (`ok`, `rejected`, or `failed
 
 The project HTTP adapter returns the versioned envelope, with HTTP 200 for success, 400 for core rejection, and 500 for core failure. Authentication, method, body, and closing-service failures retain their appropriate transport status. Existing interaction and mount API behavior remains compatible.
 
-The new CLI command is `artifact project OP --project ROOT --state-dir STATE`, with operation-specific flags. Its checkout default is `.decompozr/artifact/singleton`, matching the singleton host; explicitly pass the state directory when using the Kit wrapper or an installed release. The eight `artifact_project_*` MCP tools call the same endpoint through a shared local management client. All operations, including initialization and listing, require the selected singleton to be running. Neither adapter starts a server implicitly.
+The new CLI command is `surface project OP --project ROOT --state-dir STATE`, with operation-specific flags. Its checkout default is `.decompozr/surface/singleton`, matching the singleton host; explicitly pass the state directory when using the Kit wrapper or an installed release. The eight `surface_project_*` MCP tools call the same endpoint through a shared local management client. All operations, including initialization and listing, require the selected singleton to be running. Neither adapter starts a server implicitly.
 
 The client rereads the connection per call, requires an exact loopback HTTP origin, refuses redirects, keeps the management token local, and never retries automatically. A transport failure after a mutation is `unknown`; the operation may already have committed. A failed read is `unavailable`. Accepted delivery, completed agent work, and published results remain distinct in the existing interaction service.
 
@@ -50,14 +52,14 @@ The client rereads the connection per call, requires an exact loopback HTTP orig
 Install root and singleton dependencies using their frozen lockfiles, then keep `bun run singleton serve --state-dir /absolute/state` running. The existing Kit wrapper can serve the same operations with its own explicitly selected state directory.
 
 ```sh
-bun run artifact project init --project /absolute/project --name "My project" --state-dir /absolute/state
-bun run artifact project add --project /absolute/project --source artifacts/panel --name "Controls" --state-dir /absolute/state
-bun run artifact project register --project /absolute/project --state-dir /absolute/state
-bun run artifact project list --project /absolute/project --state-dir /absolute/state
-bun run artifact project mount --project /absolute/project --artifact ARTIFACT_UUID --state-dir /absolute/state
+bun run surface project init --project /absolute/project --name "My project" --state-dir /absolute/state
+bun run surface project add --project /absolute/project --source artifacts/panel --name "Controls" --state-dir /absolute/state
+bun run surface project register --project /absolute/project --state-dir /absolute/state
+bun run surface project list --project /absolute/project --state-dir /absolute/state
+bun run surface project mount --project /absolute/project --artifact ARTIFACT_UUID --state-dir /absolute/state
 ```
 
-Create the source folder and its Svelte package before `add`; this operation does not scaffold source. Use IDs from response `data`. `artifact project --help` lists the flags. Unlike the earlier experimental wrapper, these commands require the server even for init/add/list. For MCP, launch the existing adapter with that same state directory and use the corresponding `artifact_project_*` tools.
+Create the source folder and its Svelte package before `add`; this operation does not scaffold source. Use IDs from response `data`. `surface project --help` lists the flags. Unlike the earlier experimental wrapper, these commands require the server even for init/add/list. For MCP, launch the existing adapter with that same state directory and use the corresponding `surface_project_*` tools.
 
 ## Failure and recovery boundaries
 
@@ -95,7 +97,7 @@ bun run verify:singleton-interactions
 bun run verify:sveltekit
 ```
 
-The root browser test requires the bundled example UI build (`bun run build:ui`); the Kit browser verifier requires its shell build (`bun run --cwd experiments/sveltekit build`). Private receipts and screenshots remain in ignored `.decompozr/artifact/` directories. Test-owned servers and browsers are stopped by their verifiers.
+The root browser test requires the bundled example UI build (`bun run build:ui`); the Kit browser verifier requires its shell build (`bun run --cwd experiments/sveltekit build`). New private receipts and screenshots use ignored `.decompozr/surface/` directories; the original verification ran before the rename and used the former state/evidence paths. Test-owned servers and browsers are stopped by their verifiers.
 
 The installed SvelteKit lifecycle suite passed against the same integrated source commit `febff5404cf798099b70823c43c505fc1b097c97`. A clean archived release built the Kit shell and loaded the new server core. Its installed MCP advertised all 19 tools, including the eight expected project operations, and existing installed health/inspection calls used the same host. Upgrade/rollback, restart, crash recovery, uninstall/reinstall, and source/state preservation passed; all eight owned host processes exited. The new project-operation browser proof above ran from the integrated checkout, separately from this installed-host check.
 

@@ -10,7 +10,7 @@ The [singleton pilot](../experiments/singleton/README.md) tests this direction s
 
 ## SvelteKit foundation candidate (September 21)
 
-The [foundation experiment](experiments/2026-09-21-sveltekit-foundation.md) now supports using a built SvelteKit application shell alongside Artifact's existing live Vite compiler. The adapter-node handler serves management pages and a sanitized read-only status API in the same process and application HTTP listener. Authenticated mutations and mount-scoped interaction routes remain in the shared core. Dynamically registered folders remain generated CSR component previews; each mount does not become a separate Kit application.
+The [foundation experiment](experiments/2026-09-21-sveltekit-foundation.md) now supports using a built SvelteKit application shell alongside Surface's existing live Vite compiler. The adapter-node handler serves management pages and a sanitized read-only status API in the same process and application HTTP listener. Authenticated mutations and mount-scoped interaction routes remain in the shared core. Dynamically registered folders remain generated CSR component previews; each mount does not become a separate Kit application.
 
 The shell is built during installation. Updating it requires rebuild/restart, while future mounted source is compiled at runtime through the retained development compiler. Management SSR does not establish mounted SSR, arbitrary project Kit routes, or independent project Vite configuration. Scoped HMR, source-specific dependencies, callbacks, and one-listener topology passed the browser experiment.
 
@@ -20,7 +20,7 @@ The [server readiness review](server-readiness.md) recommends this topology for 
 
 The first implementation uses Bun 1.4.0 and TypeScript for the service and CLI, Bun's HTTP server and test runner, Ajv for response validation, and a Codex adapter using JSON-RPC over a local Unix WebSocket. The example uses Svelte 5 and Vite 8, with TypeScript 6 to match the Svelte checking tool's supported range.
 
-Artifact and the example have separate package manifests and `bun.lock` files. Prototype records live in an ignored `.decompozr/artifact/` directory as an atomically replaced JSON file, with an exclusive lock preventing two servers from writing the same state directory. This is a single-server prototype store, not a distributed queue.
+Surface and the example have separate package manifests and `bun.lock` files. Prototype records live in an ignored `.decompozr/surface/` directory as an atomically replaced JSON file, with an exclusive lock preventing two servers from writing the same state directory. This is a single-server prototype store, not a distributed queue.
 
 The implementation now includes an external-project registry and one supervised process group per mounted frontend. Explicit commands run in project-owned dependency contexts and return direct loopback URLs. Svelte and vanilla starters share a browser client; the reusable skill teaches the CLI workflow. This is the earlier process-based implementation. The singleton now has a verified stdio MCP adapter; broader framework adapters below remain proposals. See the [workflow guide](workflow.md) and earlier [prototype evidence](prototype.md).
 
@@ -57,7 +57,7 @@ The directory convention is not yet decided. Mounting should record the canonica
 
 ## Framework adapters
 
-Vite is the first infrastructure candidate: it provides vanilla and Svelte templates, including TypeScript variants, and a programmable development server API. Choosing it as an experimental starting point is a design judgment based on these capabilities; Artifact's lifecycle management across projects and dependency boundaries still need validation. [Vite guide](https://vite.dev/guide/), [JavaScript API](https://vite.dev/guide/api-javascript)
+Vite is the first infrastructure candidate: it provides vanilla and Svelte templates, including TypeScript variants, and a programmable development server API. Choosing it as an experimental starting point is a design judgment based on these capabilities; Surface's lifecycle management across projects and dependency boundaries still need validation. [Vite guide](https://vite.dev/guide/), [JavaScript API](https://vite.dev/guide/api-javascript)
 
 An adapter should describe how to identify or create an entry point, start a runtime process, determine readiness, retrieve diagnostics, and stop the process. Adapters may share a protocol without sharing a build tool.
 
@@ -94,11 +94,11 @@ Validate core operations through the CLI first, then expose the same semantics t
 
 The CLI should support machine-readable results and explicit exit codes. MCP operations can map to tools, while status and diagnostics may be exposed as resources, following MCP's definitions of these server concepts. [MCP server concepts](https://modelcontextprotocol.io/docs/learn/server-concepts)
 
-Agents can initially use their existing file-editing capabilities to create pages and components. Whether dedicated generation, file-writing, or template tools are needed should be determined from actual workflows. The first [Artifact skill](../skills/artifact/SKILL.md) covers discovery, creation, previewing, callback handling, and troubleshooting through the implemented CLI. Singleton interaction integration and the thin MCP adapter have passed scoped experiments. Repository/project lifecycle wrappers are separate experimental CLIs; unifying them with the core and MCP is first-server implementation work. See the [consolidated findings](findings.md).
+Agents can initially use their existing file-editing capabilities to create pages and components. Whether dedicated generation, file-writing, or template tools are needed should be determined from actual workflows. The first [Surface skill](../skills/surface/SKILL.md) covers discovery, creation, previewing, callback handling, and troubleshooting through the implemented CLI. Singleton interaction integration and the thin MCP adapter have passed scoped experiments. Repository/project lifecycle wrappers are separate experimental CLIs; unifying them with the core and MCP is first-server implementation work. See the [consolidated findings](findings.md).
 
 ## Returning page input to an agent
 
-Add a session registry and an interaction delivery layer to the management service. An agent registers its existing session and reachable control endpoint, then binds a page interaction to that session. A button or form submits structured data to Artifact; the backend resolves the binding and delivers the response through an agent-specific adapter.
+Add a session registry and an interaction delivery layer to the management service. An agent registers its existing session and reachable control endpoint, then binds a page interaction to that session. A button or form submits structured data to Surface; the backend resolves the binding and delivers the response through an agent-specific adapter.
 
 Framework adapters manage page runtimes. Agent adapters manage delivery into agent conversations. These are separate extension points: a Svelte page should not need to know whether its response will be delivered through a CLI or an agent control API.
 
