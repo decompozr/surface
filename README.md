@@ -89,7 +89,8 @@ The current implementation target focuses on Svelte + TypeScript. Additional fra
 
 ## Documentation
 
-- [Project-owned SQLite experiment](docs/experiments/2026-09-21-project-database.md): separate project databases, named backend operations, browser persistence, and lifecycle/failure evidence; not yet a supported backend API.
+- [Project-owned SQLite experiment](docs/experiments/2026-09-21-project-database.md): optional project databases acquired on demand, named backend operations, browser persistence, and lifecycle/failure evidence; not yet a supported backend API.
+- [Installation/lifecycle contract](docs/implementation/02-installation-lifecycle.md): accepted lazy project-storage policy, lifecycle requirements, and remaining implementation decisions.
 - [Server readiness and implementation sequence](docs/server-readiness.md): seven experiment outcomes, proposed scope, operational limits, and the next build milestones.
 - [Consolidated findings](docs/findings.md): lessons and evidence boundaries.
 - [Repository installation and lifecycle](experiments/lifecycle/README.md): isolated pinned releases, start/stop/restart, rollback, recovery, and non-destructive uninstall.

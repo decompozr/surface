@@ -2,7 +2,7 @@
 
 Date: September 21, 2026 (America/Toronto).
 
-Implementation status: [Milestone 1 — shared project operations](implementation/01-project-core.md) is implemented; its own verification record distinguishes that increment from the remaining milestones. Supported installation and lifecycle is next.
+Implementation status: [Milestone 1 — shared project operations](implementation/01-project-core.md) is implemented; its own verification record distinguishes that increment from the remaining milestones. Supported installation and lifecycle is next; its [contract in preparation](implementation/02-installation-lifecycle.md) records the accepted lazy project-storage policy and remaining choices.
 
 ## Product goal and v0 boundary
 
@@ -36,7 +36,7 @@ This table records each experiment's original scope. Later shared project operat
 
 ## Proposed first-server contract
 
-An additional [project-owned SQLite experiment](experiments/2026-09-21-project-database.md) passed after the original seven gates. It demonstrated named project backend operations, separate durable databases, browser/HMR/restart persistence, writer-conflict handling, and connection release. Backend declaration, scheduling, multi-mount ownership, and installation integration remain design decisions; this pilot is not yet a supported v0 capability.
+An additional [project-owned SQLite experiment](experiments/2026-09-21-project-database.md) passed after the original seven gates. It demonstrated named project backend operations, separate durable databases, browser/HMR/restart persistence, writer-conflict handling, and connection release. Project SQLite is optional and acquired only when a validated database operation first needs it; registration, mounting, and restart do not create or open it. A default Surface metadata database would require a separate decision. Backend declaration, scheduling, multi-mount ownership, and installation integration remain design decisions; this pilot is not yet a supported v0 capability.
 
 | Area | Carry into implementation | Boundary to preserve |
 | --- | --- | --- |

@@ -4,10 +4,10 @@ import { pathToFileURL } from 'node:url';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { startSingleton } from '../singleton/server.ts';
-import type { openProject } from './fixtures/backend.ts';
+import type { createProjectBackend } from './fixtures/backend.ts';
 
-type Backend = ReturnType<typeof openProject>;
-type Config = { stateDir: string; projects: { root: string; namespace: string; name: string }[] };
+type Backend = ReturnType<typeof createProjectBackend>;
+type Config = { stateDir: string; projects: { root: string; namespace: string; name: string; backend?: boolean }[] };
 type Entry = { backend: Backend; token: string };
 const config: Config = JSON.parse(readFileSync(process.argv[2]!, 'utf8'));
 const entries = new Map<string, Entry>();
@@ -27,10 +27,11 @@ const app = await startSingleton({
   async openMountResource(mount) {
     const project = projects.find(p => p.root === mount.projectRoot && identity(p.namespace, p.name) === identity(mount.namespace, mount.name));
     if (!project || mount.source !== realpathSync(join(project.root, 'ui'))) throw new Error('Project backend scope is not configured.');
+    if (!project.backend) return { close() {} };
     const modulePath = join(project.root, 'backend.ts');
     if (realpathSync(modulePath) !== modulePath) throw new Error('Backend entry must not be a symlink.');
-    const module = await import(pathToFileURL(modulePath).href) as { openProject: typeof openProject };
-    const backend = module.openProject();
+    const module = await import(pathToFileURL(modulePath).href) as { createProjectBackend: typeof createProjectBackend };
+    const backend = module.createProjectBackend();
     const key = identity(mount.namespace, mount.name), entry = { backend, token: randomBytes(32).toString('hex') };
     if (entries.has(key)) { backend.close(); throw new Error('Backend scope already open.'); }
     entries.set(key, entry);
@@ -43,7 +44,7 @@ const app = await startSingleton({
     if (path === '/project-db/access') {
       const connection = JSON.parse(readFileSync(join(config.stateDir, 'connection.json'), 'utf8')) as { token: string };
       if (req.method !== 'GET' || !equal(req.headers.authorization ?? '', `Bearer ${connection.token}`)) { reply(res, 401, { ok: false, code: 'unauthorized' }); return true; }
-      reply(res, 200, [...entries].map(([scope, entry]) => ({ scope, token: entry.token }))); return true;
+      reply(res, 200, [...entries].map(([scope, entry]) => ({ scope, token: entry.token, database: entry.backend.inspect() }))); return true;
     }
     const match = /^\/project-db\/([a-z0-9-]+)\/([a-z0-9-]+)\/actions$/.exec(path);
     const entry = match ? entries.get(identity(match[1]!, match[2]!)) : undefined;
@@ -59,7 +60,7 @@ const app = await startSingleton({
     // Admission is checked again after body acquisition; unmount may have closed the resource.
     if (entries.get(identity(match![1]!, match![2]!)) !== entry) { reply(res, 409, { ok: false, code: 'resource_closed' }); return true; }
     const outcome = entry.backend.invoke(value.operation, value.input);
-    reply(res, outcome.ok ? 200 : outcome.code === 'database_busy' || outcome.code === 'revision_conflict' ? 409 : outcome.code === 'operation_failed' ? 500 : 400, outcome);
+    reply(res, outcome.ok ? 200 : outcome.code === 'database_busy' || outcome.code === 'revision_conflict' ? 409 : outcome.code === 'operation_failed' || outcome.code === 'database_unavailable' ? 500 : 400, outcome);
     return true;
   },
 });

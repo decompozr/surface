@@ -10,7 +10,9 @@ Can each project own its own SQLite database and domain operations while Surface
 
 This tests a concrete consequence of the [product vision](../vision.md): project data and domain logic retain their ownership while Surface supplies common runtime mechanisms. A page alone cannot provide access to a local server-side SQLite file; the missing boundary is a project backend operation and its lifecycle.
 
-## Implementation and ownership
+## Original implementation and ownership
+
+The initial eager-open run was committed in `8b0bb1d`. Its implementation and observations below are historical evidence; the lazy-acquisition follow-up later in this document supersedes opening databases at mount time.
 
 The pilot lives in `experiments/project-database/`. Its verifier creates two temporary projects outside the Surface checkout. Each owns this layout:
 
@@ -35,7 +37,7 @@ Each mount receives an opaque action capability, checked against its exact names
 
 Project data and backend code are outside the mounted `ui/` tree. Database connections use local WAL mode and `busy_timeout=0`. This deliberately reports writer contention instead of waiting synchronously on the singleton event loop. The [Bun SQLite API](https://bun.com/docs/runtime/sqlite) provides the driver; SQLite documents the concurrency and sidecar behavior of [WAL](https://www.sqlite.org/wal.html). A retained WAL/SHM file does not by itself mean a connection is open.
 
-## Observations
+## Original observations
 
 | Gate | Observed result |
 | --- | --- |
@@ -55,7 +57,7 @@ Project data and backend code are outside the mounted `ui/` tree. Database conne
 
 The screenshot was visually inspected. Final rows were Alpha revision 3 (45 degrees) and Beta revision 2 (18 degrees). These values are test inputs, not user design choices. No live agent interaction was submitted.
 
-## Validation and evidence
+## Original validation and evidence
 
 ```sh
 bun run check:project-database
@@ -82,3 +84,28 @@ Backend source changes require a process restart; only frontend HMR was exercise
 ## Next decision
 
 Before promoting this into v0, define the supported backend declaration and loading contract, operation access discovery, connection ownership across multiple mounts, and scheduling limits. Then make installation/lifecycle preserve optional project data and compatible backend executables without taking ownership of project schemas. The experiment answers feasibility; it does not require a general plugin platform or settle those contracts.
+
+
+## Follow-up: optional lazy acquisition
+
+The user adopted lazy project SQLite: registration and mounting must not create or open a database. An application-owned SQLite metadata store could be initialized by default if separately selected, but no such decision or migration is part of this change. The accepted policy is recorded in the [Milestone 2 contract](../implementation/02-installation-lifecycle.md).
+
+The backend factory is now inert. It validates operations before acquiring storage, reuses one connection after first demand, and closes only a connection that was actually acquired. `describeProject` is a non-database fixture operation. A project can also omit backend configuration and the backend file entirely. Remount and process restart reconstruct unopened backends rather than reconnecting databases eagerly.
+
+The UI no longer reads on component mount. Users can edit a temporary draft without persistence; Load or Save explicitly performs a database operation. A first read may initialize empty storage. This replaces the initial run's automatic read after reload/HMR: committed data remains in SQLite, while temporary component state may reset and needs an explicit Load. No durable view-state claim is made.
+
+The revised verifier covers four projects. Alpha and Beta exercise on-demand write/read creation and the original persistence/conflict/close behavior. A backend-enabled unused project and a backend-free project stay usable without a data directory or file descriptors, including browser draft/counter interaction, unmount/remount, host restart, and shutdown. Two simultaneous first reads must report one acquired connection. Access inspection, non-database operations, and rejected requests must not acquire storage. Existing databases must remain unopened after remount/restart until a valid data operation arrives.
+
+A focused backend test supplies an incompatible table layout, verifies that the first failed acquisition reports `database_unavailable` with no retained database handles, repairs the fixture externally, and verifies recovery on a later explicit operation. This tests acquisition cleanup, not a migration policy.
+
+Reproduce the follow-up with:
+
+```sh
+bun run check:project-database
+bun test experiments/project-database/backend.test.ts
+bun run verify:project-database
+```
+
+The follow-up passed with Bun 1.4.0: project-database and root TypeScript checks, the acquisition-failure test (**1 test / 7 assertions**), the four-project browser/lifecycle verifier, and the existing root/singleton regression suite (**52 tests / 330 assertions**). Both the unused-draft and persisted-data screenshots were visually inspected. The two host processes and writer-lock process exited, with no remaining owned PID in the cleanup receipt. No live agent call or installed-release verification was performed.
+
+Current follow-up evidence uses the same private proof directory, including the added `unused-draft.png` screenshot. The original commit and observations above retain the earlier eager-open behavior. Installed launcher lifecycle, metadata storage adoption, and the original scheduling/multi-mount limitations remain outside this change.
