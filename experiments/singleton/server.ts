@@ -1,5 +1,5 @@
 import { createServer as createHTTPServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { mkdirSync, readFileSync, writeFileSync, renameSync, realpathSync, existsSync, symlinkSync, unlinkSync, readdirSync, lstatSync, openSync, closeSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, renameSync, realpathSync, existsSync, symlinkSync, unlinkSync, readdirSync, lstatSync, openSync, closeSync, readlinkSync } from 'node:fs';
 import { join, resolve, relative, sep } from 'node:path';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer as createViteServer, type ViteDevServer, type Plugin } from 'vite';
@@ -31,6 +31,34 @@ async function body(req: IncomingMessage) {
   for await (const part of req) { value += part.toString(); if (value.length > 65536) throw new InputError('Body too large.', 413); }
   try { const data = JSON.parse(value); if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error(); return data as Record<string, unknown>; }
   catch { throw new InputError('Expected a JSON object.'); }
+}
+
+/** Preserve ownership while retargeting state across installed compiler releases. */
+function prepareDependencyLink(workspace: string, target: string) {
+  target = realpathSync(target);
+  const link = join(workspace, 'node_modules'), marker = join(workspace, 'dependency-link.json');
+  let existing: string | undefined;
+  try {
+    if (!lstatSync(link).isSymbolicLink()) throw new Error('Workspace node_modules is not an owned symlink; refusing replacement.');
+    existing = resolve(workspace, readlinkSync(link));
+  } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+  let ownership: { version: number; target: string; previousTarget?: string } | undefined;
+  if (existsSync(marker)) {
+    if (!lstatSync(marker).isFile() || lstatSync(marker).isSymbolicLink()) throw new Error('Invalid workspace dependency-link ownership record.');
+    ownership = JSON.parse(readFileSync(marker, 'utf8'));
+    if (ownership?.version !== 1 || typeof ownership.target !== 'string' || (ownership.previousTarget !== undefined && typeof ownership.previousTarget !== 'string')) throw new Error('Invalid workspace dependency-link ownership record.');
+  }
+  if (existing && existing !== target && (!ownership || ![ownership.target, ownership.previousTarget].includes(existing))) throw new Error('Cannot verify ownership of the existing workspace dependency link. Inspect legacy or replaced state before migration.');
+  if (existing && ownership && ![ownership.target, ownership.previousTarget].includes(existing)) throw new Error('Workspace dependency link differs from its ownership record.');
+  const save = (value: unknown) => { writeFileSync(marker + '.tmp', JSON.stringify(value), { mode: 0o600 }); renameSync(marker + '.tmp', marker); };
+  // Record both sides before replacement so a crash before/after rename is recoverable.
+  save({ version: 1, target, previousTarget: existing });
+  if (existing !== target) {
+    const temporary = link + '.' + crypto.randomUUID() + '.tmp';
+    try { symlinkSync(target, temporary, 'dir'); renameSync(temporary, link); }
+    finally { try { unlinkSync(temporary); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; } }
+  }
+  save({ version: 1, target });
 }
 
 /** Exploratory one-process, one-Vite component host. Separate from the previous runtime experiment. */
@@ -267,8 +295,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
     interactions = createInteractions({ stateDir, adapter: options.adapter, find });
     // Shared framework runtime for this compiler experiment; project dependencies remain in their source folders.
     writeFileSync(join(workspace, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies: { svelte: compilerVersion } }));
-    const modules = join(workspace, 'node_modules');
-    if (!existsSync(modules)) symlinkSync(join(experimentRoot, 'node_modules'), modules, 'dir');
+    prepareDependencyLink(workspace, join(experimentRoot, 'node_modules'));
     vite = await createViteServer({
       configFile: false, root: workspace, appType: 'custom', publicDir: false,
       cacheDir: join(workspace, '.vite'),

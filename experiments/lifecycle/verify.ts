@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, realpathSync, existsSync, rmSync, readdirSync, renameSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, realpathSync, existsSync, rmSync, readdirSync, renameSync, symlinkSync, unlinkSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { Installation, type Host } from './manager.ts';
@@ -79,7 +79,8 @@ try {
     response: { id: 'historical-response', data: {}, createdAt: new Date().toISOString(), status: 'accepted' },
     result: { message: 'retained-result-fixture' },
   }] }));
-  const first = await startAndMeasure();
+  const assertCompilerLink = (release: string) => assert.equal(realpathSync(join(home, 'state/workspace/node_modules')), realpathSync(join(home, 'releases', release, 'experiments/singleton/node_modules')));
+  const first = await startAndMeasure(); assertCompilerLink(firstRelease.release);
   const installedMcp = join(home, 'releases', firstRelease.release, 'experiments/mcp');
   if (existsSync(join(installedMcp, 'package.json'))) {
     const requireInstalled = createRequire(join(installedMcp, 'package.json'));
@@ -142,13 +143,13 @@ try {
   assert.equal(readdirSync(join(home, 'releases')).some(name => name.startsWith('.preparing-')), false);
   observations.failedInstallPreservesActivation = true;
   const secondRelease = await installation.install(fixtureRepo, revisionB, host);
-  const second = await startAndMeasure(Number(new URL(first.origin).port)); assert.equal(second.release, secondRelease.release);
+  const second = await startAndMeasure(Number(new URL(first.origin).port)); assert.equal(second.release, secondRelease.release); assertCompilerLink(secondRelease.release);
   assert.equal(second.origin, first.origin);
   assert.notEqual(second.instanceId, first.instanceId);
   assert.equal((await api('/api/mounts'))[0].status, 'ready');
   await stopOwned();
   await installation.activate(firstRelease.release);
-  const rollback = await startAndMeasure(); assert.equal(rollback.release, firstRelease.release);
+  const rollback = await startAndMeasure(); assert.equal(rollback.release, firstRelease.release); assertCompilerLink(firstRelease.release);
   assert.equal(rollback.origin, first.origin);
   assert.equal((await api('/api/mounts'))[0].source, project);
   observations.upgradeAndMechanicalRollback = true;
@@ -222,6 +223,32 @@ try {
   assert.equal(readFileSync(join(project, 'src/Panel.svelte'), 'utf8'), savedSource);
   assert.ok(existsSync(join(project, 'node_modules')));
   observations.uninstallPreservesStateAndSources = true;
+  // Retained workspace state includes a dangling runtime dependency link after uninstall.
+  // A different installed revision must reconcile that owned link before starting.
+  await installation.install(fixtureRepo, revisionB, host);
+  const reinstalled = await startAndMeasure();
+  assertCompilerLink(secondRelease.release);
+  assert.equal((await api('/api/mounts'))[0].status, 'ready');
+  await stopOwned();
+  const dependencyLink = join(home, 'state/workspace/node_modules');
+  const dependencyOwner = readFileSync(join(home, 'state/workspace/dependency-link.json'), 'utf8');
+  unlinkSync(dependencyLink); mkdirSync(dependencyLink); writeFileSync(join(dependencyLink, 'user-owned.txt'), 'keep');
+  await assert.rejects(installation.start(), /did not become ready/);
+  assert.equal(readFileSync(join(dependencyLink, 'user-owned.txt'), 'utf8'), 'keep');
+  rmSync(dependencyLink, { recursive: true });
+  symlinkSync(project, dependencyLink, 'dir');
+  await assert.rejects(installation.start(), /did not become ready/);
+  assert.equal(realpathSync(dependencyLink), project);
+  assert.equal(readFileSync(join(home, 'state/workspace/dependency-link.json'), 'utf8'), dependencyOwner);
+  unlinkSync(dependencyLink);
+  symlinkSync(join(home, 'releases', secondRelease.release, 'experiments/singleton/node_modules'), dependencyLink, 'dir');
+  await installation.uninstall();
+  observations.compilerLinkTracksActiveReleaseAndReinstall = true;
+  observations.unownedWorkspaceDependencyPathsPreserved = true;
+  assert.equal(existsSync(join(home, 'run/owner.json')), false);
+  assert.equal(existsSync(join(home, 'state/server.lock')), false);
+  assert.equal(existsSync(join(home, 'state/connection.json')), false);
+  observations.failedStartLeavesNoHostOwnershipOrLock = true;
   for (const pid of ownedPids) assert.throws(() => process.kill(pid, 0), (error: any) => error.code === 'ESRCH', 'An owned host remains alive');
   observations.allOwnedHostProcessesExited = ownedPids.size;
   observations.launches = [first, second, rollback, restart, recovered].map(({ release, readyMs }) => ({ release, readyMs }));
