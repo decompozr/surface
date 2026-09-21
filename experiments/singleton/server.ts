@@ -5,6 +5,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer as createViteServer, type ViteDevServer, type Plugin } from 'vite';
 import { scopedDependencies } from './dependencies.ts';
 import { createInteractions } from './interactions.ts';
+import { createProjectRoutes } from '../../src/server/project-routes.ts';
 import { InputError } from '../../src/core/service.ts';
 import type { AgentAdapter } from '../../src/adapters/codex.ts';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
@@ -124,6 +125,19 @@ export async function startSingleton(options: { stateDir: string; port?: number;
     if (closing) return Promise.reject(new InputError('Server is closing.', 409));
     const task = pending.then(operation); pending = task.catch(() => {}); return task;
   }
+  function namespace(value: unknown) {
+    const name = slug(value);
+    if (!registry.namespaces.includes(name)) registry.namespaces.push(name);
+    save(); return { namespace: name };
+  }
+  // Project operations own the outer mutation queue. These runtime methods call
+  // the same raw functions as the direct API, without recursively entering it.
+  const projectRoutes = createProjectRoutes({ stateDir, schedule: mutate, runtime: {
+    namespace: async name => namespace(name),
+    mount: input => mount(input),
+    listMounts: async () => registry.mounts.map(view),
+    unmount: input => unmount(slug(input.namespace), slug(input.name)),
+  } });
   const installers = new Set<ReturnType<typeof Bun.spawn>>();
   const retiredWatchPaths = new Map<string, string[]>();
   async function prepare(mount: Mount) {
@@ -247,13 +261,14 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       if (req.method === 'GET' && url.pathname === '/api/health') return json(res, { status: 'ready', experiment: 'singleton', pid: process.pid, instanceId, viteInstances: 1 });
       const received = Buffer.from(req.headers.authorization?.replace(/^Bearer /, '') ?? ''), expected = Buffer.from(token);
       const admin = received.length === expected.length && timingSafeEqual(received, expected);
+      if (await projectRoutes({ pathname: url.pathname, method: req.method, authorized: admin, readBody: () => body(req), json: (outcome, status) => json(res, outcome, status) })) return;
       if (await interactions.route(req, res, url, admin, () => body(req), (value, status) => json(res, value, status))) return;
       if (!admin) throw new InputError('Management authorization required.', 401);
       if (req.method === 'GET' && url.pathname === '/api/mounts') return json(res, registry.mounts.map(view));
       if (req.method === 'GET' && url.pathname === '/api/namespaces') return json(res, registry.namespaces);
       if (req.method === 'POST' && url.pathname === '/api/namespaces') {
         const input = await body(req);
-        return json(res, await mutate(async () => { const name = slug(input.name); if (!registry.namespaces.includes(name)) registry.namespaces.push(name); save(); return { namespace: name }; }), 201);
+        return json(res, await mutate(async () => namespace(input.name)), 201);
       }
       if (req.method === 'POST' && url.pathname === '/api/mounts') { const input = await body(req); return json(res, await mutate(() => mount(input))); }
       if (req.method === 'POST' && url.pathname === '/api/unmount') { const input = await body(req); return json(res, await mutate(() => unmount(slug(input.namespace), slug(input.name)))); }
