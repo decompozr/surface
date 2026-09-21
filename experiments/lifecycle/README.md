@@ -13,7 +13,7 @@ bun experiments/lifecycle/verify.ts
 bun experiments/lifecycle/verify.ts --repo /absolute/artifact --ref COMMIT --host sveltekit
 ```
 
-The SvelteKit ref must contain `experiments/sveltekit/server.ts`, its package/lockfile, and the `startKitFoundation` export. The verifier uses real Git commits in a temporary fixture repository, frozen installations, real host subprocesses, HTTP requests, and Playwright browser checks. It never contacts an agent. Evidence is written under ignored `.artifact/lifecycle-proof/<host>/`.
+The SvelteKit ref must contain `experiments/sveltekit/server.ts`, its package/lockfile, and the `startKitFoundation` export. The verifier checks dependency-link realpaths on upgrade/rollback, uninstall followed by reinstall at a different revision, and refusal to replace a real directory or foreign symlink. It also checks that failed starts leave no owner, server lock, or connection record. The verifier uses real Git commits in a temporary fixture repository, frozen installations, real host subprocesses, HTTP requests, and Playwright browser checks. It never contacts an agent. Evidence is written under ignored `.artifact/lifecycle-proof/<host>/`.
 
 ## Commands
 
@@ -31,6 +31,8 @@ bun experiments/lifecycle/manager.ts uninstall --home /absolute/test-install
 ```
 
 `install` defaults to `--host singleton`. Installation/activation/uninstall requires a stopped host and resolved ownership metadata; there is no implicit interruption. `restart` is an explicit stop followed by start. After a successful launch, the requested port is saved in `settings.json`; later start/restart uses it when `--port` is omitted. Port zero intentionally selects an ephemeral origin on each launch. Choose a fixed port for stable preview URLs; a conflict fails instead of choosing a different port silently.
+
+The compiler runtime link under `state/workspace/node_modules` is owned through `dependency-link.json`. On release changes or reinstall, the host atomically retargets that owned symlink to the selected compiler dependencies, including when uninstall left the former target dangling. The marker records both sides during replacement so an interrupted rename can be reconciled. A real directory, a foreign symlink, or a marker mismatch is preserved and rejected. A legacy markerless link is adopted only when it already points to the current compiler; a different or dangling legacy target requires inspection rather than automatic replacement.
 
 The application CLI remains at `releases/COMMIT-HOST/experiments/singleton/cli.ts`; supply `--state-dir /absolute/test-install/state` for namespace, mount, and interaction operations. The MCP adapter can use that same state directory. This lifecycle manager does not duplicate those APIs.
 
