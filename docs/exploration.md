@@ -1,12 +1,12 @@
 # Experiment roadmap
 
-The goal is to progressively validate whether agents in any project can create and run interactive interfaces. Record actual results at each step before expanding the scope. The first prototype covers a bundled Svelte page and live delivery into a dedicated Codex conversation. External project mounting, Svelte/vanilla starters, a generic browser client, custom CLI schemas, and a reusable skill are now implemented. Browser verification covers two external projects with a fixture adapter; dependency-version isolation and MCP remain incomplete. See [prototype evidence](prototype.md#validation-on-2026-09-20).
+The goal is to progressively validate whether agents in any project can create and run interactive interfaces. Record actual results at each step before expanding the scope. The first prototype covers a bundled Svelte page and live delivery into a dedicated Codex conversation. External project mounting, Svelte/vanilla starters, a generic browser client, custom CLI schemas, and a reusable skill are now implemented. Browser verification covers two external projects with a fixture adapter. A separate singleton pilot validates two versions of one ESM dependency and component previews; integrated singleton interactions, broader dependency coverage, and MCP remain incomplete. See [prototype evidence](prototype.md#validation-on-2026-09-20).
 
 ## Current priority: singleton namespace mounting
 
 The user clarified the target topology: start one server, create a namespace for a project/problem, and symlink source folders into it. Mounting should automatically prepare declared dependencies and discover/render components through one Vite instance. This supersedes expanding the per-project dev-server design as the production direction.
 
-The [singleton experiment](experiments/2026-09-20-singleton-namespaces.md) records a working pilot and its limits. The [HMR follow-up](experiments/2026-09-20-scoped-hmr.md) now validates scoped error UI, targeted discovery updates, and opt-in state retention. Next explore additional dependency formats and connect this host to the existing interaction layer. MCP follows those operations; it does not decide the mounting topology.
+The [singleton experiment](experiments/2026-09-20-singleton-namespaces.md) records a working pilot and its limits. The [HMR follow-up](experiments/2026-09-20-scoped-hmr.md) now validates scoped error UI, targeted discovery updates, and opt-in state retention. Next connect this host to the existing interaction layer using the [integration acceptance criteria](findings.md#next-one-singleton-to-agent-round-trip), then expand dependency-format coverage. MCP follows those operations; it does not decide the mounting topology.
 
 ## Exploratory milestones
 
@@ -20,7 +20,7 @@ The [singleton experiment](experiments/2026-09-20-singleton-namespaces.md) recor
 | Singleton interaction integration and MCP | Next | Connect the existing request/result layer, then validate CLI/MCP interoperability |
 | More frameworks and remote access | Later | Per-framework and remote-access acceptance tests |
 
-See [the experiment record](experiments/2026-09-20-external-projects.md) for observations and limits, and [the workflow guide](workflow.md) for executable commands. Installed packages remain project-owned; running two starters does not yet prove conflicting dependency-version isolation.
+See [the experiment record](experiments/2026-09-20-external-projects.md) for observations and limits, and [the workflow guide](workflow.md) for executable commands. Installed packages remain project-owned. The external-project run alone did not prove conflicting dependency-version resolution; the subsequent singleton run separately observed nanoid 4.0.2 and 5.1.5 executing from their own source trees.
 
 ## Experiment 1: A complete loop for one project
 
@@ -67,7 +67,7 @@ Acceptance criteria:
 - Status and logs are clearly attributable to a project and runtime instance.
 - Repeated mounting, occupied ports, and service restarts produce understandable outcomes without leaving unmanaged processes behind.
 
-Use this experiment to validate project boundaries and assess the benefits and costs of one runtime process per project.
+The earlier process experiment provides comparison evidence. Continue dependency and failure-boundary testing under the preferred singleton topology; the nanoid ESM case is proven, while CommonJS/prebundling and independent framework versions remain open.
 
 ## Experiment 3: MCP and CLI interoperability
 
@@ -94,12 +94,12 @@ Record the code revision, project configuration, startup procedure, expected and
 ## Open questions
 
 - Should the first version focus on newly created small interfaces, or also cover existing frontend applications?
-- How should multiple pages and components within one project be discovered and organized?
-- Do preview URLs need to remain stable across runs? When is a shared proxy entry point worthwhile?
-- Should projects start on demand, remain running in the background, or shut down when idle?
+- How should component discovery expand beyond the tested Svelte directory scan to complete pages, assets, and framework-specific entries?
+- What stable-origin and identity policy should preserve namespace URLs across service restarts and relocation?
+- How should the singleton release inactive compilation resources while preserving registrations and predictable remount behavior?
 - How should permission to install dependencies, write files, and execute scripts be expressed in different agent environments?
 - Which agent runtimes can accept direct session input, and what control endpoint and credentials does each adapter require?
 - What response schema, expiry rules, delivery receipts, and retry behavior are sufficient for reliable interaction?
 - What evidence establishes support for a framework rather than just one example built with it?
 
-Next, extend experiment 1 from the bundled example to an independently located project and validate its dependency and lifecycle boundaries. Preserve the working experiment 1B loop while doing so. Update the architecture proposal as boundaries become clearer, while retaining the vision's long-term goals.
+Next, join the separately proven singleton host and agent interaction layer. Use the [consolidated findings and integration gate](findings.md) to preserve exact-session delivery, scoped request access, HMR behavior, and truthful receipts. Validate fixture and live runs separately before introducing MCP.

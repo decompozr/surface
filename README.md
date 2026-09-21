@@ -6,7 +6,7 @@ Enable agents in any project to create and mount local interactive pages and com
 
 This project is exploring the domain. Its executable code is an experimental implementation for testing design hypotheses; the architecture, API, storage model, and packaging are not finalized product commitments. The first local prototype includes a Bun server and CLI, a Svelte feedback page, and a Codex adapter that delivers page responses to an existing conversation. Active-turn steering and idle continuation have been exercised against a local Codex session.
 
-Artifact can now scaffold Svelte or vanilla HTML/TypeScript workspaces, mount external projects with explicit development commands, and connect custom forms through a browser client. The CLI and a reusable agent skill share this workflow. MCP, broader framework validation, component-only previews, and remote access remain future work. Start with the [external-project workflow](docs/workflow.md); the [prototype evidence](docs/prototype.md) records the earlier live Codex proof.
+Two experimental paths currently coexist: the earlier CLI/skill workflow mounts external Svelte or vanilla projects and connects custom forms to the interaction API; the separate singleton pilot hosts discovered Svelte components through one Vite instance. Their integration is the next gate. MCP, broader framework validation, and remote access remain future work. Start with the [consolidated findings](docs/findings.md) for evidence, limits, and the next experiment.
 
 ## Current exploration: one server with namespaces
 
@@ -71,6 +71,7 @@ Supporting any JS frontend framework is a long-term exploration goal. The sugges
 
 ## Documentation
 
+- [Findings and next experiment](docs/findings.md): consolidated lessons, evidence boundaries, and singleton-to-agent integration acceptance criteria.
 - [External-project workflow](docs/workflow.md): CLI setup, scaffolding, mounting, custom interactions, skill installation, and verification.
 - [Product vision](docs/vision.md): user value, core concepts, and design principles.
 - [Architecture exploration](docs/architecture.md): initial proposals for the service, project runtimes, interfaces, and dependency boundaries.
