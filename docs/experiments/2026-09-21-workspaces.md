@@ -2,6 +2,8 @@
 
 Status: bounded experiment implemented and verified. This is evidence for a workspace contract, not adoption of a new global installation or automatic migration of existing service state.
 
+Follow-up: the [public entry implementation](../implementation/03-public-entry.md) now integrates this model, adds namespace-preserving legacy migration and verifies the installed executable. The original experiment observations below retain their scope.
+
 ## Question
 
 Can a project use Surface directly from main and linked worktrees without duplicating `.decompozr/surface`, then merge reviewed source and remove disposable worktrees without moving whole service state into main or losing project data?

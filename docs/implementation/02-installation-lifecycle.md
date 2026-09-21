@@ -1,6 +1,6 @@
 # Milestone 2: supported installation and lifecycle
 
-Status: implementation contract in preparation. The project SQLite policy below is accepted by the user; launcher defaults and supported backend integration are not yet adopted. This document does not claim a completed installation milestone.
+Status: bounded public-entry implementation delivered. See [the implemented command/layout/migration contract](03-public-entry.md). Lazy project storage, shared workspace state and the installed entry are now integrated; broader schema transitions and operating budgets remain.
 
 ## Objective
 
@@ -35,11 +35,11 @@ Surface metadata is a separate decision. If SQLite is later chosen for the servi
 
 ## Worktree follow-up
 
-The [workspace experiment](../experiments/2026-09-21-workspaces.md) now demonstrates one shared service with worktree-scoped resources. It avoids per-worktree service state and keeps lazy domain data outside disposable roots. Source merges through Git; runtime retirement preserves history and data rather than migrating a whole workspace into main. Adoption still needs an explicit migration from the current single-root ledger and integration with the supported launcher.
+The [workspace experiment](../experiments/2026-09-21-workspaces.md) now demonstrates one shared service with worktree-scoped resources. It avoids per-worktree service state and keeps lazy domain data outside disposable roots. Source merges through Git; runtime retirement preserves history and data rather than migrating a whole workspace into main. The public entry now includes this host and a stopped-only migration that preserves legacy namespaces and interaction records.
 
 ## Remaining implementation decisions
 
-The supported launcher distribution, default installation/state paths, default origin/port, exact command flags, and service schema transition policy still need concrete choices. Supported backend declarations, action access discovery, multiple mounts sharing a project connection, and execution budgets also remain open. The optional synchronous backend pilot is not automatically promoted to a supported API by adopting lazy storage.
+The public entry selects shared application-data homes, port 4319, pinned Git installation, explicit service selection, optional version-1 backend declarations and private capability inspection. Multiple mounts sharing one workspace backend, execution budgets, general future store migrations and project-specific data promotion remain open.
 
 Keep installation work bounded to the current local Svelte runtime. Native renderers, a general plugin registry, arbitrary application hosting, and domain-specific engines are outside this milestone.
 
@@ -52,4 +52,4 @@ Keep installation work bounded to the current local Svelte runtime. Native rende
 5. Failed startup/upgrade and supported rollback have explicit, recoverable outcomes; project sources/data survive uninstall and reinstall.
 6. Owned host/installer processes exit as expected. New installed-lifecycle evidence is recorded separately from the development experiment results.
 
-The lazy storage gates are executable in the project database experiment and now also pass through installed releases in the first-server contract experiment. Promotion to supported entry points, actual service-store migrations, and consolidation remain milestone work; the preferences fixture does not prove migration of registry or interaction records.
+The lazy storage gates are executable in the project database experiment and now also pass through installed releases in the first-server contract experiment. The public entry adds the original-namespace-preserving binding migration and installed workspace verification. General registry/interaction schema upgrades and further internal consolidation remain; the earlier preferences fixture still proves only its own bounded schema.

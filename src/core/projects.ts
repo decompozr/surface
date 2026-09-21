@@ -200,3 +200,5 @@ export function createProjectService(options: { stateDir: string; runtime: Proje
     } catch (error) { return outcome(error); }
   } };
 }
+
+export { readManifest as readProjectManifest };

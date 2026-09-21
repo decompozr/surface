@@ -1,74 +1,50 @@
-# Service and project operations
+# Service, workspace and project operations
 
-Read only the section needed for the current task. Examples run from the resolved Surface checkout; use absolute script paths from other directories. Project operations now use the shared implementation core; the Kit host and release manager remain experimental entry points. The full public CLI is still being consolidated. Keep the selected state directory consistent across interfaces.
+Use the [public entry guide](../../../docs/implementation/03-public-entry.md) for installation layout, defaults, migration and current limits. `surface` is the public CLI; a checkout fallback is `bun /path/to/surface/src/cli/index.ts`. Keep one selected service across operations.
 
-## Project-owned artifact management
+## Installation and service
 
-Use this when the project needs persistent artifact definitions, multiple named artifacts, or archive/restore. The [shared-core contract](../../../docs/implementation/01-project-core.md) describes current ownership and failure semantics. Start/connect to the selected singleton first; all these operations require that service:
-
-```sh
-bun src/cli/index.ts project init --project /project --name "My project" --state-dir /absolute/state
-bun src/cli/index.ts project add --project /project --source artifacts/panel --name "Controls" --state-dir /absolute/state
-bun src/cli/index.ts project register --project /project --state-dir /absolute/state
-bun src/cli/index.ts project list --project /project --state-dir /absolute/state
-bun src/cli/index.ts project mount --project /project --artifact ARTIFACT_UUID --state-dir /absolute/state
-```
-
-Each response has `version`, `ok`, `status`, and `data` or structured `error`. Read returned IDs from `data`; do not regenerate them. `init` creates only the manifest in an existing root and refuses overwrite. `add` records an existing source folder; create source with ordinary file tools first. Its source argument is project-relative. The manifest is versionable and keeps paths relative. Project/artifact UUIDs are identity; names are labels. Use `data.artifacts[].route` from list, or `data.namespace`/`data.name` from mount, for singleton interactions. Bind the canonical enclosing project root, not the nested source directory.
-
-`archive --artifact ID` unmounts before setting the archive flag and preserves source, dependencies, lockfiles, and records. `restore --artifact ID` checks source availability and clears the flag without mounting implicitly; its returned runtime is observed status, not a promise that it is stopped. These commands also require `--project` and the same state directory. Do not remove source as a substitute for archive.
-
-`list` separates the archive flag, source availability, and `runtime` (null if no runtime record exists). Inspect `runtimeIdentityMatches` when reconciling direct administrative changes. Copying the same project UUID to a different canonical root is rejected on binding; absolute aliases of the same root are canonicalized. Do not silently regenerate IDs, rebind namespaces, or erase the ledger to bypass conflicts. Relocation/adoption is not implemented.
-
-Project and ledger locks protect different writers; inspect ownership on a lock error rather than automatically deleting it. Archive's runtime change and manifest write are separate steps. If interrupted or failed, inspect both before retrying; an active manifest entry may already have an unmounted preview. The client never retries mutations. A transport `unknown` outcome requires reconciliation.
-
-The earlier `experiments/projects/cli.ts` remains a comparison fixture with direct filesystem writes. Use the new shared operations for current work; do not mix both writers as independent authorities.
-
-## SvelteKit application-shell candidate
-
-Use this when the user requests the Kit foundation experiment or its management overview. Follow the [Kit guide](../../../experiments/sveltekit/README.md) to install/check/build, then:
+Install a pinned committed revision when the task includes setup:
 
 ```sh
-bun experiments/sveltekit/server.ts --state-dir /absolute/state --port 4319
+surface install --repo /path/to/surface --ref FULL_COMMIT
+surface start
+surface status
+surface doctor
 ```
 
-The built handler serves `/manage` and read-only `/kit-api/status` within the same process/listener as the live Vite component compiler. Keep using the existing authenticated singleton CLI/MCP APIs for mutations. The overview provides no browser management credentials. Do not run `build/index.js` as a substitute: that starts an adapter-only server without the integrated component runtime.
+The default home is macOS `~/Library/Application Support/Surface` or Linux `$XDG_DATA_HOME/surface` (`~/.local/share/surface` fallback). `--home`/`SURFACE_HOME` selects another home. Releases, state, tooling and persistent project data have separate directories. The default port is 4319; a requested conflict fails without fallback. No login service is installed.
 
-Mounted source uses CSR; SSR of the management page does not establish SSR for mounted code. Whole SvelteKit applications and arbitrary project routing/configuration are not supported by this proof. Component edits use HMR, while shell changes require rebuilding and restarting. A successful Kit build is not a production bundle of future mounts.
+`stop` uses authenticated process ownership. `restart` preserves the configured port. `upgrade --repo ... --ref ...`, `rollback --release ...` and `uninstall` require a stopped owned host. Uninstall retains state, project data and the bootstrap launcher; unresolved accepted/delivering/unknown interactions without results block uninstall even if closed. `recover` handles only verified dead host ownership. Do not remove arbitrary locks or signal a PID merely because it appears in a file.
 
-## MCP adapter
+`surface serve --state-dir STATE --data-root DATA` is the foreground shared host. Do not run it against an installed service's active state. It requires the SvelteKit shell build. Earlier per-runtime commands are under `surface legacy`; existing recorded singleton callbacks retain their original CLI path and state.
 
-Use already available Surface tools when the task calls for MCP. To configure a requested connection, read the [MCP guide](../../../experiments/mcp/README.md); the host launches:
+## Project and workspace identities
 
-```sh
-bun /absolute/surface/experiments/mcp/server.ts --state-dir /absolute/state
-```
+From a Git worktree, use `surface project init` if the manifest is absent, then `register`, `add --source RELATIVE_PATH --name LABEL`, `list`, and `mount --artifact ID`. Explicit `--project ROOT` selects another root. All project operations require the selected host. Init never overwrites an existing manifest.
 
-The adapter connects to an existing singleton and rereads its connection for each call. It does not start a host, replace the registry, or require a second Vite instance. No MCP-host configuration is installed automatically by the experiment.
+`artifact.project.json` and artifact IDs are shared through Git. Git-linked worktrees get distinct workspace IDs and namespaces under one project. Branch names are labels; aliases are canonicalized. An independent clone with a copied project UUID remains a conflict. A tiny marker in Git administrative metadata detects missing/recreated identity; relocation/reused paths require explicit reconciliation. Do not regenerate IDs or delete the shared ledger to bypass errors.
 
-Tools cover health, namespace, mount/unmount, list, bind, request, inspect, send, result, and close. The eight `surface_project_*` tools add init/add/list/register/mount/unmount/archive/restore through the shared project core; they use `projectRoot`, `artifactId`, `source`, and `name` as appropriate. Their versioned outcomes match `surface project`. Important argument differences from CLI flags: mount uses `projectRoot`, bind uses `threadId`/`socketPath`, interactions use `bindingId`/`requestId`, and request schemas are JSON objects rather than schema-file paths. Discover the tool's actual schema before calling it. `surface_list` selects `kind: "mounts"` or `"requests"`.
+`surface workspace current` identifies the cwd workspace; `workspace list` shows retained workspaces. `project list` separately reports source availability, archive status, route and observed runtime. `project archive` unmounts and saves the artifact flag; `project restore` clears that flag without an implicit mount. Both preserve source/data.
 
-Inspect both transport/tool errors and the structured `ok`/`status` outcome. HTTP 200 can still represent failed preparation or failed/unknown delivery. A mutation transport failure is `unknown`, not proof that nothing happened; reconcile existing records before deciding whether to retry. Retain the response ID. The adapter never retries mutations.
+After authorized workspace cleanup, `surface workspace retire` (or `--workspace ID`) blocks new resource admission and unmounts that workspace while neighbors remain available. Unresolved delivered work prevents final retirement; inspect and reconcile its original request/session, then retry. Retirement preserves data/history and does not delete source or merge Git branches. Establish Git cleanliness/ancestry separately before removing a worktree. Never stop the shared service merely to clean up one preview.
 
-A request result intentionally contains a private `previewUrl` capability; list/inspect omit credentials. The connected MCP host has management privileges. Tool annotations and namespace names do not impose access control. This thin adapter preserves core semantics; fixture interoperability tests are not another live-agent delivery proof.
+## Optional backend and lazy data
 
-## Repository installation and service lifecycle
+No backend declaration means no backend resource. A declared project backend receives an inert `dataDirectory`, `workspaceId` and `projectId` context. Project code owns schema and storage operations and must honor that directory. Registration, mounting, local drafts, rejected input and non-storage actions must not create/open SQLite; an explicit validated data operation acquires it. The runtime cannot sandbox arbitrary project code or enforce inert module behavior against a misbehaving backend.
 
-Use this only when the task calls for installing/managing a service, rather than creating a single preview on an existing one. Follow the [lifecycle guide](../../../experiments/lifecycle/README.md) and explicitly select an owned installation home and exact repository revision:
+Default data locations are under the installation's persistent `project-data/PROJECT_ID/WORKSPACE_ID`, outside disposable source. `surface access` returns private backend capabilities; do not publish its raw output. Backend source edits require restart. Source merges through Git; databases are never automatically copied or merged into main.
 
-```sh
-bun experiments/lifecycle/manager.ts install --home /absolute/surface-home \
-  --repo /absolute/surface --ref COMMIT --host sveltekit
-bun experiments/lifecycle/manager.ts start --home /absolute/surface-home --port 4321
-bun experiments/lifecycle/manager.ts health --home /absolute/surface-home
-```
+## Explicit migration
 
-`--host singleton` is also supported. Releases are pinned Git archives; local uncommitted edits are not installed. The lifecycle manager requires the repository's exact Bun version and frozen dependencies. It does not alter global CLI/skill installation, shell profiles, or OS login/service configuration.
+Existing single-root stores require an offline migration. `surface workspace migrate --state-dir OLD_STATE` prints a plan; `--apply` makes the backed-up change. The old namespace and registry/interaction records retain their identities and bytes. The default installed state is not automatically populated from a checkout.
 
-Use `releases/COMMIT-HOST/experiments/singleton/cli.ts` with `--state-dir /absolute/surface-home/state` for application operations; MCP and project management must address that same state directory. A fixed port is retained for later start/restart; port 0 intentionally changes origins. Port conflicts fail rather than silently choosing another origin.
+Backends or existing domain data require `--storage-map FILE`, a project-ID-to-persistent-directory mapping. Prepare/verify that project-owned data separately and ensure the backend honors its supplied directory; migration does not guess database paths or perform a generic SQL copy/merge. Paths inside worktrees and overlapping project mappings are refused. Unsupported manual namespaces or earlier per-runtime stores require separate reconciliation.
 
-`stop` and `restart` operate through verified private lifecycle control, not a PID taken from a saved file. Install/activate/uninstall require a stopped host with resolved ownership metadata. `recover` handles only verified dead-owner metadata; ambiguous ownership requires inspection. Do not kill a process or erase locks merely because a recorded PID exists.
+`workspace migration-rollback --backup ID` restores only compatible unchanged metadata; it refuses newer writes. Interrupted migration blocks startup. Recovery can remove only its own verified dead migration lock and retains ownership evidence. Do not erase pending files to force startup.
 
-Uninstall preserves service state and project sources, but refuses unresolved accepted/delivering/unknown submissions without results—even if closed—because callbacks may still reference an installed release's CLI. Reconcile pending work first. Graceful stop drains delivery operations, not the agent's full turn. Upgrade retains earlier releases; pending-aware release cleanup is not implemented.
+## MCP and outcomes
 
-The tested release rollback uses identical source/schema across two commits; do not infer future schema-migration compatibility. Lifecycle tooling distribution/self-upgrade, Windows service management, mounted-code SSR, and multi-day reliability remain outside this pilot.
+`surface mcp` serves the existing 19 tools over stdio for the selected shared service. It does not start another host, alter MCP-host configuration, or allocate another registry/compiler. Discover actual schemas before calling tools. The eight `surface_project_*` operations use the same project/workspace core and require explicit `projectRoot`; register before add/mount on the workspace host.
+
+Inspect `ok`, `status` and structured errors even after HTTP/transport success. Preserve response IDs; a transport failure can leave a mutation outcome unknown and is never automatically retried. A private interaction preview URL carries a browser capability; list/inspect do not. Management access remains privileged, and tool annotations are not access control.

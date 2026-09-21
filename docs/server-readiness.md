@@ -1,5 +1,8 @@
 # First-server implementation readiness
 
+Current increment: the [public Surface entry](implementation/03-public-entry.md) integrates installed lifecycle, shared worktree identities, optional lazy backend storage, CLI/MCP access and an explicit namespace-preserving legacy-binding migration. Historical experiment outcomes below retain their original scope.
+
+
 Date: September 21, 2026 (America/Toronto).
 
 Implementation status: [Milestone 1 — shared project operations](implementation/01-project-core.md) is implemented; its own verification record distinguishes that increment from the remaining milestones. Supported installation and lifecycle is next; its [contract in preparation](implementation/02-installation-lifecycle.md) records the accepted lazy project-storage policy and remaining choices.

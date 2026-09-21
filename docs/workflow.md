@@ -1,5 +1,6 @@
 # Agent-created local pages
 
+This guide retains the earlier per-runtime topology. New Git/worktree projects should use the [public shared-service entry](implementation/03-public-entry.md).
 Status: earlier per-project-process exploration. For the preferred singleton/namespace direction, use the separate [singleton experiment](../experiments/singleton/README.md). This workflow still describes the existing `surface` CLI. These steps reproduce an experiment; successful checks do not freeze the architecture or establish production readiness.
 
 Surface now mounts trusted external frontend projects and connects their pages to an exact existing agent conversation. The service and CLI use Bun; a mounted project retains its own package manager, source files, dependencies, and lockfile. Svelte and vanilla HTML/TypeScript starters are included. This earlier entry point has no MCP adapter; the later [singleton MCP experiment](../experiments/mcp/README.md) supplies that interface for the preferred host.
@@ -27,21 +28,21 @@ Do not overwrite an existing skill. New agent sessions can discover the installe
 ## Start the service
 
 ```sh
-surface serve
+surface legacy serve
 ```
 
-This foreground process manages the API on `127.0.0.1:4317`. Keep its terminal running. `surface doctor` reports service availability without displaying the management token. `--state-dir /absolute/path` selects an independent service's records and must be passed consistently to all commands. `--port` changes the API port.
+This foreground process manages the API on `127.0.0.1:4317`. Keep its terminal running. `surface legacy doctor` reports service availability without displaying the management token. `--state-dir /absolute/path` selects an independent service's records and must be passed consistently to all commands. `--port` changes the API port.
 
 The default state directory remains this checkout's `.decompozr/surface`, including when calling the globally linked CLI from another project. It contains private local records and must not be committed. There is one writer per state directory. This release does not install an OS service or promise background persistence after the terminal is closed.
 
-The bundled A/B demo is still available with `surface serve --dev` after installing its dependencies. External mounts do not need that demo or its build.
+The bundled A/B demo is still available with `surface legacy serve --dev` after installing its dependencies. External mounts do not need that demo or its build.
 
 ## Create an independent workspace
 
 Assuming an existing repository at `/path/to/project`:
 
 ```sh
-surface init --directory /path/to/project/artifacts/demo --framework svelte
+surface legacy init --directory /path/to/project/artifacts/demo --framework svelte
 cd /path/to/project/artifacts/demo
 bun install
 bun run check
@@ -55,13 +56,13 @@ The starter includes a message form, a copied browser client, and `interaction.s
 ## Register and mount
 
 ```sh
-surface register \
+surface legacy register \
   --project /path/to/project \
   --directory /path/to/project/artifacts/demo \
   --command-json '["bun","run","dev","--","--host","127.0.0.1","--port","{port}","--strictPort"]'
-surface mount --runtime RUNTIME_ID
-surface runtime --runtime RUNTIME_ID
-surface logs --runtime RUNTIME_ID
+surface legacy mount --runtime RUNTIME_ID
+surface legacy runtime --runtime RUNTIME_ID
+surface legacy logs --runtime RUNTIME_ID
 ```
 
 Use IDs from actual command output. Registration records canonical paths and an argument array; it neither installs dependencies nor executes code. Mount launches the selected command in that directory. The runtime directory must be inside its registered project. Multiple frontends can be registered under one project root.
@@ -75,9 +76,9 @@ Readiness requires an HTTP success at `/`. A ready response includes the direct 
 Bind the exact originating agent session; its working directory must match `--project`, not necessarily the nested frontend directory. For Codex, the installed `codex app-server daemon version` command reports the local control socket.
 
 ```sh
-surface bind --project /path/to/project \
+surface legacy bind --project /path/to/project \
   --thread EXACT_THREAD_ID --socket /absolute/path/to/control.sock
-surface request --binding BINDING_ID --runtime RUNTIME_ID \
+surface legacy request --binding BINDING_ID --runtime RUNTIME_ID \
   --schema-file /path/to/project/artifacts/demo/interaction.schema.json \
   --title "Share your next change"
 ```
@@ -105,8 +106,8 @@ The request schema validates the submitted JSON object. `--schema-file` exposes 
 The agent receives the submitted data and an absolute callback CLI command with the correct state directory. It publishes an actual outcome:
 
 ```sh
-surface result --request REQUEST_ID --data '{"message":"Updated the heading"}'
-surface inspect --request REQUEST_ID
+surface legacy result --request REQUEST_ID --data '{"message":"Updated the heading"}'
+surface legacy inspect --request REQUEST_ID
 ```
 
 Result data is arbitrary JSON-object data interpreted by the page. No automatic source editing is performed by Surface. The agent edits source using its normal tools, checks the browser, and separately reports completion. Its execution environment must permit contacting the local API; Surface never changes that environment's permissions.
@@ -114,9 +115,9 @@ Result data is arbitrary JSON-object data interpreted by the page. No automatic 
 ## Stop, recover, and inspect
 
 ```sh
-surface runtimes
-surface stop --runtime RUNTIME_ID
-surface mount --runtime RUNTIME_ID
+surface legacy runtimes
+surface legacy stop --runtime RUNTIME_ID
+surface legacy mount --runtime RUNTIME_ID
 ```
 
 Stopping removes the owned process group and preserves source, dependencies, and registration. Each process group has a supervisor watching its connection to the manager. Normal service shutdown and manager termination clean up attached child processes. A malicious command that detaches into another group is outside this trusted-code lifecycle contract.

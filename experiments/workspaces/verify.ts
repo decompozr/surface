@@ -9,7 +9,8 @@ import { workspaceDirectory, type Workspace } from './identity.ts';
 import type { AgentAdapter } from '../../src/adapters/codex.ts';
 
 function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
-const f = await fixture(), evidence = resolve(import.meta.dir, '../../.decompozr/surface/workspaces-proof'); mkdirSync(evidence, { recursive: true });
+const publicCli = process.argv.includes('--public-cli');
+const f = await fixture(), evidence = resolve(import.meta.dir, publicCli ? '../../.decompozr/surface/public-workspaces-proof' : '../../.decompozr/surface/workspaces-proof'); mkdirSync(evidence, { recursive: true });
 const observations: string[] = [], deliveries: { thread: string; root: string; requestId: string }[] = [];
 const observed = (value: string) => { observations.push(value); console.log(value); };
 let app: Awaited<ReturnType<typeof startWorkspaceHost>> | undefined, browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
@@ -30,7 +31,7 @@ async function raw(path: string, input?: unknown, token = connection.token) {
   return { status: response.status, data: await response.json() };
 }
 async function api(path: string, input?: unknown) { const result = await raw(path,input); assert(result.status < 300, JSON.stringify(result)); return result.data; }
-async function cli(root: string, ...args: string[]) { return command([process.execPath, join(import.meta.dir, 'cli.ts'), ...args], root, { SURFACE_STATE_DIR: f.state }); }
+async function cli(root: string, ...args: string[]) { const forwarded = publicCli ? (args[0] === 'retire' ? ['workspace', ...args] : ['project', ...args]) : args; return command([process.execPath, join(import.meta.dir, publicCli ? '../../src/cli/index.ts' : 'cli.ts'), ...forwarded], root, { SURFACE_STATE_DIR: f.state }); }
 async function project(root: string, ...args: string[]) { const result = await cli(root,...args); assert(result.code === 0, result.err + result.out); const value = JSON.parse(result.out); assert(value.ok, result.out); return value.data; }
 async function register(root: string) { const result = await project(root,'register'); return directory.get(result.workspaceId); }
 async function mount(w: Workspace) { return project(w.root,'mount','--artifact',f.manifest.artifacts[0]!.id); }
@@ -58,6 +59,7 @@ writeFileSync(join(evidence,'result.json'),JSON.stringify({ passed:false,status:
 try {
   await start();
   main = await register(f.main); a = await register(f.a); b = await register(f.b);
+  if(publicCli) assert((await project(join(f.a,'ui'),'list')).workspaceId === a.id,'Public CLI did not infer the containing worktree.');
   const mounts = await Promise.all([mount(main),mount(a),mount(b)]);
   assert(new Set(mounts.map(m=>m.namespace)).size === 3,'Namespaces collided.');
   assert(directory.snapshot().projects.length === 1,'Duplicated logical project.');

@@ -97,7 +97,7 @@ export function createMcpServer(stateDir: string) {
     init: 'Create a project-owned manifest with a stable identity. Refuses to overwrite an existing manifest.',
     add: 'Register an existing project-relative source folder under a display name and a stable artifact ID.',
     list: 'Read project definitions, source availability and observed runtime state separately.',
-    register: 'Bind the stable project identity to its canonical root in this server.',
+    register: 'Register the project using the selected server identity policy, including Git workspaces on the shared Surface host.',
     mount: 'Mount the selected active artifact and prepare its declared dependencies.',
     unmount: 'Make the selected preview unavailable while retaining source, definitions and interactions.',
     archive: 'Unmount the selected artifact and mark its definition archived; retain source and dependencies.',
