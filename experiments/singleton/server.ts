@@ -19,6 +19,9 @@ type Mount = {
   history: { status: Phase; at: string }[];
 };
 type Registry = { namespaces: string[]; mounts: Mount[] };
+/** Optional experiment seam, not a public backend/plugin contract. */
+export type MountResource = { close(): void | Promise<void> };
+export type MountResourceContext = Pick<Mount, 'namespace' | 'name' | 'source' | 'projectRoot'>;
 function slug(value: unknown) {
   if (typeof value !== 'string' || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(value)) throw new InputError('Use a lowercase namespace/name containing letters, digits, or hyphens.');
   return value;
@@ -63,7 +66,7 @@ function prepareDependencyLink(workspace: string, target: string) {
 }
 
 /** Exploratory one-process, one-Vite component host. Separate from the previous runtime experiment. */
-export async function startSingleton(options: { stateDir: string; port?: number; adapter?: AgentAdapter; application?: (req: IncomingMessage, res: ServerResponse) => boolean | Promise<boolean> }) {
+export async function startSingleton(options: { stateDir: string; port?: number; adapter?: AgentAdapter; application?: (req: IncomingMessage, res: ServerResponse) => boolean | Promise<boolean>; openMountResource?: (mount: MountResourceContext) => Promise<MountResource> }) {
   const stateDir = resolve(options.stateDir), workspace = join(stateDir, 'workspace');
   mkdirSync(workspace, { recursive: true, mode: 0o700 });
   const lockPath = join(stateDir, 'server.lock');
@@ -83,6 +86,11 @@ export async function startSingleton(options: { stateDir: string; port?: number;
   let origin = '', vite: ViteDevServer, closing = false;
   let stopTask: Promise<void> | undefined;
   const instanceId = crypto.randomUUID();
+  const mountResources = new Map<Mount, MountResource>();
+  async function closeResource(mount: Mount) {
+    const resource = mountResources.get(mount);
+    if (resource) { await resource.close(); mountResources.delete(mount); }
+  }
   const mountPath = (mount: Mount) => join(workspace, 'mounts', mount.namespace, mount.name);
   const find = (namespace: string, name: string) => {
     const mount = registry.mounts.find(item => item.namespace === namespace && item.name === name);
@@ -167,6 +175,10 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       await dependencies.prepare(mount.source);
       // Compile discovered components through the SAME Vite instance. This is development transformation, not a production bundle.
       for (const component of mount.components) await vite.transformRequest(`/mounts/${mount.namespace}/${mount.name}/${component}`);
+      if (options.openMountResource) {
+        await closeResource(mount);
+        mountResources.set(mount, await options.openMountResource({ namespace: mount.namespace, name: mount.name, source: mount.source, projectRoot: mount.projectRoot }));
+      }
       phase(mount, 'ready');
       return view(mount);
     } catch (error) {
@@ -199,6 +211,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
     }
   }
   async function releaseMountResources(record: Mount) {
+    await closeResource(record);
     dependencies.release(record.source);
     // Chokidar unwatch(root) closes only that exact path. Explicitly close
     // descendants too; getWatched may retain empty directory metadata.
@@ -361,6 +374,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
         for (const child of installers) child.kill();
         await pending;
         await interactionsStopped;
+        for (const mount of mountResources.keys()) await closeResource(mount);
         await vite.close();
         http.closeAllConnections(); await new Promise<void>(done => http.close(() => done()));
         closeSync(lock); unlinkSync(lockPath); unlinkSync(join(stateDir, 'connection.json'));
@@ -368,6 +382,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       return stopTask;
     } };
   } catch (error) {
+    for (const mount of mountResources.keys()) await closeResource(mount);
     await vite!?.close(); http.close(); closeSync(lock);
     try { unlinkSync(lockPath); } catch { /* absent */ }
     throw error;

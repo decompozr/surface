@@ -28,6 +28,8 @@ The [server readiness review](server-readiness.md) recommends this topology for 
 
 ## Prototype stack
 
+The later [project-owned SQLite pilot](experiments/2026-09-21-project-database.md) adds an optional resource-lifecycle seam to the singleton and a separate experiment host using its existing application handler. The host explicitly supplies trusted project backends; schema and SQLite code stay in the project. It is evidence for a possible backend capability, not automatic module discovery, a supported plugin API, or arbitrary mounted application hosting.
+
 The first implementation uses Bun 1.4.0 and TypeScript for the service and CLI, Bun's HTTP server and test runner, Ajv for response validation, and a Codex adapter using JSON-RPC over a local Unix WebSocket. The example uses Svelte 5 and Vite 8, with TypeScript 6 to match the Svelte checking tool's supported range.
 
 Surface and the example have separate package manifests and `bun.lock` files. Prototype records live in an ignored `.decompozr/surface/` directory as an atomically replaced JSON file, with an exclusive lock preventing two servers from writing the same state directory. This is a single-server prototype store, not a distributed queue.
