@@ -6,7 +6,7 @@ import { startServer } from '../src/server/index.ts';
 const cleanups: (() => void | Promise<void>)[] = [];
 afterEach(async () => { for (const cleanup of cleanups.splice(0).reverse()) await cleanup(); });
 function fixture() {
-  const directory = mkdtempSync(join(tmpdir(), 'artifact-http-'));
+  const directory = mkdtempSync(join(tmpdir(), 'surface-http-'));
   cleanups.push(() => rmSync(directory, { recursive: true, force: true }));
   let deliveries = 0;
   const app = startServer({ stateDir: directory, cliPath: join(process.cwd(), 'src/cli/index.ts'), uiDir: join(process.cwd(), 'examples/svelte-feedback/dist'), port: 0,

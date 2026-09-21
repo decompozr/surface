@@ -3,9 +3,9 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, realpathSync, rmSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startSingleton } from './server.ts';
-const directory = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-dependencies-')));
+const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-dependencies-')));
 const stateDir = join(directory, 'state');
-const evidenceDir = join(import.meta.dir, '../../.decompozr/artifact/dependency-proof'); mkdirSync(evidenceDir, { recursive: true });
+const evidenceDir = join(import.meta.dir, '../../.decompozr/surface/dependency-proof'); mkdirSync(evidenceDir, { recursive: true });
 const baselineOnly = process.argv.includes('--baseline');
 const observations: string[] = [];
 function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
@@ -16,7 +16,7 @@ function project(name: string, version: string) {
   writeFileSync(join(source, 'package.json'), JSON.stringify({ name, private: true, type: 'module', dependencies: { svelte: '5.57.1', lodash: version, 'mixed-entry': 'file:./packages/mixed-entry' } }));
   writeFileSync(join(source, 'packages/mixed-entry/package.json'), JSON.stringify({ name: 'mixed-entry', version: '1.0.0', type: 'module', main: 'index.js' }));
   writeFileSync(join(source, 'packages/mixed-entry/index.js'), `import lodash from 'lodash'; export const mixed = 'ESM via CJS ' + lodash.VERSION + ': ' + lodash.chunk(['a','b','c'], 2).map(row=>row.join('')).join('|');`);
-  writeFileSync(join(source, 'src/Panel.svelte'), `<script>import lodash from 'lodash'; import { mixed } from 'mixed-entry'; import { previewState } from 'virtual:artifact-preview'; const count=previewState('count',0);</script><h1>${name}</h1><p data-testid="version">{lodash.VERSION}</p><p data-testid="cjs">{lodash.chunk([1,2,3],2).map(row=>row.join('')).join('|')}</p><p data-testid="mixed">{mixed}</p><button onclick={()=> $count++}>Count {$count}</button>`);
+  writeFileSync(join(source, 'src/Panel.svelte'), `<script>import lodash from 'lodash'; import { mixed } from 'mixed-entry'; import { previewState } from 'virtual:surface-preview'; const count=previewState('count',0);</script><h1>${name}</h1><p data-testid="version">{lodash.VERSION}</p><p data-testid="cjs">{lodash.chunk([1,2,3],2).map(row=>row.join('')).join('|')}</p><p data-testid="mixed">{mixed}</p><button onclick={()=> $count++}>Count {$count}</button>`);
   return source;
 }
 function manifest(source: string, prebundle: string[]) { writeFileSync(join(source, 'artifact.json'), JSON.stringify({ framework: 'svelte', components: 'src', prebundle })); }
@@ -53,7 +53,7 @@ try {
     mountedA = await cli('mount', alpha, '--namespace', 'deps', '--name', 'alpha');
     assert(mountedA.status === 'ready', JSON.stringify(mountedA));
     const requestsA: string[] = [], requestsB: string[] = [];
-    pageA.on('request', request => { if (request.url().includes('artifact-dependency')) requestsA.push(request.url()); });
+    pageA.on('request', request => { if (request.url().includes('surface-dependency')) requestsA.push(request.url()); });
     await pageA.goto(mountedA.previewUrl + '?component=src%2FPanel.svelte');
     await pageA.getByRole('heading', { name: 'alpha' }).waitFor();
     assert(await pageA.getByTestId('version').textContent() === '4.17.20', 'Alpha loaded wrong CommonJS version.');
@@ -65,7 +65,7 @@ try {
     const mountedB = await cli('mount', beta, '--namespace', 'deps', '--name', 'beta');
     assert(mountedB.status === 'ready', JSON.stringify(mountedB));
     const pageB = await browser.newPage();
-    pageB.on('request', request => { if (request.url().includes('artifact-dependency')) requestsB.push(request.url()); });
+    pageB.on('request', request => { if (request.url().includes('surface-dependency')) requestsB.push(request.url()); });
     await pageB.goto(mountedB.previewUrl + '?component=src%2FPanel.svelte');
     await pageB.getByRole('heading', { name: 'beta' }).waitFor();
     assert(await pageB.getByTestId('version').textContent() === '4.17.21', 'Beta reused alpha CommonJS version.');

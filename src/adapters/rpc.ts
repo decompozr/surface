@@ -28,7 +28,7 @@ export class CodexRpc implements Rpc {
         const message = JSON.parse(bytes.toString());
         if (message.method) {
           if (message.id !== undefined) {
-            this.write({ id: message.id, error: { code: -32601, message: 'Artifact cannot handle interactive approval requests. Use the owning Codex client.' } });
+            this.write({ id: message.id, error: { code: -32601, message: 'Surface cannot handle interactive approval requests. Use the owning Codex client.' } });
           }
           return;
         }
@@ -52,7 +52,7 @@ export class CodexRpc implements Rpc {
         rpc.socket.once('close', () => reject(new TransportError('Codex connection closed before initialization.')));
       });
       await rpc.call('initialize', {
-        clientInfo: { name: 'artifact', title: 'Artifact', version: '0.1.0' },
+        clientInfo: { name: 'surface', title: 'Surface', version: '0.1.0' },
         capabilities: { experimentalApi: true },
       });
       rpc.write({ method: 'initialized', params: {} });
@@ -83,7 +83,7 @@ export class CodexRpc implements Rpc {
     this.closed = true;
   }
   close() {
-    this.fail(new TransportError('Artifact disconnected.'));
+    this.fail(new TransportError('Surface disconnected.'));
     this.socket.close();
   }
 }

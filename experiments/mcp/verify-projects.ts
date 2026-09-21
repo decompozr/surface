@@ -8,13 +8,13 @@ import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import { startSingleton } from '../singleton/server.ts';
 
 const root = resolve(import.meta.dir, '../..');
-const temporary = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-project-access-')));
+const temporary = realpathSync(mkdtempSync(join(tmpdir(), 'surface-project-access-')));
 const stateDir = join(temporary, 'server');
-const evidenceDir = join(root, '.decompozr/artifact/project-access-proof'); mkdirSync(evidenceDir, { recursive: true });
+const evidenceDir = join(root, '.decompozr/surface/project-access-proof'); mkdirSync(evidenceDir, { recursive: true });
 const observations: string[] = [];
 function observed(message: string) { observations.push(message); console.log(message); }
 const component = `<script lang="ts">
-import { previewState } from 'virtual:artifact-preview';
+import { previewState } from 'virtual:surface-preview';
 const count = previewState('counter', 0, 1);
 const draft = previewState('draft', '', 1);
 </script>
@@ -28,7 +28,7 @@ function project(name: string) {
   return { projectRoot, source };
 }
 const alpha = project('alpha'), beta = project('beta');
-const client = new Client({ name: 'artifact-project-access-verifier', version: '0.1.0' });
+const client = new Client({ name: 'surface-project-access-verifier', version: '0.1.0' });
 const transport = new StdioClientTransport({ command: process.execPath, args: [join(import.meta.dir, 'server.ts'), '--state-dir', stateDir], cwd: root, stderr: 'pipe' });
 let stderr = ''; transport.stderr?.on('data', chunk => { stderr += chunk.toString(); });
 let app: Awaited<ReturnType<typeof startSingleton>> | undefined;
@@ -40,7 +40,7 @@ async function cli(projectRoot: string, operation: string, ...args: string[]) {
   const outcome = JSON.parse(stdout); assert.equal(outcome.ok, true); assert.equal(outcome.version, 1); return outcome.data;
 }
 async function tool(operation: string, args: Record<string, unknown>, expectError = false) {
-  const result = await client.callTool({ name: `artifact_project_${operation}`, arguments: args }, { timeout: 150_000 });
+  const result = await client.callTool({ name: `surface_project_${operation}`, arguments: args }, { timeout: 150_000 });
   assert.equal(result.isError === true, expectError, JSON.stringify(result));
   const outcome = result.structuredContent as any;
   if (!expectError) { assert.equal(outcome.version, 1); assert.equal(outcome.ok, true); }
@@ -53,9 +53,9 @@ try {
   await client.connect(transport);
   const tools = (await client.listTools()).tools;
   assert.equal(tools.length, 19);
-  const projectTools = tools.filter(tool => tool.name.startsWith('artifact_project_'));
+  const projectTools = tools.filter(tool => tool.name.startsWith('surface_project_'));
   assert.equal(projectTools.length, 8);
-  assert.deepEqual(projectTools.filter(tool => tool.annotations?.readOnlyHint).map(tool => tool.name), ['artifact_project_list']);
+  assert.deepEqual(projectTools.filter(tool => tool.annotations?.readOnlyHint).map(tool => tool.name), ['surface_project_list']);
   await tool('add', { projectRoot: alpha.projectRoot, source: 'artifacts/panel' }, true);
   await tool('init', { projectRoot: alpha.projectRoot, unexpected: true }, true);
   await tool('init', { projectRoot: 'relative/root' }, true);

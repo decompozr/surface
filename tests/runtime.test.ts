@@ -9,13 +9,13 @@ import { scaffold } from '../src/cli/scaffold.ts';
 const cleanup: (() => unknown | Promise<unknown>)[] = [];
 afterEach(async () => { for (const fn of cleanup.splice(0).reverse()) await fn(); });
 function fixture() {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-runtime-')));
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'surface-runtime-')));
   cleanup.push(() => rmSync(root, { recursive: true, force: true }));
   const store = new Store(join(root, 'state.json'));
   const runtimes = new Runtimes(store, 1500);
   cleanup.push(() => runtimes.shutdown());
   const directory = join(root, 'ui'); mkdirSync(directory);
-  writeFileSync(join(directory, 'serve.ts'), `Bun.serve({hostname:'127.0.0.1',port:Number(process.env.ARTIFACT_PORT),fetch:()=>new Response('external preview')}); console.log('external ready');`);
+  writeFileSync(join(directory, 'serve.ts'), `if(process.env.SURFACE_PORT!==process.env.ARTIFACT_PORT) throw new Error('Legacy port alias differs'); Bun.serve({hostname:'127.0.0.1',port:Number(process.env.SURFACE_PORT),fetch:()=>new Response('external preview')}); console.log('external ready');`);
   const record = runtimes.register({ projectRoot: root, directory, command: [process.execPath, 'serve.ts'] });
   return { root, directory, store, runtimes, record };
 }
@@ -38,9 +38,9 @@ test('mounts once, reports logs, stops and restarts an external project from sav
 test('rejects directory escape and symlink replacement, reports startup errors', async () => {
   const { runtimes, root, directory, record } = fixture();
   expect(() => runtimes.register({ projectRoot: directory, directory: root, command: ['bun'] })).toThrow('within');
-  const bad = runtimes.register({ projectRoot: root, directory, command: ['artifact-executable-that-does-not-exist'] });
+  const bad = runtimes.register({ projectRoot: root, directory, command: ['surface-executable-that-does-not-exist'] });
   expect((await runtimes.mount(bad.id)).status).toBe('failed');
-  expect(runtimes.logs(bad.id).log).toContain('artifact-executable-that-does-not-exist');
+  expect(runtimes.logs(bad.id).log).toContain('surface-executable-that-does-not-exist');
   rmSync(directory, { recursive: true }); symlinkSync(tmpdir(), directory);
   expect((await runtimes.mount(record.id)).status).toBe('failed');
 });
@@ -80,17 +80,17 @@ test('scaffolding preserves nonempty projects and copies a standalone browser cl
   const directory = join(root, 'new-page');
   expect(scaffold(process.cwd(), directory, 'svelte').installed).toBe(false);
   expect(() => scaffold(process.cwd(), directory, 'svelte')).toThrow('overwrite');
-  expect(Bun.file(join(directory, 'src/artifact-client.ts')).size).toBeGreaterThan(100);
+  expect(Bun.file(join(directory, 'src/surface-client.ts')).size).toBeGreaterThan(100);
 });
 
 test('killing the manager closes its preview process group', async () => {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-crash-')));
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'surface-crash-')));
   cleanup.push(() => rmSync(root, { recursive: true, force: true }));
   const bootstrap = join(root, 'manager.ts');
   writeFileSync(bootstrap, `import { startServer } from ${JSON.stringify(join(process.cwd(), 'src/server/index.ts'))};
 const app=startServer({stateDir:${JSON.stringify(join(root, 'state'))},cliPath:'/cli',uiDir:${JSON.stringify(root)},port:0});
 console.log(JSON.stringify({origin:app.origin,token:app.token}));`);
-  writeFileSync(join(root, 'serve.ts'), "Bun.serve({hostname:'127.0.0.1',port:Number(process.env.ARTIFACT_PORT),fetch:()=>new Response('owned')});");
+  writeFileSync(join(root, 'serve.ts'), "Bun.serve({hostname:'127.0.0.1',port:Number(process.env.SURFACE_PORT),fetch:()=>new Response('owned')});");
   const manager = Bun.spawn([process.execPath, bootstrap], { stdout: 'pipe', stderr: 'pipe' });
   cleanup.push(async () => { manager.kill(); await manager.exited; });
   const reader = manager.stdout.getReader();

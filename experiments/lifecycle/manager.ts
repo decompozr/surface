@@ -143,7 +143,7 @@ export class Installation {
       const secret = randomBytes(32).toString('hex'), nonce = crypto.randomUUID();
       const log = openSync(join(this.home, 'run/host.log'), 'a', 0o600);
       const child = Bun.spawn([process.execPath, runner, this.home, release.release, release.host, String(port)], {
-        env: { ...process.env, ARTIFACT_RUNNER_SECRET: secret, ARTIFACT_RUNNER_NONCE: nonce }, stdin: 'ignore', stdout: log, stderr: log,
+        env: { ...process.env, SURFACE_RUNNER_SECRET: secret, SURFACE_RUNNER_NONCE: nonce }, stdin: 'ignore', stdout: log, stderr: log,
       });
       closeSync(log);
       let exited = false; void child.exited.then(() => { exited = true; });
@@ -234,8 +234,8 @@ export class Installation {
 if (import.meta.main) {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: { home: { type: 'string' }, repo: { type: 'string' }, ref: { type: 'string' }, host: { type: 'string' }, port: { type: 'string' } } });
   try {
-    const home = values.home ?? process.env.ARTIFACT_HOME;
-    if (!home) throw new Error('Specify an isolated --home or ARTIFACT_HOME.');
+    const home = values.home ?? process.env.SURFACE_HOME ?? process.env.ARTIFACT_HOME;
+    if (!home) throw new Error('Specify an isolated --home or SURFACE_HOME.');
     const installation = new Installation(home);
     let result: unknown;
     switch (positionals[0]) {

@@ -24,10 +24,10 @@ export async function main(args = process.argv.slice(2)) {
   const command = positionals[0];
   if (command === 'project') {
     const index = tokens.find(token => token.kind === 'positional')!.index;
-    return projectMain(args.filter((_, position) => position !== index), join(root, '.decompozr/artifact/singleton'));
+    return projectMain(args.filter((_, position) => position !== index), join(root, '.decompozr/surface/singleton'));
   }
   if (values.help || !command) {
-    console.log(`Artifact prototype (Bun + TypeScript)
+    console.log(`Surface prototype (Bun + TypeScript)
 
   project <operation> --project ROOT [--state-dir STATE] (use project --help)
   serve [--dev] [--port 4317] [--ui-port 5173]
@@ -47,13 +47,13 @@ export async function main(args = process.argv.slice(2)) {
   result --request ID --data '{"message":"Updated","option":"B","width":120}'
   close --request ID
 
-All commands accept --state-dir PATH (default: this checkout's .decompozr/artifact).
-Project commands default to this checkout's .decompozr/artifact/singleton and require an existing singleton server.
+All commands accept --state-dir PATH (default: this checkout's .decompozr/surface).
+Project commands default to this checkout's .decompozr/surface/singleton and require an existing singleton server.
 serve runs in the foreground; Ctrl+C stops its own processes. --dev starts the Svelte Vite example.
 Live bind/send commands target the exact registered Codex conversation. No mock agent runs in production.`);
     return;
   }
-  const stateDir = resolve(values['state-dir'] ?? join(root, '.decompozr/artifact'));
+  const stateDir = resolve(values['state-dir'] ?? join(root, '.decompozr/surface'));
   const required = (key: keyof typeof values) => {
     const value = values[key];
     if (typeof value !== 'string' || !value) throw new Error(`Missing --${key}.`);
@@ -96,7 +96,7 @@ Live bind/send commands target the exact registered Codex conversation. No mock 
     if (values.dev) {
       try { child = Bun.spawn([process.execPath, join(root, 'examples/svelte-feedback/node_modules/vite/bin/vite.js'), '--host', '127.0.0.1', '--port', String(uiPort), '--strictPort'], {
         cwd: join(root, 'examples/svelte-feedback'),
-        env: { ...process.env, ARTIFACT_API_ORIGIN: app.origin },
+        env: { ...process.env, SURFACE_API_ORIGIN: app.origin },
         stdout: 'inherit', stderr: 'inherit',
       }); } catch (error) { await stop(); throw error; }
       void child.exited.then(async code => { if (!stopping) { console.error(`Preview process exited (${code}).`); await stop(); process.exit(code || 1); } });
@@ -117,7 +117,7 @@ Live bind/send commands target the exact registered Codex conversation. No mock 
   }
   const connection = JSON.parse(readFileSync(join(stateDir, 'connection.json'), 'utf8'));
   const base = new URL(connection.origin);
-  if (base.protocol !== 'http:' || base.hostname !== '127.0.0.1') throw new Error('Expected a local Artifact connection.');
+  if (base.protocol !== 'http:' || base.hostname !== '127.0.0.1') throw new Error('Expected a local Surface connection.');
   async function api(path: string, data?: unknown) {
     const response = await fetch(new URL(path, base), {
       method: data === undefined ? 'GET' : 'POST',

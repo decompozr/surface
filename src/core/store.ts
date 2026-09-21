@@ -26,7 +26,7 @@ export class Store {
       this.state = { version: 1, bindings: [], requests: [], runtimes: [] };
     }
     if (this.state.version !== 1 || !Array.isArray(this.state.bindings) || !Array.isArray(this.state.requests)) {
-      throw new Error('Unsupported or invalid Artifact state file.');
+      throw new Error('Unsupported or invalid Surface state file.');
     }
     this.state.runtimes ??= [];
     if (!Array.isArray(this.state.runtimes)) throw new Error('Invalid runtime registry.');

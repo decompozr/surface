@@ -1,5 +1,5 @@
 {
-  "name": "artifact-mcp-experiment",
+  "name": "surface-mcp-experiment",
   "private": true,
   "type": "module",
   "scripts": { "check": "tsc --noEmit", "serve": "bun server.ts", "verify": "bun verify.ts" },

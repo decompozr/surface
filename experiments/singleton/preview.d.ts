@@ -1,12 +1,12 @@
 /** Copy into a mounted TypeScript project's included declarations for editor/type-check support. */
-declare module 'virtual:artifact-preview' {
+declare module 'virtual:surface-preview' {
   import type { Writable } from 'svelte/store';
   /** Preview-session state. Same key/version survives component HMR; full navigation resets it. */
   export function previewState<T>(key: string, initial: T, version?: number | string): Writable<T>;
 }
 
 /** The singleton host supplies this module; do not add it as a package dependency. */
-declare module 'virtual:artifact-client' {
+declare module 'virtual:surface-client' {
   export type Interaction = {
     id: string;
     title: string;
@@ -21,9 +21,14 @@ declare module 'virtual:artifact-client' {
     result?: Record<string, unknown>;
   };
   /** Reads the request capability and mount scope from the returned interaction preview URL. */
-  export function createArtifactClient(options?: { api: string; requestId: string; token: string }): {
+  export function createSurfaceClient(options?: { api: string; requestId: string; token: string }): {
     read(): Promise<Interaction>;
     submit(data: Record<string, unknown>, responseId: string): Promise<Interaction>;
     waitForResult(options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<Record<string, unknown>>;
   };
+  export const createArtifactClient: typeof createSurfaceClient;
 }
+
+/** Compatibility declarations for sources mounted before the Surface rename. */
+declare module 'virtual:artifact-preview' { export * from 'virtual:surface-preview'; }
+declare module 'virtual:artifact-client' { export * from 'virtual:surface-client'; }

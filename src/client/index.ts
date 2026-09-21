@@ -1,18 +1,18 @@
-/** Browser-only client. Copy via `artifact init`; no server credentials belong here. */
+/** Browser-only client. Copy via `surface init`; no server credentials belong here. */
 export type Interaction = {
   id: string; title: string; closed: boolean; schema: Record<string, unknown>;
   response?: { id: string; status: 'delivering' | 'accepted' | 'failed' | 'unknown'; error?: string; data: Record<string, unknown> };
   result?: Record<string, unknown>;
 };
-export function createArtifactClient(options?: { api: string; requestId: string; token: string }) {
+export function createSurfaceClient(options?: { api: string; requestId: string; token: string }) {
   const page = new URL(location.href);
   const fragment = new URLSearchParams(page.hash.slice(1));
   const api = options?.api ?? fragment.get('api') ?? location.origin;
   const requestId = options?.requestId ?? page.searchParams.get('request');
   const token = options?.token ?? fragment.get('token');
-  if (!requestId || !token) throw new Error('Open the interaction preview URL returned by Artifact.');
+  if (!requestId || !token) throw new Error('Open the interaction preview URL returned by Surface.');
   const endpoint = new URL(api);
-  if (endpoint.protocol !== 'http:' || endpoint.hostname !== '127.0.0.1' || endpoint.username || endpoint.password) throw new Error('Expected a local Artifact API.');
+  if (endpoint.protocol !== 'http:' || endpoint.hostname !== '127.0.0.1' || endpoint.username || endpoint.password) throw new Error('Expected a local Surface API.');
   const context = document.getElementById('artifact-preview-context');
   const scopedBase = context ? JSON.parse(context.textContent ?? '{}').interactionBase : undefined;
   if (scopedBase !== undefined && (typeof scopedBase !== 'string' || !/^\/api\/n\/[a-z0-9-]+\/[a-z0-9-]+\/requests\/$/.test(scopedBase))) throw new Error('Invalid preview interaction scope.');
@@ -24,7 +24,7 @@ export function createArtifactClient(options?: { api: string; requestId: string;
       body: data === undefined ? undefined : JSON.stringify(data), signal: AbortSignal.timeout(90_000),
     });
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error ?? `Artifact returned HTTP ${response.status}.`);
+    if (!response.ok) throw new Error(result.error ?? `Surface returned HTTP ${response.status}.`);
     return result;
   }
   return {
@@ -45,3 +45,6 @@ export function createArtifactClient(options?: { api: string; requestId: string;
     },
   };
 }
+
+/** Compatibility export for existing mounted sources. New code uses createSurfaceClient. */
+export const createArtifactClient = createSurfaceClient;

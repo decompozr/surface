@@ -3,8 +3,8 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, realpathSync, rmSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startSingleton } from './server.ts';
-const directory = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-soak-'))), stateDir = join(directory, 'state');
-const evidence = join(import.meta.dir, '../../.decompozr/artifact/soak-proof'); mkdirSync(evidence, { recursive: true });
+const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-soak-'))), stateDir = join(directory, 'state');
+const evidence = join(import.meta.dir, '../../.decompozr/surface/soak-proof'); mkdirSync(evidence, { recursive: true });
 const probe = process.argv.includes('--probe');
 const samples: Record<string, any>[] = [];
 const started = performance.now();
@@ -16,7 +16,7 @@ function source(name: string) {
   writeFileSync(join(root, 'artifact.json'), JSON.stringify({ framework: 'svelte', components: 'src', prebundle: ['lodash'] }));
   writeFileSync(join(root, 'src/Panel.svelte'), component(name)); return root;
 }
-function component(name: string) { return `<script>import lodash from 'lodash';import {previewState} from 'virtual:artifact-preview';const count=previewState('count',0);</script><h1>${name}</h1><p>{lodash.VERSION}</p><button onclick={()=> $count++}>Count {$count}</button>`; }
+function component(name: string) { return `<script>import lodash from 'lodash';import {previewState} from 'virtual:surface-preview';const count=previewState('count',0);</script><h1>${name}</h1><p>{lodash.VERSION}</p><button onclick={()=> $count++}>Count {$count}</button>`; }
 async function cli(...args: string[]) {
   const child = Bun.spawn([process.execPath, join(import.meta.dir, 'cli.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
   const [out, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);

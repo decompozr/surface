@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { startServer } from '../src/server/index.ts';
 
 test('real page submits selected data, disables repeats, and displays a separately published result', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'artifact-browser-'));
+  const dir = mkdtempSync(join(tmpdir(), 'surface-browser-'));
   let message = '';
   const app = startServer({ stateDir: dir, cliPath: '/cli', uiDir: join(process.cwd(), 'examples/svelte-feedback/dist'), port: 0,
     adapter: { inspect: async () => ({ status: 'idle' }), deliver: async (_binding, input) => { message = input; return { mode: 'start', turnId: 'test-turn' }; } },
@@ -30,11 +30,11 @@ test('real page submits selected data, disables repeats, and displays a separate
     // Explicit test fixture publication; this is not a live agent proof.
     app.service.result(request.id, { message: 'Option B is ready at 180 px.', option: 'B', width: 180 });
     await page.getByRole('heading', { name: 'Option B is ready at 180 px.' }).waitFor();
-    mkdirSync('.decompozr/artifact/screenshots', { recursive: true });
-    await page.screenshot({ path: '.decompozr/artifact/screenshots/desktop-fixture.png', fullPage: true });
+    mkdirSync('.decompozr/surface/screenshots', { recursive: true });
+    await page.screenshot({ path: '.decompozr/surface/screenshots/desktop-fixture.png', fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: '.decompozr/artifact/screenshots/mobile-fixture.png', fullPage: true });
+    await page.screenshot({ path: '.decompozr/surface/screenshots/mobile-fixture.png', fullPage: true });
     expect(errors).toEqual([]);
   } finally { await browser.close(); await app.stop(); rmSync(dir, { recursive: true, force: true }); }
 }, 20_000);

@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "artifact-sveltekit-foundation-experiment",
+      "name": "surface-sveltekit-foundation-experiment",
       "dependencies": {
         "@sveltejs/adapter-node": "5.5.7",
         "@sveltejs/kit": "2.70.3",

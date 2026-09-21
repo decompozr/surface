@@ -7,8 +7,8 @@ import type { AgentAdapter } from '../../src/adapters/codex.ts';
 import { startKitFoundation } from './server.ts';
 
 // Automated fixture inputs only. This does not contact a live model session.
-const directory = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-kit-'))), stateDir = join(directory, 'state');
-const evidenceDir = join(import.meta.dir, '../../.decompozr/artifact/sveltekit-proof');
+const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-kit-'))), stateDir = join(directory, 'state');
+const evidenceDir = join(import.meta.dir, '../../.decompozr/surface/sveltekit-proof');
 mkdirSync(evidenceDir, { recursive: true });
 const socketPath = join(directory, 'fixture.sock');
 const socket = createServer(connection => connection.end());

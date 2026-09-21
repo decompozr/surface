@@ -7,10 +7,12 @@ import { timingSafeEqual } from 'node:crypto';
 // This runner only starts an installed host. Its private socket owns lifecycle control.
 const [home, release, host, portValue] = process.argv.slice(2);
 if (!home || !release || !['singleton', 'sveltekit'].includes(host!)) throw new Error('Invalid owned runner arguments.');
-const secret = process.env.ARTIFACT_RUNNER_SECRET;
-const nonce = process.env.ARTIFACT_RUNNER_NONCE;
+const secret = process.env.SURFACE_RUNNER_SECRET ?? process.env.ARTIFACT_RUNNER_SECRET;
+const nonce = process.env.SURFACE_RUNNER_NONCE ?? process.env.ARTIFACT_RUNNER_NONCE;
 if (!secret || !nonce) throw new Error('Missing launch identity.');
+delete process.env.SURFACE_RUNNER_SECRET;
 delete process.env.ARTIFACT_RUNNER_SECRET;
+delete process.env.SURFACE_RUNNER_NONCE;
 delete process.env.ARTIFACT_RUNNER_NONCE;
 const socketPath = join(home, 'run/control.sock');
 const ownerPath = join(home, 'run/owner.json');

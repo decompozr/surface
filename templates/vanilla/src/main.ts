@@ -1,4 +1,4 @@
-import { createArtifactClient } from './artifact-client';
+import { createSurfaceClient } from './surface-client';
 const form = document.querySelector<HTMLFormElement>('form')!;
 const button = document.querySelector<HTMLButtonElement>('button')!;
 const status = document.querySelector<HTMLElement>('[role=status]')!;
@@ -8,7 +8,7 @@ form.addEventListener('submit', async event => {
   event.preventDefault();
   button.disabled = true;
   try {
-    const client = createArtifactClient();
+    const client = createSurfaceClient();
     const current = await client.read();
     if (!current.response) {
       const message = String(new FormData(form).get('message'));
@@ -23,7 +23,7 @@ form.addEventListener('submit', async event => {
 if (new URL(location.href).searchParams.has('request')) {
   void (async () => {
     try {
-      const client = createArtifactClient();
+      const client = createSurfaceClient();
       const current = await client.read();
       if (current.response) {
         button.disabled = true;
@@ -36,4 +36,4 @@ if (new URL(location.href).searchParams.has('request')) {
       }
     } catch (error) { status.textContent = error instanceof Error ? error.message : String(error); }
   })();
-} else { status.textContent = 'Preview only. Open an Artifact interaction link to send data.'; }
+} else { status.textContent = 'Preview only. Open a Surface interaction link to send data.'; }

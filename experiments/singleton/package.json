@@ -1,5 +1,5 @@
 {
-  "name": "artifact-singleton-experiment",
+  "name": "surface-singleton-experiment",
   "private": true,
   "type": "module",
   "scripts": { "check": "tsc --noEmit", "serve": "bun cli.ts serve", "verify": "bun verify.ts" },

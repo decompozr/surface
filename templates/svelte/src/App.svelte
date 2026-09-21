@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { createArtifactClient } from './artifact-client';
+  import { createSurfaceClient } from './surface-client';
   let message = $state('');
   let status = $state('Ready for your input.');
   let result = $state('');
@@ -9,13 +9,13 @@
   const responseId = crypto.randomUUID();
   onMount(() => {
     if (!new URL(location.href).searchParams.has('request')) {
-      status = 'Preview only. Open an Artifact interaction link to send data.';
+      status = 'Preview only. Open a Surface interaction link to send data.';
       return;
     }
     const controller = new AbortController();
     void (async () => {
       try {
-        const client = createArtifactClient();
+        const client = createSurfaceClient();
         const current = await client.read();
         if (controller.signal.aborted) return;
         if (current.response) {
@@ -33,7 +33,7 @@
     event.preventDefault();
     busy = true;
     try {
-      const client = createArtifactClient();
+      const client = createSurfaceClient();
       const existing = await client.read();
       if (existing.response) {
         submitted = true;
@@ -52,7 +52,7 @@
 </script>
 
 <main>
-  <p class="eyebrow">ARTIFACT / LOCAL WORKSPACE</p>
+  <p class="eyebrow">SURFACE / LOCAL WORKSPACE</p>
   <h1>A page for your next idea.</h1>
   <p>Edit this Svelte component, then send a message to the agent that created your interaction.</p>
   <form onsubmit={submit}>

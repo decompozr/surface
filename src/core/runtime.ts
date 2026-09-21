@@ -80,7 +80,7 @@ export class Runtimes {
       live.origin = `http://127.0.0.1:${port}`;
       const command = definition.command.map(arg => arg.replaceAll('{port}', String(port)));
       const child = spawn(process.execPath, [fileURLToPath(new URL('../runtime/supervisor.ts', import.meta.url)), JSON.stringify(command)], {
-        cwd: definition.directory, env: { ...process.env, ARTIFACT_PORT: String(port), HOST: '127.0.0.1' },
+        cwd: definition.directory, env: { ...process.env, SURFACE_PORT: String(port), ARTIFACT_PORT: String(port), HOST: '127.0.0.1' },
         detached: true, stdio: ['pipe', 'pipe', 'pipe'],
       });
       live.process = child;

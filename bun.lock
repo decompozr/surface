@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@decompozr/artifact",
+      "name": "@decompozr/surface",
       "dependencies": {
         "ajv": "8.20.0",
         "ws": "8.21.3",

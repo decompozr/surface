@@ -20,7 +20,7 @@ export function startServer(options: {
   const lockPath = join(stateDir, 'server.lock');
   let lock: number;
   try { lock = openSync(lockPath, 'wx', 0o600); }
-  catch { throw new Error(`Artifact state is already locked: ${lockPath}. Inspect the owning process before removing a stale lock.`); }
+  catch { throw new Error(`Surface state is already locked: ${lockPath}. Inspect the owning process before removing a stale lock.`); }
   writeFileSync(lock, String(process.pid));
   const token = randomBytes(32).toString('hex');
   let stopped = false;
@@ -75,7 +75,7 @@ export function startServer(options: {
             if (req.headers.get('content-type')?.split(';')[0] !== 'application/json') throw new InputError('Expected application/json.', 415);
             try { return await req.json(); } catch { throw new InputError('Invalid JSON body.'); }
           };
-          if (url.pathname === '/api/health' && req.method === 'GET') return json({ service: 'artifact', status: 'ready' });
+          if (url.pathname === '/api/health' && req.method === 'GET') return json({ service: 'surface', status: 'ready' });
           if (url.pathname === '/api/runtimes') {
             requireAdmin();
             if (req.method === 'GET') return json(runtimes.list());

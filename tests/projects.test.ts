@@ -9,7 +9,7 @@ const directories: string[] = [];
 afterEach(() => { for (const path of directories.splice(0)) rmSync(path, { recursive: true, force: true }); });
 function assertOK(outcome: ProjectOutcome): any { expect(outcome).toMatchObject({ version: 1, ok: true, status: 'ok' }); return outcome.data; }
 function fixture() {
-  const directory = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-project-core-'))); directories.push(directory);
+  const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-project-core-'))); directories.push(directory);
   const root = join(directory, 'project'), stateDir = join(directory, 'state'), source = join(root, 'artifacts/panel');
   mkdirSync(source, { recursive: true });
   writeFileSync(join(root, 'README.md'), 'User-owned project\n');

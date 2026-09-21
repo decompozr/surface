@@ -240,14 +240,20 @@ export async function startSingleton(options: { stateDir: string; port?: number;
     return { record, path };
   }
   const plugin: Plugin = {
-    name: 'artifact-singleton-components',
-    resolveId(id) { if (id === 'virtual:artifact-client') return '\0' + id; if (id === 'virtual:artifact-preview') return '\0' + id; if (id.startsWith(virtualPrefix)) { parseVirtual(id); return '\0' + id; } },
+    name: 'surface-singleton-components',
+    resolveId(id) {
+      // Both names resolve to one module identity so compatibility imports share preview state.
+      if (id === 'virtual:artifact-client') return '\0virtual:surface-client';
+      if (id === 'virtual:artifact-preview') return '\0virtual:surface-preview';
+      if (id === 'virtual:surface-client' || id === 'virtual:surface-preview') return '\0' + id;
+      if (id.startsWith(virtualPrefix)) { parseVirtual(id); return '\0' + id; }
+    },
     load(id) {
-      if (id === '\0virtual:artifact-client') return new Bun.Transpiler({ loader: 'ts' }).transformSync(readFileSync(join(experimentRoot, '../../src/client/index.ts'), 'utf8'));
-      if (id === '\0virtual:artifact-preview') return readFileSync(join(experimentRoot, 'preview-client.js'), 'utf8');
+      if (id === '\0virtual:surface-client') return new Bun.Transpiler({ loader: 'ts' }).transformSync(readFileSync(join(experimentRoot, '../../src/client/index.ts'), 'utf8'));
+      if (id === '\0virtual:surface-preview') return readFileSync(join(experimentRoot, 'preview-client.js'), 'utf8');
       if (!id.startsWith('\0' + virtualPrefix)) return;
       const { record, path } = parseVirtual(id);
-      return `import { mount } from 'svelte'; import { previewProps } from 'virtual:artifact-preview'; import Component from ${JSON.stringify(`/mounts/${record.namespace}/${record.name}/${path}`)}; mount(Component, {target:document.getElementById('app'), props:previewProps()});`;
+      return `import { mount } from 'svelte'; import { previewProps } from 'virtual:surface-preview'; import Component from ${JSON.stringify(`/mounts/${record.namespace}/${record.name}/${path}`)}; mount(Component, {target:document.getElementById('app'), props:previewProps()});`;
     },
   };
   const http = createHTTPServer((req, res) => { void handle(req, res).catch(error => { if (!res.headersSent) json(res, { error: error instanceof Error ? error.message : String(error) }, error instanceof InputError ? error.status : 500); else res.end(); }); });
@@ -285,7 +291,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       const requestId = url.searchParams.get('request');
       if (requestId) interactions.checkPage(requestId, record.namespace, record.name, component ?? '');
       const context = JSON.stringify({ interactionBase: `/api/n/${record.namespace}/${record.name}/requests/`, namespace: record.namespace, name: record.name, source: record.source, component, props: component ? record.props[component] ?? {} : {} }).replaceAll('<', '\\u003c');
-      const client = `<script id="artifact-preview-context" type="application/json">${context}</script><script type="module" src="/@id/__x00__virtual:artifact-preview"></script>`;
+      const client = `<script id="artifact-preview-context" type="application/json">${context}</script><script type="module" src="/@id/__x00__virtual:surface-preview"></script>`;
       const html = component
         ? `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHTML(component)}</title></head><body>${client}<div id="app"></div><script type="module" src="/@id/__x00__${virtualPrefix}${record.namespace}/${record.name}/${component.split('/').map(encodeURIComponent).join('/')}.entry.js"></script></body></html>`
         : `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHTML(record.namespace + '/' + record.name)}</title></head><body>${client}<h1>${escapeHTML(record.namespace + '/' + record.name)}</h1><ul data-artifact-catalog>${record.components.map(path => `<li><a href="?component=${encodeURIComponent(path)}">${escapeHTML(path)}</a></li>`).join('')}</ul><script type="module" src="/@vite/client"></script></body></html>`;

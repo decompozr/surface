@@ -8,10 +8,10 @@ import { startSingleton } from '../singleton/server.ts';
 import { DeliveryError, type AgentAdapter, type Binding } from '../../src/adapters/codex.ts';
 
 const root = resolve(import.meta.dir, '../..');
-const temporary = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-mcp-')));
+const temporary = realpathSync(mkdtempSync(join(tmpdir(), 'surface-mcp-')));
 const stateDir = join(temporary, 'state'), source = join(temporary, 'project', 'panel');
 const projectRoot = join(temporary, 'project'), badSource = join(temporary, 'bad');
-const proof = join(root, '.decompozr/artifact/mcp-proof'); mkdirSync(proof, { recursive: true });
+const proof = join(root, '.decompozr/surface/mcp-proof'); mkdirSync(proof, { recursive: true });
 for (const path of [source, badSource]) {
   mkdirSync(join(path, 'src'), { recursive: true });
   writeFileSync(join(path, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies: { svelte: path === badSource ? '0.0.0' : '5.57.1' } }));
@@ -32,7 +32,7 @@ const adapter: AgentAdapter = {
 let app: Awaited<ReturnType<typeof startSingleton>> | undefined;
 const transport = new StdioClientTransport({ command: process.execPath, args: [join(import.meta.dir, 'server.ts'), '--state-dir', stateDir], cwd: root, stderr: 'pipe' });
 let stderr = ''; transport.stderr?.on('data', chunk => { stderr += chunk.toString(); });
-const client = new Client({ name: 'artifact-mcp-verifier', version: '0.1.0' });
+const client = new Client({ name: 'surface-mcp-verifier', version: '0.1.0' });
 const observations: Record<string, unknown> = {};
 const cliPath = join(root, 'experiments/singleton/cli.ts');
 async function cliCode(expectedCode: number, ...args: string[]) {
@@ -42,7 +42,7 @@ async function cliCode(expectedCode: number, ...args: string[]) {
 }
 const cli = (...args: string[]) => cliCode(0, ...args);
 async function tool(name: string, args: Record<string, unknown> = {}, error = false) {
-  const result = await client.callTool({ name: `artifact_${name}`, arguments: args }, { timeout: 150_000 });
+  const result = await client.callTool({ name: `surface_${name}`, arguments: args }, { timeout: 150_000 });
   assert.equal(result.isError === true, error, JSON.stringify(result));
   if (!error) assert.ok(result.structuredContent, 'Expected structured output');
   return { result, output: result.structuredContent as any };
@@ -57,6 +57,7 @@ try {
   await client.connect(transport);
   const listing = await client.listTools();
   assert.equal(listing.tools.length, 19);
+  assert.ok(listing.tools.every(tool => tool.name.startsWith('surface_')), 'Only canonical Surface MCP names may be advertised.');
   assert.ok(listing.tools.every(tool => tool.inputSchema && tool.outputSchema));
   observations.tools = listing.tools.map(tool => tool.name);
   const invalid = await tool('namespace', { name: '../invalid' }, true);

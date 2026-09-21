@@ -6,7 +6,7 @@ const { values, positionals } = parseArgs({ allowPositionals: true, options: {
 } });
 try {
   const [command] = positionals;
-  if (values.help || !command) console.log(`Artifact project-management experiment
+  if (values.help || !command) console.log(`Surface project-management experiment
 init --project ROOT [--name LABEL]
 add --project ROOT --source RELATIVE_FOLDER --name LABEL
 list --project ROOT

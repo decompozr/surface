@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "artifact-svelte-feedback",
+      "name": "surface-svelte-feedback",
       "dependencies": {
         "svelte": "5.57.1",
       },

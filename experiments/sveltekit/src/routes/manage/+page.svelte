@@ -1,12 +1,12 @@
 <script lang="ts">
   let { data } = $props();
 </script>
-<svelte:head><title>Artifact · SvelteKit foundation</title></svelte:head>
+<svelte:head><title>Surface · SvelteKit foundation</title></svelte:head>
 <main>
-  <p class="eyebrow">Artifact experiment</p>
+  <p class="eyebrow">Surface experiment</p>
   <h1>SvelteKit singleton foundation</h1>
   <p>One local host. Project-owned Svelte components.</p>
-  <p>Mount and interaction changes use the authenticated Artifact CLI. This view contains no management credentials.</p>
+  <p>Mount and interaction changes use the authenticated Surface CLI. This view contains no management credentials.</p>
   <section aria-label="Mounted components">
     {#each data.mounts as mount}
       <article data-testid="mount">

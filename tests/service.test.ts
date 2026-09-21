@@ -10,7 +10,7 @@ const directories: string[] = [];
 afterEach(() => { for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true }); });
 const payload = { responseId: 'one-response', data: { option: 'B', width: 160, comment: 'Please use this' } };
 function fixture(deliver?: AgentAdapter['deliver']) {
-  const dir = mkdtempSync(join(tmpdir(), 'artifact-service-')); directories.push(dir);
+  const dir = mkdtempSync(join(tmpdir(), 'surface-service-')); directories.push(dir);
   const file = join(dir, 'state.json');
   const store = new Store(file);
   const binding: Binding = { id: 'bound-session', threadId: 'exact-thread', projectRoot: realpathSync(dir), socketPath: '/test.sock' };
@@ -19,7 +19,7 @@ function fixture(deliver?: AgentAdapter['deliver']) {
   const service = new Service(store, {
     inspect: async () => ({ status: 'idle' }),
     deliver: async (...args) => { calls.push(args[0]); return deliver ? deliver(...args) : { mode: 'start', turnId: 'one-turn' }; },
-  }, '/path/to/artifact/src/cli/index.ts');
+  }, '/path/to/surface/src/cli/index.ts');
   const request = service.create({ bindingId: binding.id, title: 'Choose an option' });
   return { service, store, request, calls, file };
 }

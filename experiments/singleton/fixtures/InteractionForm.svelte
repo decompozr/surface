@@ -1,8 +1,8 @@
 <script lang="ts">
 import { onMount } from 'svelte';
-import { createArtifactClient } from 'virtual:artifact-client';
-import { previewState } from 'virtual:artifact-preview';
-const client = createArtifactClient();
+import { createSurfaceClient } from 'virtual:surface-client';
+import { previewState } from 'virtual:surface-preview';
+const client = createSurfaceClient();
 const draft = previewState('draft', '', 1);
 const responseId = previewState('response-id', crypto.randomUUID(), 1);
 let interaction = $state<any>(null);

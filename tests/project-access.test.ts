@@ -10,7 +10,7 @@ afterEach(() => {
   for (const server of servers.splice(0)) server.stop(true);
   for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true });
 });
-function temporary() { const directory = mkdtempSync(join(tmpdir(), 'artifact-access-')); directories.push(directory); return directory; }
+function temporary() { const directory = mkdtempSync(join(tmpdir(), 'surface-access-')); directories.push(directory); return directory; }
 function fixture(handler: (request: Request) => Response | Promise<Response>) {
   const server = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch: handler }); servers.push(server); return server;
 }

@@ -3,9 +3,9 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, realpathSync, lsta
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startSingleton } from './server.ts';
-const directory = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-singleton-proof-')));
+const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-singleton-proof-')));
 const stateDir = join(directory, 'state');
-const evidenceDir = join(import.meta.dir, '../../.decompozr/artifact/singleton-proof');
+const evidenceDir = join(import.meta.dir, '../../.decompozr/surface/singleton-proof');
 mkdirSync(evidenceDir, { recursive: true });
 const versions = ['4.0.2', '5.1.5'];
 function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
@@ -15,14 +15,14 @@ function makeProject(name: string, version: string) {
   writeFileSync(join(source, 'artifact.json'), JSON.stringify({ framework: 'svelte', components: 'src', props: { 'src/Counter.svelte': { label: name } } }));
   writeFileSync(join(source, 'src/Counter.svelte'), `<script lang="ts">
 import { nanoid } from 'nanoid';
-import { previewState } from 'virtual:artifact-preview';
+import { previewState } from 'virtual:surface-preview';
 import meta from 'nanoid/package.json';
 let {label}: {label:string} = $props();
 const count = previewState('counter', 0, 1);
 const draft = previewState('draft', '', 1);
 const identifier = nanoid(9);
 </script>
-<main><p>ARTIFACT / SINGLETON EXPERIMENT</p><h1>{label}</h1><p data-testid="version">nanoid {meta.version}</p><p data-testid="id">{identifier}</p><input aria-label="Draft" bind:value={$draft}/><button onclick={()=> $count++}>Count {$count}</button></main>
+<main><p>SURFACE / SINGLETON EXPERIMENT</p><h1>{label}</h1><p data-testid="version">nanoid {meta.version}</p><p data-testid="id">{identifier}</p><input aria-label="Draft" bind:value={$draft}/><button onclick={()=> $count++}>Count {$count}</button></main>
 <style>:global(body){font-family:system-ui;background:#f7f6f0;color:#213b31;margin:0}main{max-width:640px;margin:10vh auto;padding:24px}h1{font-size:3rem}button{padding:12px 24px;background:#213b31;color:white;border:0;font:inherit}</style>`);
   return source;
 }

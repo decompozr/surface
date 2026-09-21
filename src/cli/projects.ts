@@ -8,14 +8,14 @@ export async function projectMain(args: string[], defaultStateDir: string): Prom
     'state-dir': { type: 'string' }, help: { type: 'boolean', short: 'h' },
   } });
   if (values.help) {
-    console.log(`artifact project <init|add|list|register|mount|unmount|archive|restore> --project ROOT [--artifact ID --source PATH --name LABEL] [--state-dir STATE]
+    console.log(`surface project <init|add|list|register|mount|unmount|archive|restore> --project ROOT [--artifact ID --source PATH --name LABEL] [--state-dir STATE]
 Uses an existing server. Source paths are relative to the project root.
 init accepts --name; add requires --source and --name.
 mount, unmount, archive and restore require --artifact. list and register take only --project.`);
     return;
   }
   const operation = positionals[0] as ProjectCommand['operation'];
-  if (positionals.length !== 1 || !projectOperations.includes(operation)) throw new Error('Expected one project operation. Use artifact project --help.');
+  if (positionals.length !== 1 || !projectOperations.includes(operation)) throw new Error('Expected one project operation. Use surface project --help.');
   if (!values.project) throw new Error('Missing --project.');
   const command: ProjectCommand = { operation, projectRoot: resolve(values.project) };
   if (values.artifact !== undefined) command.artifactId = values.artifact;

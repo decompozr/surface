@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { startSingleton } from '../experiments/singleton/server.ts';
 
 const endpoint = '/api/v1/projects/operations';
-function temporary() { return realpathSync(mkdtempSync(join(tmpdir(), 'artifact-project-http-'))); }
+function temporary() { return realpathSync(mkdtempSync(join(tmpdir(), 'surface-project-http-'))); }
 function source(projectRoot: string, name = 'panel', version = '5.57.1') {
   const directory = join(projectRoot, name); mkdirSync(join(directory, 'src'), { recursive: true });
   writeFileSync(join(directory, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies: { svelte: version } }));

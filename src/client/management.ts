@@ -14,7 +14,7 @@ const failure = (status: ManagementOutcome['status'], code: string, message: str
 export async function projectOperation(stateDir: string, command: ProjectCommand): Promise<ManagementOutcome> {
   let connection: unknown;
   try { connection = JSON.parse(readFileSync(join(stateDir, 'connection.json'), 'utf8')); }
-  catch { return failure('unavailable', 'connection_unavailable', 'Cannot read the Artifact connection. Start the server with this state directory.'); }
+  catch { return failure('unavailable', 'connection_unavailable', 'Cannot read the Surface connection. Start the server with this state directory.'); }
   let origin: URL;
   let token: string;
   try {

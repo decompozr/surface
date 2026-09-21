@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "artifact-singleton-experiment",
+      "name": "surface-singleton-experiment",
       "dependencies": {
         "@sveltejs/vite-plugin-svelte": "7.3.0",
         "svelte": "5.57.1",

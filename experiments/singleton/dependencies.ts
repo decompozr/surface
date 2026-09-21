@@ -31,7 +31,7 @@ export function scopedDependencies(isActive: (source: string) => boolean) {
     }
   }
   const plugin: Plugin = {
-    name: 'artifact-scoped-dependencies', enforce: 'pre',
+    name: 'surface-scoped-dependencies', enforce: 'pre',
     configureServer(value) { server = value; },
     async resolveId(id, importer) {
       if (id.startsWith('\0' + prefix)) { check(id); return id; }

@@ -9,10 +9,10 @@ const { values, positionals, tokens } = parseArgs({ args, tokens: true, allowPos
   'schema-file': { type: 'string' }, request: { type: 'string' }, data: { type: 'string' }, 'response-id': { type: 'string' },
   'state-dir': { type: 'string' }, port: { type: 'string' }, namespace: { type: 'string' }, name: { type: 'string' }, help: { type: 'boolean' },
 } });
-const stateDir = resolve(values['state-dir'] ?? join(import.meta.dir, '../../.decompozr/artifact/singleton'));
+const stateDir = resolve(values['state-dir'] ?? join(import.meta.dir, '../../.decompozr/surface/singleton'));
 const [command, argument] = positionals;
 try {
-  if (values.help || !command) console.log(`Artifact singleton experiment (one HTTP server / one Vite)
+  if (values.help || !command) console.log(`Surface singleton experiment (one HTTP server / one Vite)
 serve [--port 4318]
 namespace NAME
 mount /source/folder --namespace NAME --name NAME [--project /project/root]

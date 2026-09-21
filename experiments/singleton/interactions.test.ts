@@ -11,7 +11,7 @@ function deferred<T>() {
   const promise = new Promise<T>(done => { resolve = done; });
   return { promise, resolve };
 }
-function temporary() { return realpathSync(mkdtempSync(join(tmpdir(), 'artifact-regression-'))); }
+function temporary() { return realpathSync(mkdtempSync(join(tmpdir(), 'surface-regression-'))); }
 
 test('shutdown keeps singleton lock until admitted binding inspection persists', async () => {
   const stateDir = temporary(), gate = deferred<{ status: string }>(), entered = deferred<void>();

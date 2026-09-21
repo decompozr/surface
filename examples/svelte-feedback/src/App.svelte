@@ -24,7 +24,7 @@
       body: payload, signal: AbortSignal.timeout(90_000),
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error ?? 'Unable to reach Artifact.');
+    if (!response.ok) throw new Error(data.error ?? 'Unable to reach Surface.');
     return data as RecordView;
   }
   onMount(() => {
@@ -58,17 +58,17 @@
   }
 </script>
 
-<svelte:head><title>{record?.title ?? 'Feedback'} · Artifact</title></svelte:head>
+<svelte:head><title>{record?.title ?? 'Feedback'} · Surface</title></svelte:head>
 
 <main>
-  <header><a class="wordmark" href="/">artifact<span> / </span>feedback</a><span class="local">LOCAL WORKSPACE</span></header>
+  <header><a class="wordmark" href="/">surface<span> / </span>feedback</a><span class="local">LOCAL WORKSPACE</span></header>
   <section class="intro">
     <p class="eyebrow">A conversation you can interact with</p>
     <h1>{record?.title ?? 'Shape the next step.'}</h1>
     <p>Choose a direction. Adjust the details. Send it back to the agent working with you.</p>
   </section>
   {#if !ready && !error}
-    <div class="notice">Open the private preview link returned by <code>artifact request</code> to connect this page to an agent session.</div>
+    <div class="notice">Open the private preview link returned by <code>surface request</code> to connect this page to an agent session.</div>
   {/if}
   <div class="workspace">
     <form onsubmit={submit}>
@@ -114,7 +114,7 @@
       </div>
     </aside>
   </div>
-  <footer>Built with Svelte. Connected through Artifact.</footer>
+  <footer>Built with Svelte. Connected through Surface.</footer>
 </main>
 
 <style>

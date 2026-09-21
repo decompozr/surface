@@ -1,11 +1,10 @@
 {
-  "name": "@decompozr/artifact",
+  "name": "@decompozr/surface",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "packageManager": "bun@1.4.0",
   "scripts": {
-    "artifact": "bun src/cli/index.ts",
     "dev": "bun src/cli/index.ts serve",
     "test": "bun test tests",
     "test:singleton": "bun test experiments/singleton/interactions.test.ts",
@@ -22,7 +21,8 @@
     "verify:sveltekit": "bun experiments/sveltekit/verify.ts",
     "verify:projects": "bun experiments/projects/verify.ts",
     "verify:installation": "bun experiments/lifecycle/verify.ts",
-    "verify:project-access": "bun experiments/mcp/verify-projects.ts"
+    "verify:project-access": "bun experiments/mcp/verify-projects.ts",
+    "surface": "bun src/cli/index.ts"
   },
   "dependencies": {
     "ajv": "8.20.0",
@@ -35,7 +35,7 @@
     "typescript": "6.0.3"
   },
   "bin": {
-    "artifact": "./src/cli/index.ts"
+    "surface": "./src/cli/index.ts"
   },
   "exports": {
     "./client": "./src/client/index.ts"

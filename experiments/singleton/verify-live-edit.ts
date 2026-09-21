@@ -8,10 +8,10 @@ import { CodexRpc } from '../../src/adapters/rpc.ts';
 const { values } = parseArgs({ options: { live: { type: 'boolean' }, project: { type: 'string' }, thread: { type: 'string' }, socket: { type: 'string' } } });
 if (!values.live || !values.project || !values.thread || !values.socket) throw new Error('Explicit live gate: --live --project CANONICAL_PROJECT --thread EXISTING_THREAD --socket EXISTING_SOCKET. This sends one authorized source-edit request to that exact session.');
 const project = realpathSync(resolve(values.project)), threadId = values.thread, socketPath = resolve(values.socket);
-const evidence = join(import.meta.dir, '../../.decompozr/artifact/live-source-edit');
+const evidence = join(import.meta.dir, '../../.decompozr/surface/live-source-edit');
 mkdirSync(evidence, { recursive: true });
 if (existsSync(join(evidence, 'request.json'))) throw new Error('Existing request receipt: reconcile it before another live invocation.');
-const fixture = join(project, '.decompozr/artifact/live-edit-proof'), source = join(fixture, 'source'), neighborSource = join(fixture, 'neighbor');
+const fixture = join(project, '.decompozr/surface/live-edit-proof'), source = join(fixture, 'source'), neighborSource = join(fixture, 'neighbor');
 const stateDir = join(evidence, 'state'), componentPath = join(source, 'src/Layout.svelte');
 const rpc = await CodexRpc.connect(socketPath);
 let app: Awaited<ReturnType<typeof startSingleton>> | undefined, browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
@@ -28,11 +28,11 @@ try {
   for (const folder of [source, neighborSource]) { mkdirSync(join(folder, 'src'), { recursive: true }); writeFileSync(join(folder, 'package.json'), JSON.stringify({ name: folder === source ? 'live-edit-source' : 'live-edit-neighbor', private: true, type: 'module', dependencies: { svelte: '5.57.1' } })); }
   const initial = `<script>
 import { onMount } from 'svelte';
-import { previewState } from 'virtual:artifact-preview';
-import { createArtifactClient } from 'virtual:artifact-client';
+import { previewState } from 'virtual:surface-preview';
+import { createSurfaceClient } from 'virtual:surface-client';
 const draft = previewState('unrelated-draft', '', 1);
 const responseId = previewState('response-id', crypto.randomUUID(), 1);
-const client = createArtifactClient();
+const client = createSurfaceClient();
 let request = $state(null), failure = $state('');
 async function refresh(){try{request=await client.read()}catch(error){failure=String(error)}}
 async function submit(){try{request=await client.submit({columns:2,sourcePath:${JSON.stringify(componentPath)},automated:true},$responseId)}catch(error){failure=String(error)}}
@@ -41,7 +41,7 @@ onMount(()=>{void refresh();const timer=setInterval(refresh,300);return()=>clear
 <main><h1>Live agent layout edit</h1><div class="cards" data-testid="cards"><section><h2>Unrelated draft</h2><input aria-label="Keep this draft" bind:value={$draft}/></section><section><h2>Requested layout</h2><p>Ask the bound agent to change this source to two equal columns.</p><button disabled={!request||!!request.response} onclick={submit}>Request two columns</button></section></div><p data-testid="status">{request?.response?.status ?? 'pending'}</p><p data-testid="result">{request?.result?.message ?? ''}</p><p>{failure}</p></main>
 <style>:global(body){margin:0;background:#f4f5ef;color:#173e31;font:16px system-ui}main{max-width:900px;margin:40px auto;padding:24px}.cards{display:grid;grid-template-columns:1fr;gap:24px}section{padding:24px;background:white;border:1px solid #c3d0c7;border-radius:12px}input,button{font:inherit;padding:12px;max-width:100%;box-sizing:border-box}button{background:#173e31;color:white;border:0}</style>`;
   writeFileSync(componentPath, initial);
-  writeFileSync(join(neighborSource, 'src/Counter.svelte'), `<script>import {previewState} from 'virtual:artifact-preview';const count=previewState('counter',0);</script><h1>Unaffected neighbor</h1><button onclick={()=> $count++}>Count {$count}</button>`);
+  writeFileSync(join(neighborSource, 'src/Counter.svelte'), `<script>import {previewState} from 'virtual:surface-preview';const count=previewState('counter',0);</script><h1>Unaffected neighbor</h1><button onclick={()=> $count++}>Count {$count}</button>`);
   app = await startSingleton({ stateDir, port: 0 });
   await cli('namespace', 'live-edit'); await cli('namespace', 'neighbor');
   const mount = await cli('mount', source, '--project', project, '--namespace', 'live-edit', '--name', 'layout');

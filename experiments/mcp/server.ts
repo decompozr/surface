@@ -18,7 +18,7 @@ type Outcome = z.infer<typeof outputSchema>;
 
 /** Transport adapter only. State, validation, delivery and lifecycle belong to the existing singleton. */
 export function createMcpServer(stateDir: string) {
-  const server = new McpServer({ name: 'artifact-singleton-experiment', version: '0.1.0' });
+  const server = new McpServer({ name: 'surface-singleton-experiment', version: '0.1.0' });
   async function api(path: string, body?: unknown): Promise<Outcome> {
     let origin: URL, token: string;
     try {
@@ -60,28 +60,28 @@ export function createMcpServer(stateDir: string) {
       return { content: [{ type: 'text' as const, text: JSON.stringify(outcome) }], structuredContent: outcome, isError: !outcome.ok };
     });
   }
-  register('artifact_health', 'Read singleton health. Does not start a server.', {}, () => api('/api/health'), true);
-  register('artifact_namespace', 'Create a namespace in the existing singleton.', { name: slug }, input => api('/api/namespaces', input));
-  register('artifact_mount', 'Mount a source folder and prepare declared dependencies. Failed preparation is an error outcome even when the HTTP request succeeded.', {
+  register('surface_health', 'Read singleton health. Does not start a server.', {}, () => api('/api/health'), true);
+  register('surface_namespace', 'Create a namespace in the existing singleton.', { name: slug }, input => api('/api/namespaces', input));
+  register('surface_mount', 'Mount a source folder and prepare declared dependencies. Failed preparation is an error outcome even when the HTTP request succeeded.', {
     namespace: slug, name: slug, source: absolutePath, projectRoot: absolutePath.optional(),
   }, input => api('/api/mounts', input));
-  register('artifact_list', 'List mounts or interaction records; does not return request capabilities.', {
+  register('surface_list', 'List mounts or interaction records; does not return request capabilities.', {
     kind: z.enum(['mounts', 'requests']).default('mounts'),
   }, input => api(input.kind === 'mounts' ? '/api/mounts' : '/api/requests'), true);
-  register('artifact_unmount', 'Revoke a mount while preserving its source and saved interactions.', { namespace: slug, name: slug }, input => api('/api/unmount', input));
-  register('artifact_bind', 'Bind the exact existing agent conversation to its canonical project. Does not create a conversation.', {
+  register('surface_unmount', 'Revoke a mount while preserving its source and saved interactions.', { namespace: slug, name: slug }, input => api('/api/unmount', input));
+  register('surface_bind', 'Bind the exact existing agent conversation to its canonical project. Does not create a conversation.', {
     projectRoot: absolutePath, threadId: z.string().min(1).max(100), socketPath: absolutePath,
   }, input => api('/api/bindings', input));
-  register('artifact_request', 'Create an interaction for a mounted component. Returns a private preview URL containing the browser request capability; share only with the intended user.', {
+  register('surface_request', 'Create an interaction for a mounted component. Returns a private preview URL containing the browser request capability; share only with the intended user.', {
     bindingId: id, title: z.string().trim().min(1).max(200), namespace: slug, name: slug,
     component: z.string().min(1).max(1000), schema: jsonObject.optional(),
   }, input => api('/api/requests', input));
-  register('artifact_inspect', 'Read saved interaction state without its capability. Accepted delivery is not agent completion.', { requestId: id }, input => api(`/api/requests/${input.requestId}`), true);
-  register('artifact_send', 'Submit data once to an existing interaction and its exact agent session. Retain responseId for reconciliation; never retry an unknown outcome with a new ID.', {
+  register('surface_inspect', 'Read saved interaction state without its capability. Accepted delivery is not agent completion.', { requestId: id }, input => api(`/api/requests/${input.requestId}`), true);
+  register('surface_send', 'Submit data once to an existing interaction and its exact agent session. Retain responseId for reconciliation; never retry an unknown outcome with a new ID.', {
     requestId: id, responseId: z.string().min(1).max(100), data: jsonObject,
   }, ({ requestId, ...data }) => api(`/api/requests/${requestId}/responses`, data));
-  register('artifact_result', 'Publish result JSON for a submitted interaction. This is result publication, not proof of agent authorship.', { requestId: id, data: jsonObject }, input => api(`/api/requests/${input.requestId}/result`, input.data));
-  register('artifact_close', 'Close an interaction to new submissions; does not cancel an already delivered agent turn.', { requestId: id }, input => api(`/api/requests/${input.requestId}/close`, {}));
+  register('surface_result', 'Publish result JSON for a submitted interaction. This is result publication, not proof of agent authorship.', { requestId: id, data: jsonObject }, input => api(`/api/requests/${input.requestId}/result`, input.data));
+  register('surface_close', 'Close an interaction to new submissions; does not cancel an already delivered agent turn.', { requestId: id }, input => api(`/api/requests/${input.requestId}/close`, {}));
   const projectOutputSchema = z.object({
     version: z.literal(1), ok: z.boolean(), status: z.enum(['ok', 'rejected', 'failed', 'unknown', 'unavailable', 'invalid_connection']),
     data: z.unknown().optional(), error: z.object({ code: z.string(), message: z.string() }).optional(), httpStatus: z.number().optional(),
@@ -104,8 +104,8 @@ export function createMcpServer(stateDir: string) {
     restore: 'Unarchive a definition. Leaves runtime state unchanged; mount explicitly when needed.',
   };
   for (const operation of Object.keys(projectShapes) as (keyof typeof projectShapes)[]) {
-    server.registerTool(`artifact_project_${operation}`, {
-      description: `${projectDescriptions[operation]} Uses the existing Artifact server; does not start one. An unknown outcome must be inspected before retrying.`,
+    server.registerTool(`surface_project_${operation}`, {
+      description: `${projectDescriptions[operation]} Uses the existing Surface server; does not start one. An unknown outcome must be inspected before retrying.`,
       inputSchema: z.strictObject(projectShapes[operation]), outputSchema: projectOutputSchema,
       annotations: { readOnlyHint: operation === 'list', destructiveHint: operation !== 'list', openWorldHint: operation !== 'list' },
     }, async input => {
@@ -118,6 +118,6 @@ export function createMcpServer(stateDir: string) {
 
 if (import.meta.main) {
   const { values } = parseArgs({ options: { 'state-dir': { type: 'string' } } });
-  const stateDir = resolve(values['state-dir'] ?? join(import.meta.dir, '../../.decompozr/artifact/singleton'));
+  const stateDir = resolve(values['state-dir'] ?? join(import.meta.dir, '../../.decompozr/surface/singleton'));
   void serveStdio(() => createMcpServer(stateDir));
 }

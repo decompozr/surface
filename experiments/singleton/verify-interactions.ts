@@ -9,9 +9,9 @@ import type { RequestRecord } from '../../src/core/store.ts';
 import { startSingleton } from './server.ts';
 
 // No live model calls: this regression proves singleton wiring, not provider behavior.
-const directory = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-interaction-')));
+const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-interaction-')));
 const stateDir = join(directory, 'state');
-const evidenceDir = join(import.meta.dir, '../../.decompozr/artifact/singleton-interaction-proof');
+const evidenceDir = join(import.meta.dir, '../../.decompozr/surface/singleton-interaction-proof');
 mkdirSync(evidenceDir, { recursive: true });
 const socketPath = join(directory, 'fixture.sock');
 const socket = createServer(connection => connection.end());
@@ -43,7 +43,9 @@ function project(name: string) {
   const root = join(directory, name), source = join(root, 'panels');
   mkdirSync(join(source, 'src'), { recursive: true });
   writeFileSync(join(source, 'package.json'), JSON.stringify({ name, private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
-  writeFileSync(join(source, 'src/Form.svelte'), form);
+  // Existing mounted sources keep working through compatibility aliases.
+  const sourceForm = name === 'beta' ? form.replaceAll('virtual:surface-', 'virtual:artifact-').replaceAll('createSurfaceClient', 'createArtifactClient') : form;
+  writeFileSync(join(source, 'src/Form.svelte'), sourceForm);
   projects.set(`fixture-${name}`, root);
   return { root, source, component: join(source, 'src/Form.svelte') };
 }
@@ -99,7 +101,7 @@ try {
   assert(await pageA.getByRole('textbox').inputValue() === 'Preserved custom response', 'HMR lost unsent draft.');
   assert(await pageA.evaluate(() => (window as any).documentMarker) === 'original', 'HMR refreshed the document.');
   assert(deliveries.length === 0, 'Opening or editing a form delivered an unsolicited response.');
-  observed('Two namespaces render scoped custom forms; ordinary HMR preserves the unsent draft without submitting.');
+  observed('Canonical Surface imports and legacy Artifact compatibility imports both render scoped forms; ordinary HMR preserves the unsent draft without submitting.');
 
   writeFileSync(alpha.component, form + '\n<script>');
   await pageA.locator('#artifact-compiler-error').waitFor();

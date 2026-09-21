@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { startServer } from '../src/server/index.ts';
 const root = resolve(import.meta.dir, '..');
-const directory = realpathSync(mkdtempSync(join(tmpdir(), 'artifact-external-proof-')));
+const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-external-proof-')));
 const stateDir = join(directory, 'state');
 const delivered: string[] = [];
 const app = startServer({ stateDir, cliPath: join(root, 'src/cli/index.ts'), uiDir: join(root, 'examples/svelte-feedback/dist'), port: 0,
@@ -30,7 +30,7 @@ try {
     await command([process.execPath, 'install'], project);
     await command([process.execPath, 'run', 'check'], project);
     await command([process.execPath, 'run', 'build'], project);
-    console.log(`${framework}: installed, type-checked, built outside the Artifact checkout`);
+    console.log(`${framework}: installed, type-checked, built outside the Surface checkout`);
     const definition = await cli('register', '--project', project, '--directory', project, '--command-json', JSON.stringify([process.execPath, 'run', 'dev', '--', '--host', '127.0.0.1', '--port', '{port}', '--strictPort']));
     const runtime = await cli('mount', '--runtime', definition.id);
     assert(runtime.status === 'ready', JSON.stringify(runtime));
@@ -63,11 +63,11 @@ try {
       await page.getByLabel('Agent result').filter({ hasText: 'svelte round trip complete' }).waitFor();
       console.log('svelte: hot update and compile-error recovery observed in Chromium');
     }
-    mkdirSync(join(root, '.decompozr/artifact/verification'), { recursive: true });
-    await page.screenshot({ path: join(root, `.decompozr/artifact/verification/${framework}-external.png`), fullPage: true });
+    mkdirSync(join(root, '.decompozr/surface/verification'), { recursive: true });
+    await page.screenshot({ path: join(root, `.decompozr/surface/verification/${framework}-external.png`), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Mobile viewport overflows.');
-    await page.screenshot({ path: join(root, `.decompozr/artifact/verification/${framework}-mobile.png`), fullPage: true });
+    await page.screenshot({ path: join(root, `.decompozr/surface/verification/${framework}-mobile.png`), fullPage: true });
     assert(errors.length === 0, errors.join('\n'));
     const oldUrl = runtime.previewUrl;
     await cli('stop', '--runtime', runtime.id);
@@ -84,7 +84,7 @@ try {
   const runtimes = await cli('runtimes');
   assert(runtimes.length === 2 && runtimes.every((runtime: { status: string }) => runtime.status === 'ready'), 'Two runtimes did not coexist.');
   await cli('doctor');
-  writeFileSync(join(root, '.decompozr/artifact/verification/external.json'), JSON.stringify({ at: new Date().toISOString(), evidence, concurrentRuntimes: 2, liveAgent: false }, null, 2));
+  writeFileSync(join(root, '.decompozr/surface/verification/external.json'), JSON.stringify({ at: new Date().toISOString(), evidence, concurrentRuntimes: 2, liveAgent: false }, null, 2));
   console.log('PASS: two independent project runtimes; no model messages sent.');
 } finally {
   await browser.close(); await app.stop(); rmSync(directory, { recursive: true, force: true });

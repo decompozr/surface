@@ -10,9 +10,9 @@ const { values } = parseArgs({ options: { repo: { type: 'string' }, ref: { type:
 const root = resolve(import.meta.dir, '../..');
 const sourceRepo = resolve(values.repo ?? root), sourceRef = values.ref ?? 'HEAD';
 const host = (values.host ?? 'singleton') as Host;
-const temporary = realpathSync(mkdtempSync('/tmp/artifact-lifecycle-'));
+const temporary = realpathSync(mkdtempSync('/tmp/surface-lifecycle-'));
 const home = join(temporary, 'home'), fixtureRepo = join(temporary, 'repository'), project = join(temporary, 'project');
-const proof = join(root, '.decompozr/artifact/lifecycle-proof', host); mkdirSync(proof, { recursive: true });
+const proof = join(root, '.decompozr/surface/lifecycle-proof', host); mkdirSync(proof, { recursive: true });
 const observations: Record<string, unknown> = { host, fixtureOnly: true };
 const retainedRequestId = crypto.randomUUID();
 const ownedPids = new Set<number>();
@@ -28,7 +28,7 @@ async function cmd(args: string[], cwd?: string) {
 }
 const git = (...args: string[]) => cmd(['git', '-C', fixtureRepo, ...args]);
 async function commit(message: string, empty = false) {
-  await git('-c', 'user.name=Artifact Experiment', '-c', 'user.email=artifact-fixture@example.invalid', 'commit', ...(empty ? ['--allow-empty'] : []), '-m', message);
+  await git('-c', 'user.name=Surface Experiment', '-c', 'user.email=surface-fixture@example.invalid', 'commit', ...(empty ? ['--allow-empty'] : []), '-m', message);
   return git('rev-parse', 'HEAD');
 }
 async function api(path: string, data?: unknown) {
@@ -56,13 +56,13 @@ try {
   await git('init', '-q'); await git('add', '.');
   const revisionA = await commit(`Clean fixture snapshot of ${sourceCommit}`);
   const revisionB = await commit('Mechanical release-transition fixture; no source/schema change', true);
-  writeFileSync(join(fixtureRepo, 'package.json'), readFileSync(join(fixtureRepo, 'package.json'), 'utf8').replace('"ajv": "8.20.0"', '"ajv": "0.0.0-artifact-missing"'));
+  writeFileSync(join(fixtureRepo, 'package.json'), readFileSync(join(fixtureRepo, 'package.json'), 'utf8').replace('"ajv": "8.20.0"', '"ajv": "0.0.0-surface-missing"'));
   await git('add', 'package.json'); const revisionBad = await commit('Deliberate manifest/lock mismatch');
   observations.sourceCommit = sourceCommit;
   observations.revisions = { revisionA, revisionB, revisionBad, rollbackBoundary: 'two real Git revisions with identical source; mechanical rollback only' };
 
   writeFileSync(join(project, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
-  writeFileSync(join(project, 'src/Panel.svelte'), '<h1>Installed Artifact fixture</h1>');
+  writeFileSync(join(project, 'src/Panel.svelte'), '<h1>Installed Surface fixture</h1>');
   const installStart = performance.now();
   const firstRelease = await installation.install(fixtureRepo, revisionA, host);
   observations.initialInstallAndBuildMs = Math.round(performance.now() - installStart);
@@ -92,12 +92,12 @@ try {
     await installedClient.connect(installedTransport);
     const installedTools = (await installedClient.listTools()).tools;
     assert.equal(installedTools.length, 19);
-    assert.deepEqual(installedTools.filter(tool => tool.name.startsWith('artifact_project_')).map(tool => tool.name).sort(), ['add', 'archive', 'init', 'list', 'mount', 'register', 'restore', 'unmount'].map(operation => `artifact_project_${operation}`));
-    const installedHealth = await installedClient.callTool({ name: 'artifact_health', arguments: {} });
+    assert.deepEqual(installedTools.filter(tool => tool.name.startsWith('surface_project_')).map(tool => tool.name).sort(), ['add', 'archive', 'init', 'list', 'mount', 'register', 'restore', 'unmount'].map(operation => `surface_project_${operation}`));
+    const installedHealth = await installedClient.callTool({ name: 'surface_health', arguments: {} });
     assert.equal(installedHealth.structuredContent.data.instanceId, first.instanceId);
-    const requests = await installedClient.callTool({ name: 'artifact_list', arguments: { kind: 'requests' } });
+    const requests = await installedClient.callTool({ name: 'surface_list', arguments: { kind: 'requests' } });
     assert.equal(requests.structuredContent.data.length, 1);
-    const inspected = await installedClient.callTool({ name: 'artifact_inspect', arguments: { requestId: retainedRequestId } });
+    const inspected = await installedClient.callTool({ name: 'surface_inspect', arguments: { requestId: retainedRequestId } });
     assert.equal(inspected.structuredContent.data.result.message, 'retained-result-fixture');
     await installedClient.close(); mcpClient = undefined;
     observations.installedMcpUsesSameHost = true;
@@ -111,7 +111,7 @@ try {
   const browserPage = await browser.newPage();
   const pageErrors: string[] = []; browserPage.on('pageerror', error => pageErrors.push(error.message));
   await browserPage.goto(preview);
-  await browserPage.getByRole('heading', { name: 'Installed Artifact fixture' }).waitFor();
+  await browserPage.getByRole('heading', { name: 'Installed Surface fixture' }).waitFor();
   await browserPage.screenshot({ path: join(proof, 'installed-component.png') });
   if (host === 'sveltekit') {
     await browserPage.goto(`${first.origin}/manage`);
