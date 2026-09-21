@@ -8,6 +8,11 @@ export type Host = 'singleton' | 'sveltekit';
 type Release = { version: 1; release: string; commit: string; host: Host; bun: string; installedAt: string };
 type Owner = { version: 1; release: string; commit: string; host: Host; pid: number; nonce: string; secret: string; instanceId: string; origin: string };
 const read = <T>(path: string): T => JSON.parse(readFileSync(path, 'utf8'));
+function requireBun(directory: string, prepared?: Release) {
+  const pkg = read<{ packageManager?: string }>(join(directory, 'package.json'));
+  if (pkg.packageManager !== `bun@${Bun.version}`) throw new Error(`Release requires ${pkg.packageManager}; running bun@${Bun.version}.`);
+  if (prepared && prepared.bun !== Bun.version) throw new Error(`Release was prepared with bun@${prepared.bun}; running bun@${Bun.version}.`);
+}
 function atomic(path: string, data: unknown) { writeFileSync(path + '.tmp', JSON.stringify(data, null, 2) + '\n', { mode: 0o600 }); renameSync(path + '.tmp', path); }
 async function command(args: string[], cwd?: string) {
   const child = Bun.spawn(args, { cwd, stdout: 'pipe', stderr: 'pipe' });
@@ -89,6 +94,7 @@ export class Installation {
       if (existsSync(directory)) {
         const manifest = read<Release>(join(directory, '.artifact-release.json'));
         if (manifest.commit !== commit || manifest.host !== host || manifest.release !== release) throw new Error('Existing release identity mismatch.');
+        requireBun(directory, manifest);
         atomic(join(this.home, 'active.json'), manifest); return manifest;
       }
       const staging = join(this.home, 'releases', `.preparing-${crypto.randomUUID()}`);
@@ -96,8 +102,7 @@ export class Installation {
       try {
         await command(['git', '-C', realpathSync(repo), 'archive', '--format=tar', `--output=${archive}`, commit]);
         await command(['tar', '-xf', archive, '-C', staging]);
-        const pkg = read<{packageManager?:string}>(join(staging, 'package.json'));
-        if (pkg.packageManager !== `bun@${Bun.version}`) throw new Error(`Release requires ${pkg.packageManager}; running bun@${Bun.version}.`);
+        requireBun(staging);
         const mcpPackages = existsSync(join(staging, 'experiments/mcp/package.json')) ? ['experiments/mcp'] : [];
         for (const folder of ['', 'experiments/singleton', ...mcpPackages, ...(host === 'sveltekit' ? ['experiments/sveltekit'] : [])]) {
           const cwd = join(staging, folder);
@@ -120,6 +125,7 @@ export class Installation {
       if (!/^[a-f0-9]{40}-(singleton|sveltekit)$/.test(release)) throw new Error('Invalid release identity.');
       const manifest = read<Release>(join(this.home, 'releases', release, '.artifact-release.json'));
       if (manifest.release !== release) throw new Error('Release manifest mismatch.');
+      requireBun(join(this.home, 'releases', release), manifest);
       atomic(join(this.home, 'active.json'), manifest); return manifest;
     });
   }
@@ -130,6 +136,7 @@ export class Installation {
       port ??= existsSync(settingsPath) ? read<{port:number}>(settingsPath).port : 0;
       if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Invalid port.');
       const release = this.selected();
+      requireBun(join(this.home, 'releases', release.release), release);
       if (join(this.home, 'run/control.sock').length > 100) throw new Error('Installation home is too long for this Unix control socket experiment.');
       const runner = join(this.home, 'run/runner.ts');
       writeFileSync(runner, readFileSync(join(import.meta.dir, 'runner.ts')), { mode: 0o600 });

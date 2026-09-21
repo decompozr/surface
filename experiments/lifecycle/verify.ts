@@ -138,6 +138,31 @@ try {
   await stopOwned();
 
   const selectedA = readFileSync(join(home, 'active.json'), 'utf8');
+  const installedPackage = join(home, 'releases', firstRelease.release, 'package.json');
+  const installedManifest = join(home, 'releases', firstRelease.release, '.artifact-release.json');
+  const packageBefore = readFileSync(installedPackage, 'utf8'), manifestBefore = readFileSync(installedManifest, 'utf8');
+  const hostLogBefore = readFileSync(join(home, 'run/host.log'), 'utf8');
+  for (const fixture of ['declared-version', 'prepared-version']) {
+    try {
+      if (fixture === 'declared-version') writeFileSync(installedPackage, JSON.stringify({ ...JSON.parse(packageBefore), packageManager: 'bun@0.0.0-fixture' }));
+      else {
+        const mismatched = JSON.stringify({ ...JSON.parse(manifestBefore), bun: '0.0.0-fixture' });
+        writeFileSync(installedManifest, mismatched); writeFileSync(join(home, 'active.json'), mismatched);
+      }
+      const selectedFixture = readFileSync(join(home, 'active.json'), 'utf8');
+      await assert.rejects(installation.install(fixtureRepo, revisionA, host), /running bun@/);
+      await assert.rejects(installation.activate(firstRelease.release), /running bun@/);
+      await assert.rejects(installation.start(), /running bun@/);
+      assert.equal(readFileSync(join(home, 'active.json'), 'utf8'), selectedFixture);
+      assert.equal(existsSync(join(home, 'run/owner.json')), false);
+      assert.equal(existsSync(join(home, 'state/server.lock')), false);
+      assert.equal(readFileSync(join(home, 'run/host.log'), 'utf8'), hostLogBefore);
+    } finally {
+      writeFileSync(installedPackage, packageBefore); writeFileSync(installedManifest, manifestBefore);
+      writeFileSync(join(home, 'active.json'), selectedA);
+    }
+  }
+  observations.cachedActivationAndLaunchEnforceBunPin = true;
   await assert.rejects(installation.install(fixtureRepo, revisionBad, host), /Command failed/);
   assert.equal(readFileSync(join(home, 'active.json'), 'utf8'), selectedA);
   assert.equal(readdirSync(join(home, 'releases')).some(name => name.startsWith('.preparing-')), false);
