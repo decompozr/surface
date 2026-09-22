@@ -2,6 +2,8 @@
 
 These are ordinary project-owned Svelte sources mounted by the development server. The repository's `artifact.project.json` registers this folder. `apps/surface` automatically registers the current checkout and mounts this artifact on startup, printing its preview URL.
 
+- `routes/+page.svelte`: introduction to Surface.
+- `routes/setup/+page.svelte`: setup and usage walkthrough.
 - `routes/counter/+page.svelte`: interactive counter and HMR-preserved draft.
 - `routes/feedback/+page.svelte`: schema-validated response and agent result display; open through an interaction request URL.
 - `feedback.schema.json`: the feedback request contract.
