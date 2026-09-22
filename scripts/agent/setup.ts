@@ -37,8 +37,9 @@ if(await run(['git','status','--porcelain']))throw new Error('Commit or preserve
 const commit=await run(['git','rev-parse','--verify',`${values.ref??'HEAD'}^{commit}`]);
 // Skills stay linked to this checkout; keep the installed source and instructions aligned.
 if(commit!==await run(['git','rev-parse','HEAD']))throw new Error('Check out the selected commit before setup so linked skills match the installed release.');
-await run([process.execPath,'install','--frozen-lockfile','--ignore-scripts']);
+for(const folder of ['', 'experiments/singleton', 'experiments/mcp', 'apps/surface'])await run([process.execPath,'install','--frozen-lockfile','--ignore-scripts'],join(root,folder));
 await run([process.execPath,'run','check']);
+await run([process.execPath,'run','check'],join(root,'apps/surface'));
 await run([process.execPath,'test','tests/release-bundle.test.ts','tests/agent-skill-link.test.ts']);
 let wasRunning=false;
 if(existsSync(launcher)) {
