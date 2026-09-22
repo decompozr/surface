@@ -4,7 +4,7 @@ This experimental release supports **Apple Silicon Macs** (`uname -m` prints `ar
 
 ## Clone and let your agent set it up
 
-You can clone this repository into a stable directory and tell your agent: “Read AGENTS.md, set up Surface, link its skill into your configured provider skills directory, and test it.” The source workflow needs Git and Bun at the exact version in `package.json`.
+You can clone this repository into a stable directory and tell your agent: “Read AGENTS.md, set up Surface, link its skill into your configured provider skills directory, and test it.” The source workflow needs Git and Bun at a compatible patch version (currently `>=1.4.0 <1.5.0`).
 
 ```sh
 git clone https://github.com/decompozr/surface.git

@@ -3,6 +3,7 @@ import { resolve, join } from 'node:path';
 import { createConnection } from 'node:net';
 import { randomBytes } from 'node:crypto';
 
+import { requireCompatibleBun } from './bun-version.ts';
 import { verifyBundle } from './bundle.ts';
 
 export type Host = 'singleton' | 'sveltekit' | 'contract' | 'surface';
@@ -11,8 +12,7 @@ type Owner = { version: 1; release: string; commit: string; host: Host; pid: num
 const read = <T>(path: string): T => JSON.parse(readFileSync(path, 'utf8'));
 function requireBun(directory: string, prepared?: Release) {
   const pkg = read<{ packageManager?: string }>(join(directory, 'package.json'));
-  if (pkg.packageManager !== `bun@${Bun.version}`) throw new Error(`Release requires ${pkg.packageManager}; running bun@${Bun.version}.`);
-  if (prepared && prepared.bun !== Bun.version) throw new Error(`Release was prepared with bun@${prepared.bun}; running bun@${Bun.version}.`);
+  requireCompatibleBun(pkg.packageManager, Bun.version, prepared?.bun);
 }
 function atomic(path: string, data: unknown) { writeFileSync(path + '.tmp', JSON.stringify(data, null, 2) + '\n', { mode: 0o600 }); renameSync(path + '.tmp', path); }
 async function command(args: string[], cwd?: string) {

@@ -3,6 +3,7 @@ import { resolve, join } from 'node:path';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { createInterface } from 'node:readline/promises';
+import { requireCompatibleBun } from '../../src/installation/bun-version.ts';
 import { installationHome } from '../../src/installation/paths.ts';
 import { inspectSkillLink, linkSkill } from './skill-link.ts';
 export async function agentSetup(args=process.argv.slice(2)) {
@@ -31,7 +32,7 @@ async function run(args:string[],cwd=root) {
   if(code)throw new Error(err+out);return out.trim();
 }
 const pkg=JSON.parse(readFileSync(join(root,'package.json'),'utf8'));
-if(pkg.packageManager!==`bun@${Bun.version}`)throw new Error(`Use ${pkg.packageManager}; current runtime is bun@${Bun.version}.`);
+requireCompatibleBun(pkg.packageManager,Bun.version);
 if(values.port!==undefined && (!Number.isInteger(Number(values.port)) || Number(values.port)<0 || Number(values.port)>65535))throw new Error('Invalid port.');
 inspectSkillLink(root,skills); // Detect conflicts before touching the service.
 const launcher=join(home,'bin/surface');
