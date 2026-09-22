@@ -12,7 +12,7 @@ import { readableMountPath } from './mount-path.ts';
 type Handler = (request: IncomingMessage, response: ServerResponse) => void;
 
 /** Integration slice: the built app and the existing component compiler share one listener. */
-export async function startSurfaceApp(options: { stateDir: string; port?: number; dataRoot?: string; adapter?: AgentAdapter; browserOrigin?: string }) {
+export async function startSurfaceApp(options: { stateDir: string; port?: number; dataRoot?: string; adapter?: AgentAdapter; browserOrigin?: string; application?: Parameters<typeof startSingleton>[0]['application']; openMountResource?: Parameters<typeof startSingleton>[0]['openMountResource'] }) {
   const port = options.port ?? 4319;
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Invalid port.');
   if (!options.stateDir) throw new Error('Specify an isolated state directory.');
@@ -31,8 +31,9 @@ export async function startSurfaceApp(options: { stateDir: string; port?: number
   let status: RuntimeStatus | undefined;
 
   const runtime = await startSingleton({
-    stateDir, port, resolveMountPath: readableMountPath, browserOrigin: options.browserOrigin, adapter: options.adapter, projectIdentity: directory.identity,
+    stateDir, port, openMountResource: options.openMountResource, resolveMountPath: readableMountPath, browserOrigin: options.browserOrigin, adapter: options.adapter, projectIdentity: directory.identity,
     async application(request, response) {
+      if (await options.application?.(request, response)) return true;
       const path = new URL(request.url!, 'http://127.0.0.1').pathname;
       if (path !== '/' && path !== '/health' && !path.startsWith('/_app/')) return false;
       (request as IncomingMessage & { surfaceRuntime?: RuntimeStatus }).surfaceRuntime = status;

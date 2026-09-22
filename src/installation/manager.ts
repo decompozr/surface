@@ -113,12 +113,12 @@ export class Installation {
         await command(['tar', '-xf', archive, '-C', staging]);
         requireBun(staging);
         const mcpPackages = existsSync(join(staging, 'experiments/mcp/package.json')) ? ['experiments/mcp'] : [];
-        for (const folder of ['', 'experiments/singleton', ...mcpPackages, ...(host !== 'singleton' ? ['experiments/sveltekit'] : [])]) {
+        for (const folder of ['', 'experiments/singleton', ...mcpPackages, ...(host === 'surface' ? ['apps/surface'] : host !== 'singleton' ? ['experiments/sveltekit'] : [])]) {
           const cwd = join(staging, folder);
           if (!existsSync(join(cwd, 'bun.lock')) && !existsSync(join(cwd, 'bun.lockb'))) throw new Error(`Missing frozen Bun lockfile: ${folder || 'root'}.`);
           await command([process.execPath, 'install', '--frozen-lockfile', '--ignore-scripts'], cwd);
         }
-        if (host !== 'singleton') await command([process.execPath, 'run', 'build'], join(staging, 'experiments/sveltekit'));
+        if (host !== 'singleton') await command([process.execPath, 'run', 'build'], join(staging, host === 'surface' ? 'apps/surface' : 'experiments/sveltekit'));
         await this.validateRelease?.(staging, join(this.home, 'state'));
         const manifest: Release = { version: 1, release, commit, host, bun: Bun.version, installedAt: new Date().toISOString() };
         atomic(join(staging, '.artifact-release.json'), manifest);
