@@ -9,10 +9,10 @@ You can clone this repository into a stable directory and tell your agent: “Re
 ```sh
 git clone https://github.com/decompozr/surface.git
 cd surface
-bun scripts/agent/setup.ts setup --skills-dir /absolute/provider/skills
+./bin/setup
 ```
 
-The same entry provides `test` and `refresh`. See [agent setup](skills/surface/references/setup.md) for provider discovery, update behavior and acceptance gates. Skills are **symlinked to the checkout, never copied**. Keep that checkout in place.
+Use `./bin/test` to verify and `./bin/refresh` after updating the checkout. Setup reuses a saved skills directory, `CODEX_HOME/skills`, or an existing `~/.codex/skills`; otherwise it asks in a terminal. Override with `--skills-dir /absolute/provider/skills`. The successful selection is saved for subsequent commands. See [agent setup](skills/surface/references/setup.md) for provider discovery, update behavior and acceptance gates. Skills are **symlinked to the checkout, never copied**. Keep that checkout in place.
 
 ## Download and install
 

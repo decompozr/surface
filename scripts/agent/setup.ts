@@ -1,13 +1,29 @@
 import { parseArgs } from 'node:util';
 import { resolve, join } from 'node:path';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { createInterface } from 'node:readline/promises';
 import { installationHome } from '../../src/installation/paths.ts';
 import { inspectSkillLink, linkSkill } from './skill-link.ts';
-const {values,positionals}=parseArgs({allowPositionals:true,options:{home:{type:'string'},'skills-dir':{type:'string'},port:{type:'string'},ref:{type:'string'},help:{type:'boolean'}}});
+export async function agentSetup(args=process.argv.slice(2)) {
+const {values,positionals}=parseArgs({args,allowPositionals:true,options:{home:{type:'string'},'skills-dir':{type:'string'},port:{type:'string'},ref:{type:'string'},help:{type:'boolean'}}});
 const mode=positionals[0];
-if(values.help){console.log('bun scripts/agent/setup.ts setup|test|refresh --skills-dir PROVIDER_SKILLS_DIRECTORY [--home PATH] [--port PORT] [--ref COMMIT]');process.exit(0);}
-if(!['setup','test','refresh'].includes(mode??'')||positionals.length!==1||!values['skills-dir'])throw new Error('Specify setup, test or refresh and --skills-dir for the intended provider.');
-const root=resolve(import.meta.dir,'../..'),home=installationHome(values.home),skills=resolve(values['skills-dir']);
+if(values.help){console.log('./bin/setup | ./bin/test | ./bin/refresh [--skills-dir PATH] [--home PATH] [--port PORT] [--ref COMMIT]\nSkills: explicit path, saved selection, CODEX_HOME/skills, or existing ~/.codex/skills; otherwise prompt in a terminal.');return;}
+if(!['setup','test','refresh'].includes(mode??'')||positionals.length!==1)throw new Error('Specify setup, test or refresh.');
+const root=resolve(import.meta.dir,'../..'),home=installationHome(values.home);
+const configuration=join(home,'agent-setup.json');
+const saved=existsSync(configuration)?JSON.parse(readFileSync(configuration,'utf8')):undefined;
+let skillsPath=values['skills-dir']??saved?.skillsDirectory;
+if(!skillsPath && process.env.CODEX_HOME)skillsPath=join(process.env.CODEX_HOME,'skills');
+if(!skillsPath && existsSync(join(homedir(),'.codex/skills')))skillsPath=join(homedir(),'.codex/skills');
+if(!skillsPath) {
+  if(!process.stdin.isTTY)throw new Error('No provider skills directory found. Supply --skills-dir PATH.');
+  const terminal=createInterface({input:process.stdin,output:process.stdout});
+  try{skillsPath=(await terminal.question('Agent provider skills directory (absolute path): ')).trim();}finally{terminal.close();}
+  if(!skillsPath)throw new Error('A provider skills directory is required.');
+}
+const skills=resolve(skillsPath);
+console.error(`Surface ${mode}: ${home}\nSkill symlink: ${join(skills,'surface')} -> ${join(root,'skills/surface')}`);
 const env: NodeJS.ProcessEnv={...process.env,SURFACE_HOME:home};delete env.SURFACE_STATE_DIR;
 async function run(args:string[],cwd=root) {
   const child=Bun.spawn(args,{cwd,env,stdout:'pipe',stderr:'pipe'});
@@ -32,7 +48,7 @@ async function verify() {
   if(!response.ok||health.runtime?.instanceId!==status.lifecycle.instanceId)throw new Error('Installed app health does not match the selected service.');
   console.log(JSON.stringify({status:'verified',home,launcher,origin,release:status.lifecycle.release,skill,doctor,agentDiscovery:'Restart/reload the provider if needed. Filesystem linking does not prove provider discovery or live conversation delivery.'},null,2));
 }
-if(mode==='test'){await verify();process.exit(0);}
+if(mode==='test'){await verify();return;}
 if(await run(['git','status','--porcelain']))throw new Error('Commit or preserve checkout changes before setup/refresh. Only committed source is installed.');
 const commit=await run(['git','rev-parse','--verify',`${values.ref??'HEAD'}^{commit}`]);
 // Skills stay linked to this checkout; keep the installed source and instructions aligned.
@@ -52,8 +68,12 @@ try {
   linkSkill(root,skills);
   await cli('start',...(values.port?['--port',values.port]:[]));
   await verify();
+  writeFileSync(configuration,JSON.stringify({version:1,skillsDirectory:skills},null,2)+'\n',{mode:0o600});
 } catch(error) {
   // Installation activates last. Recover availability of the selected release when possible.
   if(wasRunning&&existsSync(launcher))try{if((await cli('status')).status==='stopped')await cli('start');}catch{}
   throw error;
 }
+
+}
+if(import.meta.main)agentSetup().catch(error=>{console.error(error instanceof Error?error.message:String(error));process.exitCode=1;});
