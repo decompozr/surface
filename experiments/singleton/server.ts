@@ -67,7 +67,9 @@ function prepareDependencyLink(workspace: string, target: string) {
 }
 
 /** Exploratory one-process, one-Vite component host. Separate from the previous runtime experiment. */
-export async function startSingleton(options: { stateDir: string; port?: number; adapter?: AgentAdapter; projectIdentity?: ProjectIdentityResolver; application?: (req: IncomingMessage, res: ServerResponse) => boolean | Promise<boolean>; openMountResource?: (mount: MountResourceContext) => Promise<MountResource> }) {
+export async function startSingleton(options: { stateDir: string; port?: number; browserOrigin?: string; adapter?: AgentAdapter; projectIdentity?: ProjectIdentityResolver; application?: (req: IncomingMessage, res: ServerResponse) => boolean | Promise<boolean>; openMountResource?: (mount: MountResourceContext) => Promise<MountResource> }) {
+  const browserURL = options.browserOrigin ? new URL(options.browserOrigin) : undefined;
+  if (browserURL && (browserURL.protocol !== 'https:' || browserURL.origin !== options.browserOrigin || browserURL.username || browserURL.password)) throw new Error('browserOrigin must be an exact HTTPS origin.');
   const stateDir = resolve(options.stateDir), workspace = join(stateDir, 'workspace');
   mkdirSync(workspace, { recursive: true, mode: 0o700 });
   const lockPath = join(stateDir, 'server.lock');
@@ -273,9 +275,9 @@ export async function startSingleton(options: { stateDir: string; port?: number;
   const http = createHTTPServer((req, res) => { void handle(req, res).catch(error => { if (!res.headersSent) json(res, { error: error instanceof Error ? error.message : String(error) }, error instanceof InputError ? error.status : 500); else res.end(); }); });
   async function handle(req: IncomingMessage, res: ServerResponse) {
     if (closing) throw new InputError('Server is closing.', 503);
-    if (req.headers.host !== new URL(origin).host) throw new InputError('Invalid Host.', 403);
-    if (req.headers.origin && req.headers.origin !== origin) throw new InputError('Invalid Origin.', 403);
-    const url = new URL(req.url!, origin);
+    if (req.headers.host !== new URL(origin).host && (!browserURL || req.headers.host !== browserURL.host)) throw new InputError('Invalid Host.', 403);
+    if (req.headers.origin && req.headers.origin !== origin && req.headers.origin !== browserURL?.origin) throw new InputError('Invalid Origin.', 403);
+    const url = new URL(req.url!, browserURL && req.headers.host === browserURL.host ? browserURL.origin : origin);
     res.setHeader('Referrer-Policy', 'no-referrer');
     if (url.pathname.startsWith('/api/')) {
       if (req.method === 'GET' && url.pathname === '/api/health') return json(res, { status: 'ready', experiment: 'singleton', pid: process.pid, instanceId, viteInstances: 1 });
@@ -337,7 +339,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       plugins: [dependencies.plugin, plugin, svelte({ configFile: false, prebundleSvelteLibraries: false })],
       resolve: { preserveSymlinks: false },
       optimizeDeps: { noDiscovery: true, include: [], exclude: ['svelte'] },
-      server: { middlewareMode: true, hmr: { server: http, overlay: false }, fs: { strict: true, allow: [workspace, join(experimentRoot, 'node_modules')] } },
+      server: { allowedHosts: browserURL ? [browserURL.hostname] : [], middlewareMode: true, hmr: { server: http, overlay: false }, fs: { strict: true, allow: [workspace, join(experimentRoot, 'node_modules')] } },
       logLevel: 'error',
     });
     vite.watcher.on('all', (event, file) => {
