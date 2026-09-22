@@ -12,6 +12,10 @@ This project is exploring the domain. Its executable code is an experimental imp
 
 Two experimental runtime paths currently coexist: the earlier CLI mounts external Svelte or vanilla projects through separate development processes; the preferred singleton pilot hosts discovered Svelte components through one Vite instance and now connects their forms to the existing interaction service. Automated fixture checks and separate live Codex idle/active round trips passed. The September 21 experiments now cover a real MCP adapter, scoped CommonJS prebundles, a built SvelteKit management shell, live agent source edits, bounded resource measurements, pinned repository installation, and project-owned artifact management. See the [server implementation readiness review](docs/server-readiness.md) for the proposed first-server scope and remaining limits. Remote access and additional frameworks remain deferred.
 
+## Experimental download
+
+The build-to-release experiment now packages the current app, Bun runtime and frozen dependencies for macOS Apple Silicon. See the [release and installation guide](docs/implementation/04-experimental-release.md) for building a versioned artifact, installing it without a checkout, agent setup and lifecycle commands. This remains an experimental prerelease path.
+
 ## Shared local service
 
 The public `surface` entry point now installs and operates one shared service for Git projects and linked worktrees. See the [public entry guide](docs/implementation/03-public-entry.md) for the complete command, storage and migration contract.

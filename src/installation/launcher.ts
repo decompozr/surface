@@ -14,13 +14,22 @@ export async function prepareLauncher(home: string, release: string) {
     mkdirSync(path,{recursive:true,mode:0o700});
   }
   mkdirSync(directory,{recursive:true,mode:0o700});
+  if (existsSync(join(source,'.distribution/launcher.js'))) {
+    for (const name of ['launcher.js','bun','runner.ts']) copyFileSync(join(source,'.distribution',name),join(directory,name));
+    chmodSync(join(directory,'bun'),0o700);
+    const quote=(value:string)=>"'"+value.replaceAll("'","'\"'\"'")+"'";
+    const temporary=join(home,'bin',`.surface-${crypto.randomUUID()}`);
+    const script='#!/bin/sh\nexport SURFACE_HOME="${SURFACE_HOME:-'+home.replaceAll('\\','\\\\').replaceAll('\"','\\\"').replaceAll('$','\\$').replaceAll('`','\\`')+'}"\nexec '+quote(join(directory,'bun'))+' '+quote(join(directory,'launcher.js'))+' "$@"\n';
+    const {writeFileSync}=await import('node:fs');
+    writeFileSync(temporary,script,{mode:0o700});renameSync(temporary,join(home,'bin/surface'));return;
+  }
   const result = await Bun.build({ entrypoints:[join(source,'src/installation/launcher.ts')],target:'bun',format:'esm',outdir:directory,banner:'#!/usr/bin/env bun',naming:'launcher.js' });
   if (!result.success) throw new Error('Surface launcher build failed.');
   copyFileSync(join(source,'src/installation/runner.ts'),join(directory,'runner.ts')); chmodSync(join(directory,'launcher.js'),0o700);
   const temporary = join(home,'bin',`.surface-${crypto.randomUUID()}`); symlinkSync(join(directory,'launcher.js'),temporary); renameSync(temporary,join(home,'bin/surface'));
 }
 export async function lifecycleMain(args: string[]) {
-  const {values,positionals} = parseArgs({args,allowPositionals:true,options:{home:{type:'string'},repo:{type:'string'},ref:{type:'string'},port:{type:'string'},release:{type:'string'}}});
+  const {values,positionals} = parseArgs({args,allowPositionals:true,options:{home:{type:'string'},repo:{type:'string'},ref:{type:'string'},port:{type:'string'},release:{type:'string'},bundle:{type:'string'}}});
   if (positionals.length !== 1) throw new Error('Expected one lifecycle command.');
   const home=installationHome(values.home), manager=new Installation(home,validateRelease);
   const start = async () => {
@@ -31,6 +40,11 @@ export async function lifecycleMain(args: string[]) {
   };
   switch(positionals[0]) {
     case 'install': case 'upgrade': {
+      if(values.bundle) {
+        if(values.repo||values.ref)throw new Error('Select --bundle or --repo/--ref, not both.');
+        const release=await manager.installPrepared(values.bundle,async(_directory,id)=>prepareLauncher(home,id));
+        return {...release,home,launcher:join(home,'bin/surface')};
+      }
       if(!values.repo || !values.ref) throw new Error('Use --repo PATH --ref COMMIT to select a pinned release.');
       const release=await manager.install(values.repo,values.ref,'surface',async(_directory,id)=>prepareLauncher(home,id));
       return {...release,home,launcher:join(home,'bin/surface')};
