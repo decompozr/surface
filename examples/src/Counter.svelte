@@ -5,7 +5,7 @@
 </script>
 
 <main>
-  <p>Surface development fixture</p>
+  <p>Surface project example</p>
   <h1>Shared runtime counter</h1>
   <label>Draft <input bind:value={$draft} /></label>
   <button onclick={() => $count++}>Count {$count}</button>

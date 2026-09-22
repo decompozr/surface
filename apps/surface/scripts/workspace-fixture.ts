@@ -16,7 +16,7 @@ export async function workspaceFixture() {
   const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-app-workspace-')));
   const main = join(directory, 'main'), linked = join(directory, 'linked');
   mkdirSync(main);
-  cpSync(join(import.meta.dir, '../fixtures/counter'), join(main, 'ui'), {
+  cpSync(join(import.meta.dir, '../../../examples'), join(main, 'ui'), {
     recursive: true, filter: path => !path.split('/').includes('node_modules'),
   });
   const projectId = crypto.randomUUID(), artifactId = crypto.randomUUID();
