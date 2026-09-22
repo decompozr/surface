@@ -21,9 +21,9 @@ export async function selectSkills(options: { explicit?: string[]; provider?: st
     if(preferred.length)return preferred;
     throw new Error('Select --provider codex|claude or --skills-dir PATH; no provider was detected.');
   }
-  const choices=providers.map(p=>({label:`${p.name}${p.detected?'  ✓ detected':''}`,path:p.path}));
-  for(const path of saved)if(!choices.some(p=>p.path===path))choices.push({label:'Saved custom directory',path});
-  const menuChoices=[...choices.map(p=>({label:p.label,detail:p.path})),{label:'Custom directory',detail:'Enter your provider’s skills directory'}];
+  const choices=providers.map(p=>({label:p.name,path:p.path,detected:p.detected}));
+  for(const path of saved)if(!choices.some(p=>p.path===path))choices.push({label:'Saved custom directory',path,detected:false});
+  const menuChoices=[...choices.map(p=>({label:p.label,detail:p.path,detected:p.detected})),{label:'Custom directory',detail:'Enter your provider’s skills directory'}];
   const initial=choices.flatMap((p,i)=>preferred.includes(p.path)?[i]:[]);
   const indices=await (options.choose??terminalSelect)(menuChoices,initial);
   if(!indices.length||indices.some(i=>!Number.isInteger(i)||i<0||i>choices.length))throw new Error('Select at least one valid provider.');
