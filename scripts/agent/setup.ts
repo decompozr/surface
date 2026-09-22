@@ -16,12 +16,15 @@ async function run(args:string[],cwd=root) {
 }
 const pkg=JSON.parse(readFileSync(join(root,'package.json'),'utf8'));
 if(pkg.packageManager!==`bun@${Bun.version}`)throw new Error(`Use ${pkg.packageManager}; current runtime is bun@${Bun.version}.`);
+if(values.port!==undefined && (!Number.isInteger(Number(values.port)) || Number(values.port)<0 || Number(values.port)>65535))throw new Error('Invalid port.');
 inspectSkillLink(root,skills); // Detect conflicts before touching the service.
 const launcher=join(home,'bin/surface');
 async function cli(...args:string[]){return JSON.parse(await run([launcher,...args,'--home',home]));}
 async function verify() {
   const skill=inspectSkillLink(root,skills);if(!skill.linked)throw new Error('Provider skill link is missing. Run setup first.');
   const status=await cli('status');if(status.status!=='running')throw new Error('Selected Surface is stopped; run its start command first.');
+  const checkoutCommit=await run(['git','rev-parse','HEAD']);
+  if(status.lifecycle.commit!==checkoutCommit)throw new Error('Installed release differs from the linked checkout HEAD. Run refresh for this selected installation.');
   const doctor=await cli('doctor');
   const origin=status.lifecycle.origin;
   const response=await fetch(origin+'/health');
