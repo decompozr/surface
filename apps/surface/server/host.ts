@@ -7,6 +7,8 @@ import { workspaceDirectory } from '../../../src/workspaces/identity.ts';
 import type { AgentAdapter } from '../../../src/adapters/codex.ts';
 import type { RuntimeStatus } from '../src/lib/runtime-status.ts';
 
+import { readableMountPath } from './mount-path.ts';
+
 type Handler = (request: IncomingMessage, response: ServerResponse) => void;
 
 /** Integration slice: the built app and the existing component compiler share one listener. */
@@ -29,7 +31,7 @@ export async function startSurfaceApp(options: { stateDir: string; port?: number
   let status: RuntimeStatus | undefined;
 
   const runtime = await startSingleton({
-    stateDir, port, browserOrigin: options.browserOrigin, adapter: options.adapter, projectIdentity: directory.identity,
+    stateDir, port, resolveMountPath: readableMountPath, browserOrigin: options.browserOrigin, adapter: options.adapter, projectIdentity: directory.identity,
     async application(request, response) {
       const path = new URL(request.url!, 'http://127.0.0.1').pathname;
       if (path !== '/' && path !== '/health' && !path.startsWith('/_app/')) return false;
