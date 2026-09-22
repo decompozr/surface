@@ -1,7 +1,9 @@
-import { mkdirSync, readFileSync, writeFileSync, renameSync, existsSync, lstatSync, readdirSync, openSync, closeSync, unlinkSync, rmSync, realpathSync } from 'node:fs';
+import { cpSync, mkdirSync, readFileSync, writeFileSync, renameSync, existsSync, lstatSync, readdirSync, openSync, closeSync, unlinkSync, rmSync, realpathSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { createConnection } from 'node:net';
 import { randomBytes } from 'node:crypto';
+
+import { verifyBundle } from './bundle.ts';
 
 export type Host = 'singleton' | 'sveltekit' | 'contract' | 'surface';
 type Release = { version: 1; release: string; commit: string; host: Host; bun: string; installedAt: string };
@@ -128,6 +130,32 @@ export class Installation {
         atomic(join(this.home, 'active.json'), manifest);
         return manifest;
       } finally { rmSync(archive, { force: true }); rmSync(staging, { recursive: true, force: true }); }
+    });
+  }
+  async installPrepared(source: string, prepareEntry: (directory: string, release: string) => Promise<void>) {
+    return this.locked(async () => {
+      this.ensureStopped();
+      source=realpathSync(source);
+      const bundle=verifyBundle(source);
+      const release=`${bundle.commit}-surface`, directory=join(this.home,'releases',release);
+      const manifest=read<Release>(join(source,'.artifact-release.json'));
+      if(manifest.commit!==bundle.commit||manifest.release!==release||manifest.host!=='surface')throw new Error('Bundle release identity mismatch.');
+      requireBun(source,manifest);
+      await this.validateRelease?.(source,join(this.home,'state'));
+      if(existsSync(directory)) {
+        const existing=verifyBundle(directory);
+        if(existing.version!==bundle.version||JSON.stringify(existing.files)!==JSON.stringify(bundle.files))throw new Error('Installed release differs from the selected bundle.');
+      } else {
+        const staging=join(this.home,'releases',`.preparing-${crypto.randomUUID()}`);
+        try {
+          cpSync(source,staging,{recursive:true,verbatimSymlinks:true});
+          verifyBundle(staging);
+          renameSync(staging,directory);
+        } finally {rmSync(staging,{recursive:true,force:true});}
+      }
+      await prepareEntry(directory,release);
+      atomic(join(this.home,'active.json'),manifest);
+      return {...manifest,versionLabel:bundle.version};
     });
   }
   async activate(release: string) {

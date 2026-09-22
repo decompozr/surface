@@ -34,7 +34,8 @@ export async function main(args=process.argv.slice(2)) {
   if(values.help||!command) {
     console.log(`Surface — shared local service for Git projects and worktrees
 
-  install --repo PATH --ref COMMIT    Install a pinned release
+  install --bundle DIRECTORY         Install a prepared release
+  install --repo PATH --ref COMMIT    Developer source installation
   start [--port 4319]                 Start the owned shared service
   status | stop | restart | recover
   upgrade --repo PATH --ref COMMIT

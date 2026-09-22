@@ -5,6 +5,7 @@
   "type": "module",
   "packageManager": "bun@1.4.0",
   "scripts": {
+    "build:release": "bun scripts/release/build.ts",
     "dev": "bun src/cli/index.ts serve",
     "test": "bun test tests",
     "test:singleton": "bun test experiments/singleton/interactions.test.ts",
