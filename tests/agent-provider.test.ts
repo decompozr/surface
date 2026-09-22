@@ -1,23 +1,23 @@
 import {test,expect} from 'bun:test';
 import {selectSkills} from '../scripts/agent/provider.ts';
 const base={mode:'setup',userHome:'/user',env:{},exists:()=>false,interactive:false};
-test('unique detection selects provider; two or none require a choice without a terminal',async()=>{
- expect(await selectSkills({...base,exists:p=>p==='/user/.claude'})).toBe('/user/.claude/skills');
- await expect(selectSkills(base)).rejects.toThrow('ambiguous');
- await expect(selectSkills({...base,exists:()=>true})).rejects.toThrow('ambiguous');
+test('detects both providers and selects both by default',async()=>{
+ expect(await selectSkills({...base,exists:()=>true})).toEqual(['/user/.codex/skills','/user/.claude/skills']);
+ await expect(selectSkills(base)).rejects.toThrow('no provider');
+ expect(await selectSkills({...base,interactive:true,exists:()=>true,choose:async(_choices,initial)=>{expect(initial).toEqual([0,1]);return initial;}})).toEqual(['/user/.codex/skills','/user/.claude/skills']);
 });
-test('menu preselects detected Claude and saved selection wins detection',async()=>{
- let selected=-1;expect(await selectSkills({...base,interactive:true,exists:p=>p.endsWith('.claude'),choose:async(choices,index)=>{selected=index;expect(choices[index]!.label).toContain('✓ detected');return index;}})).toBe('/user/.claude/skills');
- expect(selected).toBe(1);
- expect(await selectSkills({...base,interactive:true,saved:'/user/.codex/skills',exists:()=>true,choose:async(_choices,index)=>index})).toBe('/user/.codex/skills');
+test('retains legacy saved selection and multiple saved directories',async()=>{
+ expect(await selectSkills({...base,mode:'refresh',saved:'/old'})).toEqual(['/old']);
+ expect(await selectSkills({...base,mode:'test',saved:['/one','/two']})).toEqual(['/one','/two']);
+ expect(await selectSkills({...base,interactive:true,saved:'/user/.claude/skills',exists:()=>true,choose:async(_c,initial)=>{expect(initial).toEqual([1]);return initial;}})).toEqual(['/user/.claude/skills']);
 });
-test('explicit flags override saved selection and refresh reuses saved custom path',async()=>{
- expect(await selectSkills({...base,provider:'codex',env:{CODEX_HOME:'/custom'},saved:'/previous'})).toBe('/custom/skills');
- expect(await selectSkills({...base,mode:'refresh',saved:'/saved',interactive:true,ask:async()=>{throw Error('unexpected prompt');}})).toBe('/saved');
- await expect(selectSkills({...base,provider:'other'})).rejects.toThrow('codex or');
- await expect(selectSkills({...base,provider:'claude',explicit:'/custom'})).rejects.toThrow('not both');
+test('repeatable providers and paths deduplicate; conflicting flags fail',async()=>{
+ expect(await selectSkills({...base,provider:['codex','claude','codex']})).toEqual(['/user/.codex/skills','/user/.claude/skills']);
+ expect(await selectSkills({...base,explicit:['/one','/one','/two']})).toEqual(['/one','/two']);
+ await expect(selectSkills({...base,provider:['other']})).rejects.toThrow('codex or');
+ await expect(selectSkills({...base,provider:['claude'],explicit:['/custom']})).rejects.toThrow('not both');
 });
-test('menu can choose Claude or a custom directory',async()=>{
- expect(await selectSkills({...base,interactive:true,exists:()=>true,choose:async()=>1})).toBe('/user/.claude/skills');
- expect(await selectSkills({...base,interactive:true,choose:async()=>2,ask:async()=>'/custom/skills'})).toBe('/custom/skills');
+test('custom directory can accompany providers; empty choice fails',async()=>{
+ expect(await selectSkills({...base,interactive:true,choose:async()=>[0,2],ask:async()=>'/custom'})).toEqual(['/user/.codex/skills','/custom']);
+ await expect(selectSkills({...base,interactive:true,choose:async()=>[]})).rejects.toThrow('at least one');
 });
