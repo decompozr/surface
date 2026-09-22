@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { terminalSelect, type MenuChoice } from './terminal-select.ts';
-import { createInterface } from 'node:readline/promises';
+import { loadPrompts } from './prompts.ts';
 
 export async function selectSkills(options: { explicit?: string[]; provider?: string[]; saved?: string | string[]; mode: string; userHome?: string; env?: NodeJS.ProcessEnv; interactive?: boolean; exists?: (path:string)=>boolean; ask?: (question:string)=>Promise<string>; choose?: (choices:MenuChoice[],initial:number[])=>Promise<number[]> }) {
   const env=options.env??process.env, home=options.userHome??homedir(), exists=options.exists??existsSync;
@@ -29,13 +29,13 @@ export async function selectSkills(options: { explicit?: string[]; provider?: st
   if(!indices.length||indices.some(i=>!Number.isInteger(i)||i<0||i>choices.length))throw new Error('Select at least one valid provider.');
   const paths=indices.filter(i=>i<choices.length).map(i=>choices[i]!.path);
   if(!indices.includes(choices.length))return unique(paths);
-  const terminal=options.ask?undefined:createInterface({input:process.stdin,output:process.stdout});
-  const ask=options.ask??((question:string)=>terminal!.question(question));
-  try {
-    while(true){
-      const custom=(await ask('Skills directory (absolute path): ')).trim();
-      if(custom.startsWith('/'))return unique([...paths,custom]);
-      console.log('Enter an absolute directory path.');
-    }
-  }finally{terminal?.close();}
+  if(options.ask) {
+    const custom=(await options.ask('Skills directory (absolute path): ')).trim();
+    if(!custom.startsWith('/'))throw new Error('Enter an absolute directory path.');
+    return unique([...paths,custom]);
+  }
+  const ui=await loadPrompts();
+  const custom=await ui.text({message:'Custom skills directory',placeholder:'/absolute/path/to/skills',validate:value=>value?.trim().startsWith('/')?undefined:'Enter an absolute directory path.'});
+  if(ui.isCancel(custom))throw new Error('Setup cancelled. No installation changes made.');
+  return unique([...paths,custom.trim()]);
 }

@@ -1,6 +1,7 @@
 import { parseArgs } from 'node:util';
 import { resolve, join } from 'node:path';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
+import { loadPrompts } from './prompts.ts';
 import { selectSkills } from './provider.ts';
 import { requireCompatibleBun } from '../../src/installation/bun-version.ts';
 import { installationHome } from '../../src/installation/paths.ts';
@@ -11,20 +12,24 @@ const mode=positionals[0];
 if(values.help){console.log('./bin/setup | ./bin/test | ./bin/refresh [--provider codex|claude | --skills-dir PATH] [--home PATH] [--port PORT] [--ref COMMIT]\nSetup shows a Codex / Claude Code menu; saved choices or all detected providers are preselected. Space toggles; Enter confirms. Repeat --provider or --skills-dir for multiple destinations.');return;}
 if(!['setup','test','refresh'].includes(mode??'')||positionals.length!==1)throw new Error('Specify setup, test or refresh.');
 const root=resolve(import.meta.dir,'../..'),home=installationHome(values.home);
+const pkg=JSON.parse(readFileSync(join(root,'package.json'),'utf8'));
+requireCompatibleBun(pkg.packageManager,Bun.version);
+if(values.port!==undefined && (!Number.isInteger(Number(values.port)) || Number(values.port)<0 || Number(values.port)>65535))throw new Error('Invalid port.');
+const interactive=!!process.stdin.isTTY&&!!process.stdout.isTTY;
+const ui=interactive?await loadPrompts(mode!=='test'):undefined;
+ui?.intro('Surface · '+mode);
+const step=(message:string)=>{if(ui)ui.log.step(message);};
 const configuration=join(home,'agent-setup.json');
 const saved=existsSync(configuration)?JSON.parse(readFileSync(configuration,'utf8')):undefined;
 const skills=await selectSkills({explicit:values['skills-dir'],provider:values.provider,saved:saved?.skillsDirectories??saved?.skillsDirectory,mode});
-console.log(`Surface ${mode}: ${home}`);
-for(const directory of skills)console.log(`Skill symlink: ${join(directory,'surface')} -> ${join(root,'skills/surface')}`);
+if(ui)ui.note(`Install  ${home}\n\n`+skills.map(directory=>`Link     ${join(directory,'surface')}`).join('\n'),'Your setup');
+else {console.log(`Surface ${mode}: ${home}`);for(const directory of skills)console.log(`Skill symlink: ${join(directory,'surface')} -> ${join(root,'skills/surface')}`);}
 const env: NodeJS.ProcessEnv={...process.env,SURFACE_HOME:home};delete env.SURFACE_STATE_DIR;
 async function run(args:string[],cwd=root) {
   const child=Bun.spawn(args,{cwd,env,stdout:'pipe',stderr:'pipe'});
   const [code,out,err]=await Promise.all([child.exited,new Response(child.stdout).text(),new Response(child.stderr).text()]);
   if(code)throw new Error(err+out);return out.trim();
 }
-const pkg=JSON.parse(readFileSync(join(root,'package.json'),'utf8'));
-requireCompatibleBun(pkg.packageManager,Bun.version);
-if(values.port!==undefined && (!Number.isInteger(Number(values.port)) || Number(values.port)<0 || Number(values.port)>65535))throw new Error('Invalid port.');
 for(const directory of skills)inspectSkillLink(root,directory); // Detect conflicts before touching the service.
 const launcher=join(home,'bin/surface');
 async function cli(...args:string[]){return JSON.parse(await run([launcher,...args,'--home',home]));}
@@ -38,7 +43,8 @@ async function verify() {
   const response=await fetch(origin+'/health');
   const health=await response.json();
   if(!response.ok||health.runtime?.instanceId!==status.lifecycle.instanceId)throw new Error('Installed app health does not match the selected service.');
-  console.log(JSON.stringify({status:'verified',home,launcher,origin,release:status.lifecycle.release,skillLinks,doctor,agentDiscovery:'Restart/reload the provider if needed. Filesystem linking does not prove provider discovery or live conversation delivery.'},null,2));
+  if(ui){ui.note(`Open     ${origin}\n\nSkills   ${skillLinks.length} linked to this checkout\nManage   ${launcher} status\n\nReload your agent to discover the skill.`, 'Ready');ui.outro('Surface is running.');}
+  else console.log(JSON.stringify({status:'verified',home,launcher,origin,release:status.lifecycle.release,skillLinks,doctor,agentDiscovery:'Restart/reload the provider if needed. Filesystem linking does not prove provider discovery or live conversation delivery.'},null,2));
 }
 if(mode==='test'){await verify();return;}
 if(await run(['git','status','--porcelain']))throw new Error('Commit or preserve checkout changes before setup/refresh. Only committed source is installed.');
@@ -58,16 +64,21 @@ if(existsSync(launcher)) {
     const port=existsSync(join(home,'settings.json'))?JSON.parse(readFileSync(join(home,'settings.json'),'utf8')).port:undefined;
     if(values.port!==undefined&&Number(values.port)!==port)throw new Error('Changing the running service port requires ./bin/refresh --port PORT.');
     for(const directory of skills)linkSkill(root,directory);
+    step('Reusing the running installation');
     await verify();saveSelection();return;
   }
 }
+step('Preparing project dependencies');
 for(const folder of ['', 'experiments/singleton', 'experiments/mcp', 'apps/surface'])await run([process.execPath,'install','--frozen-lockfile','--ignore-scripts'],join(root,folder));
+step('Checking source and installation contracts');
 await run([process.execPath,'run','check']);
 await run([process.execPath,'run','check'],join(root,'apps/surface'));
 await run([process.execPath,'test','tests/release-bundle.test.ts','tests/agent-skill-link.test.ts']);
-if(wasRunning)await cli('stop');
+if(wasRunning){step('Stopping the selected service for refresh');await cli('stop');}
 try {
+  step('Building and installing Surface');
   await run([process.execPath,join(root,'src/cli/index.ts'),'install','--repo',root,'--ref',commit,'--home',home]);
+  step('Linking agent skills and starting the service');
   for(const directory of skills)linkSkill(root,directory);
   await cli('start',...(values.port?['--port',values.port]:[]));
   await verify();
