@@ -3,10 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --bun vite dev --host 127.0.0.1 --port 4319 --strictPort",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "dev": "bun run build && bun server/index.ts",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc --noEmit -p tsconfig.server.json",
     "build": "bun --bun vite build",
-    "start": "HOST=127.0.0.1 PORT=${PORT:-4319} bun build/index.js"
+    "start": "bun server/index.ts",
+    "test": "bun run build && bun test server/host.test.ts",
+    "verify:fixture": "bun run build && bun scripts/verify-fixture.ts"
   },
   "dependencies": {
     "@sveltejs/adapter-node": "5.5.7",

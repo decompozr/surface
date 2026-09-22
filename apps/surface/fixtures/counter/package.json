@@ -1,0 +1,8 @@
+{
+  "name": "surface-counter-fixture",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "svelte": "5.57.1"
+  }
+}
