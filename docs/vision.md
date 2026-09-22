@@ -1,5 +1,7 @@
 # Product vision
 
+Surface helps people and agents make ideas tangible, clarify intent through interaction, and learn from observations and experiments.
+
 Surface gives humans and agents a shared, extensible interactive environment for representing, manipulating, and simulating systems.
 
 ## Long-term vision
@@ -11,6 +13,29 @@ Surface provides the runtime foundation for that exchange. A project creates an 
 Surface has value independently of DecompozR. DecompozR may produce experiences, consume their events, or coordinate capabilities, just as another project or agent can. Surface must operate without DecompozR-specific concepts or services.
 
 The long-term direction includes experiences composed from Web, Graph, CAD, Simulation, Data, or other capabilities. Native representations and structured agent interfaces are possible future delivery forms. These are extension directions, not implemented features or requirements for v0. Domain computation belongs to the relevant capability or project.
+
+## User value loop
+
+The experience starts with an idea, a question, or a desired outcome:
+
+```text
+Express an idea
+  -> Make it tangible
+  -> Explore together
+  -> Observe and clarify
+  -> Refine the idea
+  -> Begin the next exploration
+```
+
+Visual representations and interactivity help people express preferences, reveal constraints, compare alternatives, and examine assumptions. For example, “make this architecture simpler” might become a dependency diagram that a person can inspect and adjust. Comparing alternatives can reveal that the concern is how many systems a change touches. A small experiment can then produce observations that inform the next decision.
+
+Creating pages, registering projects, and mounting folders provide the implementation mechanisms for this loop. The user value is a clearer understanding of intent, possibilities, and consequences. Clarifying intent is one important use of the shared environment; editing, operating systems, and presenting results remain part of the broader vision.
+
+### Interpretation and evidence have explicit owners
+
+Projects define the meaning of their representations and interactions. People and agents interpret observations, confirm intent, and decide what to do next. Surface Core provides the runtime and exchange mechanisms; it does not independently infer intent, validate hypotheses, or adopt requirements.
+
+An interaction is an observation, not automatically confirmed intent. A previewed change is not automatically an instruction to apply it. An experiment result is evidence to interpret, not automatically a requirement or proof of a hypothesis. Experiences should make these distinctions visible and preserve the context needed to review how an observation informed a decision. Confirmation and authority follow the experience's explicit contract.
 
 ## Architecture boundaries
 
@@ -86,6 +111,6 @@ Public hosting, multi-user collaboration, remote access, untrusted code executio
 
 The next implementation milestone is supported installation and lifecycle for this local Web loop. It must preserve the architecture boundaries above without making a generic capability platform a prerequisite. Follow the [implementation sequence](server-readiness.md#implementation-sequence-and-exit-criteria); introduce new experiments only for specific unanswered decisions.
 
-Success means that a project can create an experience, a person can understand and manipulate it, the responsible project or agent receives meaningful structured input, and the resulting change is observable. The project retains its source and domain data so another session or agent can continue the work. Rendering a page alone does not complete that loop.
+Success means that a project can create an experience, a person can understand and manipulate it, the responsible project or agent receives meaningful structured input, and the resulting change is observable. The project retains its source and domain data so another session or agent can continue the work. Rendering a page alone does not complete that loop. For an exploration experience, success also means that observations help people and agents clarify a question, confirm intent, or choose a next experiment, while keeping observations, interpretations, and adopted decisions distinguishable.
 
 See [architecture](architecture.md) for the current topology and historical hypotheses, and [agent interaction](agent-interaction.md) for the implemented return path and its limits.
