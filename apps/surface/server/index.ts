@@ -3,11 +3,11 @@ import { startSurfaceApp } from './host.ts';
 
 try {
   const { values } = parseArgs({ options: {
-    'state-dir': { type: 'string' }, port: { type: 'string' },
+    'state-dir': { type: 'string' }, 'data-root': { type: 'string' }, port: { type: 'string' },
   } });
   if (!values['state-dir']) throw new Error('Use --state-dir PATH to select this development app\'s state explicitly.');
   const app = await startSurfaceApp({
-    stateDir: values['state-dir'], port: Number(values.port ?? process.env.PORT ?? 4319),
+    stateDir: values['state-dir'], dataRoot: values['data-root'], port: Number(values.port ?? process.env.PORT ?? 4319),
   });
   console.log(JSON.stringify({ service: 'surface', origin: app.origin, pid: app.pid, instanceId: app.instanceId }));
   const shutdown = () => {

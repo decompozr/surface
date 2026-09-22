@@ -38,7 +38,7 @@ Startup prints the actual origin, PID and instance ID. Ctrl+C/SIGTERM stops the 
 
 The host injects only public readiness metadata into SvelteKit locals. It does not expose the management token or state path. The original runtime retains its host/origin checks, management authorization and operation endpoints.
 
-`server/host.ts` is deliberately a thin bridge to `experiments/singleton/server.ts`; this slice does not relocate or duplicate that implementation. Existing project/interaction endpoints are inherited, but these slices validate server/compiler topology, lifecycle and one fixed component mount. Workspace registration, backend integration, interaction workflows and management UI controls remain later slices. No live agent callback is sent during verification.
+`server/host.ts` is deliberately a thin bridge to `experiments/singleton/server.ts`; this slice does not relocate or duplicate that implementation. Existing project/interaction endpoints are inherited, but these slices validate server/compiler topology, lifecycle and one fixed component mount. Backend integration, interaction workflows and management UI controls remain later slices. No live agent callback is sent during verification.
 
 ## Verify
 
@@ -69,3 +69,18 @@ bun experiments/singleton/cli.ts unmount --namespace fixture --name counter --st
 Unmount revokes future preview and source requests and removes the mount symlink, while retaining the project source. It does not erase code already loaded into an open browser document.
 
 From `apps/surface`, run `bun run verify:fixture` for the automated Chrome check (requires local Google Chrome and root dependencies). It mounts a temporary fixture copy on an ephemeral port, verifies interaction and HMR with retained state, then checks unmount revocation and continued SvelteKit health. The browser, host and temporary directory are cleaned up afterward. No shared installation or agent conversation is contacted.
+
+## Project and workspace identity
+
+Project operations at `/api/v1/projects/operations` now use the existing Git workspace resolver. Main and linked worktrees share the project UUID but receive distinct stable workspace IDs and namespaces. The shared state holds one workspace ledger; a small marker in each Git administrative directory identifies the worktree. No per-worktree `.decompozr/surface` or database is created.
+
+Use the existing public CLI with `SURFACE_STATE_DIR` pointing to this app's explicit state directory. From a Git project root with a Surface project manifest:
+
+```sh
+SURFACE_STATE_DIR=/tmp/surface-app-development bun /absolute/path/to/surface/src/cli/index.ts project register
+SURFACE_STATE_DIR=/tmp/surface-app-development bun /absolute/path/to/surface/src/cli/index.ts project mount --artifact ARTIFACT_UUID
+```
+
+`--data-root PATH` selects the external location reserved for future workspace data; its default is `project-data` beside the state directory. The choice is persisted, but the directory and SQLite files are not allocated by registration or mounting. Changing it or adopting legacy single-root bindings requires explicit migration. Branch renames and detached HEAD preserve identity; independent clones with copied project UUIDs are rejected.
+
+Run `bun run verify:workspaces` to exercise two disposable real Git worktrees, namespace isolation, clone conflict, restart and data-root guards. Existing user worktrees are never involved.
