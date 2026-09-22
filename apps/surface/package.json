@@ -1,0 +1,25 @@
+{
+  "name": "@decompozr/surface-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --bun vite dev --host 127.0.0.1 --port 4319 --strictPort",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "build": "bun --bun vite build",
+    "start": "HOST=127.0.0.1 PORT=${PORT:-4319} bun build/index.js"
+  },
+  "dependencies": {
+    "@sveltejs/adapter-node": "5.5.7",
+    "@sveltejs/kit": "2.70.3",
+    "@sveltejs/vite-plugin-svelte": "7.3.0",
+    "svelte": "5.57.1",
+    "vite": "8.3.0"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.2",
+    "svelte-check": "4.7.6",
+    "typescript": "6.0.3"
+  },
+  "version": "0.0.0",
+  "packageManager": "bun@1.4.0"
+}
