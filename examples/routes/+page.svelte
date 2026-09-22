@@ -1,6 +1,7 @@
 <script lang="ts">
   import Guide from '../lib/Guide.svelte';
   import ArchitectureStory from '../lib/ArchitectureStory.svelte';
+  import QueueStory from '../lib/QueueStory.svelte';
   const base = window.location.pathname.split('/examples')[0] + '/examples';
 </script>
 
@@ -18,6 +19,9 @@
 
   <section class="section"><p class="eyebrow">A story you can explore</p><h2>One vague request. A more useful question.</h2><p class="lead">Follow the conversation. Scroll to reveal each chapter, or use the arrows to move through the story. Your selections stay with you.</p></section>
   <ArchitectureStory />
+
+  <section class="section"><p class="eyebrow">A second story · Test an assumption</p><h2>A plausible idea. An experiment worth trying.</h2><p class="lead">Once the question is clearer, explore what might happen. Change a condition, follow the work, and let the observation shape your next question.</p></section>
+  <QueueStory />
 
   <section class="section reading">
     <p class="eyebrow">What</p>
