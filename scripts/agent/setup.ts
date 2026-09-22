@@ -24,7 +24,7 @@ if(!skillsPath) {
   if(!skillsPath)throw new Error('A provider skills directory is required.');
 }
 const skills=resolve(skillsPath);
-console.error(`Surface ${mode}: ${home}\nSkill symlink: ${join(skills,'surface')} -> ${join(root,'skills/surface')}`);
+console.log(`Surface ${mode}: ${home}\nSkill symlink: ${join(skills,'surface')} -> ${join(root,'skills/surface')}`);
 const env: NodeJS.ProcessEnv={...process.env,SURFACE_HOME:home};delete env.SURFACE_STATE_DIR;
 async function run(args:string[],cwd=root) {
   const child=Bun.spawn(args,{cwd,env,stdout:'pipe',stderr:'pipe'});
