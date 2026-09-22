@@ -4,36 +4,37 @@ import { homedir } from 'node:os';
 import { terminalSelect, type MenuChoice } from './terminal-select.ts';
 import { createInterface } from 'node:readline/promises';
 
-export async function selectSkills(options: { explicit?: string; provider?: string; saved?: string; mode: string; userHome?: string; env?: NodeJS.ProcessEnv; interactive?: boolean; exists?: (path:string)=>boolean; ask?: (question:string)=>Promise<string>; choose?: (choices:MenuChoice[],initial:number)=>Promise<number> }) {
+export async function selectSkills(options: { explicit?: string[]; provider?: string[]; saved?: string | string[]; mode: string; userHome?: string; env?: NodeJS.ProcessEnv; interactive?: boolean; exists?: (path:string)=>boolean; ask?: (question:string)=>Promise<string>; choose?: (choices:MenuChoice[],initial:number[])=>Promise<number[]> }) {
   const env=options.env??process.env, home=options.userHome??homedir(), exists=options.exists??existsSync;
   const providers=[
     {id:'codex',name:'Codex',root:resolve(env.CODEX_HOME??join(home,'.codex'))},
     {id:'claude',name:'Claude Code',root:join(home,'.claude')},
   ].map(p=>({...p,path:join(p.root,'skills'),detected:exists(p.root)}));
   if(options.explicit&&options.provider)throw new Error('Use --provider or --skills-dir, not both.');
-  if(options.explicit)return resolve(options.explicit);
-  if(options.provider){const match=providers.find(p=>p.id===options.provider);if(!match)throw new Error('Use --provider codex or --provider claude.');return match.path;}
-  const saved=options.saved?resolve(options.saved):undefined;
-  if(saved&&options.mode!=='setup')return saved;
-  const detected=providers.filter(p=>p.detected);
-  const preferred=saved??(detected.length===1?detected[0]!.path:undefined);
+  const unique=(paths:string[])=>[...new Set(paths.map(p=>resolve(p)))];
+  if(options.explicit)return unique(options.explicit);
+  if(options.provider)return unique(options.provider.flatMap(p=>p.split(',')).map(id=>{const match=providers.find(p=>p.id===id);if(!match)throw new Error('Use --provider codex or --provider claude.');return match.path;}));
+  const saved=options.saved?unique(Array.isArray(options.saved)?options.saved:[options.saved]):[];
+  if(saved.length&&options.mode!=='setup')return saved;
+  const preferred=saved.length?saved:providers.filter(p=>p.detected).map(p=>p.path);
   if(!(options.interactive??process.stdin.isTTY)) {
-    if(preferred)return preferred;
-    throw new Error('Select --provider codex|claude or --skills-dir PATH; provider detection is absent or ambiguous.');
+    if(preferred.length)return preferred;
+    throw new Error('Select --provider codex|claude or --skills-dir PATH; no provider was detected.');
   }
   const choices=providers.map(p=>({label:`${p.name}${p.detected?'  ✓ detected':''}`,path:p.path}));
-  if(saved&&!choices.some(p=>p.path===saved))choices.push({label:'Saved custom directory',path:saved});
-  const defaultIndex=choices.findIndex(p=>p.path===preferred);
+  for(const path of saved)if(!choices.some(p=>p.path===path))choices.push({label:'Saved custom directory',path});
   const menuChoices=[...choices.map(p=>({label:p.label,detail:p.path})),{label:'Custom directory',detail:'Enter your provider’s skills directory'}];
-  const index=await (options.choose??terminalSelect)(menuChoices,Math.max(0,defaultIndex));
-  if(index>=0&&index<choices.length)return choices[index]!.path;
-  if(index!==choices.length)throw new Error('Invalid provider selection.');
+  const initial=choices.flatMap((p,i)=>preferred.includes(p.path)?[i]:[]);
+  const indices=await (options.choose??terminalSelect)(menuChoices,initial);
+  if(!indices.length||indices.some(i=>!Number.isInteger(i)||i<0||i>choices.length))throw new Error('Select at least one valid provider.');
+  const paths=indices.filter(i=>i<choices.length).map(i=>choices[i]!.path);
+  if(!indices.includes(choices.length))return unique(paths);
   const terminal=options.ask?undefined:createInterface({input:process.stdin,output:process.stdout});
   const ask=options.ask??((question:string)=>terminal!.question(question));
   try {
     while(true){
       const custom=(await ask('Skills directory (absolute path): ')).trim();
-      if(custom.startsWith('/'))return resolve(custom);
+      if(custom.startsWith('/'))return unique([...paths,custom]);
       console.log('Enter an absolute directory path.');
     }
   }finally{terminal?.close();}
