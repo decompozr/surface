@@ -1,9 +1,8 @@
-import { resolve, join, isAbsolute } from 'node:path';
+import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 export function installationHome(explicit?: string, env: NodeJS.ProcessEnv = process.env, platform = process.platform, userHome = homedir()) {
   if (explicit || env.SURFACE_HOME) return resolve(explicit || env.SURFACE_HOME!);
-  if (platform === 'darwin') return join(userHome, 'Library/Application Support/Surface');
-  if (platform === 'linux') return join(env.XDG_DATA_HOME && isAbsolute(env.XDG_DATA_HOME) ? env.XDG_DATA_HOME : join(userHome, '.local/share'), 'surface');
+  if (platform === 'darwin' || platform === 'linux') return join(userHome, '.decompozr/surface');
   throw new Error('Specify --home on this platform.');
 }
 export function serviceState(values: { home?: string; 'state-dir'?: string }, env: NodeJS.ProcessEnv = process.env) {

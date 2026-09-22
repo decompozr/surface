@@ -14,6 +14,8 @@ Two experimental runtime paths currently coexist: the earlier CLI mounts externa
 
 ## Experimental download
 
+Start with the [laptop setup guide](SETUP.md): download, install into `~/.decompozr/surface`, start, connect your agent, and manage the service.
+
 The build-to-release experiment now packages the current app, Bun runtime and frozen dependencies for macOS Apple Silicon. See the [release and installation guide](docs/implementation/04-experimental-release.md) for building a versioned artifact, installing it without a checkout, agent setup and lifecycle commands. This remains an experimental prerelease path.
 
 ## Shared local service
@@ -30,7 +32,7 @@ surface status
 
 From a project/worktree, use `surface project init` if its manifest is absent, then `register`, `add --source ui --name Controls`, `list`, and `mount --artifact ID`. Source folders must already exist. The CLI infers the containing Git root; explicit `--project` is also supported. `surface workspace current` identifies the workspace, and `surface mcp` exposes the same project operations over stdio.
 
-Default installation/state selection is shared across cwd: macOS Application Support or Linux XDG data home, with `--home`/`SURFACE_HOME` overrides. Client `--state-dir`/`SURFACE_STATE_DIR` can select an existing service. The default port is 4319. Worktrees do not receive duplicate service state; optional SQLite stays lazy in a persistent project/workspace data location outside disposable source.
+Default installation/state selection is shared across cwd: `~/.decompozr/surface` on macOS and Linux, with `--home`/`SURFACE_HOME` overrides. Client `--state-dir`/`SURFACE_STATE_DIR` can select an existing service. The default port is 4319. Worktrees do not receive duplicate service state; optional SQLite stays lazy in a persistent project/workspace data location outside disposable source.
 
 `surface workspace retire` preserves data and history, blocks unfinished accepted work, and leaves Git merge/removal explicit. `surface workspace migrate` provides a reviewed, backed-up transition for legacy single-root registrations while preserving original namespaces and interaction records. Existing data requires explicit project-owned storage mapping; databases are not automatically copied or merged.
 
