@@ -45,22 +45,33 @@ if(await run(['git','status','--porcelain']))throw new Error('Commit or preserve
 const commit=await run(['git','rev-parse','--verify',`${values.ref??'HEAD'}^{commit}`]);
 // Skills stay linked to this checkout; keep the installed source and instructions aligned.
 if(commit!==await run(['git','rev-parse','HEAD']))throw new Error('Check out the selected commit before setup so linked skills match the installed release.');
+function saveSelection() {
+  const content=JSON.stringify({version:2,skillsDirectories:skills},null,2)+'\n';
+  if(!existsSync(configuration)||readFileSync(configuration,'utf8')!==content)writeFileSync(configuration,content,{mode:0o600});
+}
+let wasRunning=false;
+if(existsSync(launcher)) {
+  const status=await cli('status');
+  wasRunning=status.status==='running';
+  if(wasRunning&&mode==='setup') {
+    if(status.lifecycle.commit!==commit)throw new Error('A different Surface version is running. Use ./bin/refresh to update it; the current service was left running.');
+    const port=existsSync(join(home,'settings.json'))?JSON.parse(readFileSync(join(home,'settings.json'),'utf8')).port:undefined;
+    if(values.port!==undefined&&Number(values.port)!==port)throw new Error('Changing the running service port requires ./bin/refresh --port PORT.');
+    for(const directory of skills)linkSkill(root,directory);
+    await verify();saveSelection();return;
+  }
+}
 for(const folder of ['', 'experiments/singleton', 'experiments/mcp', 'apps/surface'])await run([process.execPath,'install','--frozen-lockfile','--ignore-scripts'],join(root,folder));
 await run([process.execPath,'run','check']);
 await run([process.execPath,'run','check'],join(root,'apps/surface'));
 await run([process.execPath,'test','tests/release-bundle.test.ts','tests/agent-skill-link.test.ts']);
-let wasRunning=false;
-if(existsSync(launcher)) {
-  wasRunning=(await cli('status')).status==='running';
-  if(wasRunning&&mode==='setup')throw new Error('Selected installation is already running. Use test, or refresh to explicitly restart it.');
-}
 if(wasRunning)await cli('stop');
 try {
   await run([process.execPath,join(root,'src/cli/index.ts'),'install','--repo',root,'--ref',commit,'--home',home]);
   for(const directory of skills)linkSkill(root,directory);
   await cli('start',...(values.port?['--port',values.port]:[]));
   await verify();
-  writeFileSync(configuration,JSON.stringify({version:2,skillsDirectories:skills},null,2)+'\n',{mode:0o600});
+  saveSelection();
 } catch(error) {
   // Installation activates last. Recover availability of the selected release when possible.
   if(wasRunning&&existsSync(launcher))try{if((await cli('status')).status==='stopped')await cli('start');}catch{}

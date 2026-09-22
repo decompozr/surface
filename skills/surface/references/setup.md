@@ -8,7 +8,7 @@ Use this workflow when the user asks to clone/setup Surface or refresh their sou
 - Inspect the checkout branch/status and the selected service home. Existing installations elsewhere are not automatically migrated. Use `--home` throughout for a nondefault installation.
 - Git and a compatible Bun patch version (currently `>=1.4.0 <1.5.0`) are prerequisites for the source workflow. Report a missing/wrong version; do not silently install an arbitrary runtime. Downloaded releases instead include Bun.
 
-The short `./bin/*` entry points are executable Bun TypeScript scripts, not compiled binaries. Setup presents Codex, Claude Code and custom-directory choices with ↑/↓ navigation, Space toggling, Enter confirmation, and Esc/Ctrl+C cancellation. The ❯ cursor and ● detection markers, with ☑/☐ checkboxes use Unicode, with no icon font required. It detects provider home directories and preselects saved choices or all detected providers. Multiple providers can be checked together. Test/refresh reuse the saved directory. `--provider codex|claude` or `--skills-dir PATH` bypasses the menu. Noninteractive callers need an explicit selection when no providers are detected. Flags can be repeated to select multiple destinations. The selected home and symlink are printed before setup.
+The short `./bin/*` entry points are executable Bun TypeScript scripts, not compiled binaries. Setup presents Codex, Claude Code and custom-directory choices with ↑/↓ navigation, Space toggling, Enter confirmation, and Esc/Ctrl+C cancellation. The ❯ cursor and ● detection markers, with ■/□ checkboxes use Unicode, with no icon font required. It detects provider home directories and preselects saved choices or all detected providers. Multiple providers can be checked together. Test/refresh reuse the saved directory. `--provider codex|claude` or `--skills-dir PATH` bypasses the menu. Noninteractive callers need an explicit selection when no providers are detected. Flags can be repeated to select multiple destinations. The selected home and symlink are printed before setup.
 
 ## Setup
 
@@ -20,7 +20,7 @@ From the clean, committed checkout:
 
 The command installs frozen root dependencies, runs checks, builds/installs the committed revision into `~/.decompozr/surface`, creates or verifies `PROVIDER_SKILLS/surface -> CHECKOUT/skills/surface`, starts the installed service and verifies health/identity. Use `--port` for an intentional alternative. The script reports the executable, URL, selected release and real link target as JSON. It never copies a skill or alters provider MCP configuration.
 
-A running selected installation makes setup stop with guidance to use test or refresh. A file, real directory, foreign link or dangling link at the skill destination is preserved. Inspect and resolve that specific conflict with the user; do not force-replace it.
+Repeating setup against the same running version verifies health and all selected skill links without rebuilding or restarting. New provider links can be added on a repeat run. A different running version or requested port change requires refresh; setup leaves that service running. A file, real directory, foreign link or dangling link at the skill destination is preserved. Inspect and resolve that specific conflict with the user; do not force-replace it.
 
 ## Test
 

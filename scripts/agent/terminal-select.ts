@@ -20,7 +20,7 @@ export async function terminalSelect(choices:MenuChoice[],initial:number[]):Prom
     const width=Math.max(1,(output.columns||80)-2);
     const labelWidth=Math.max(1,Math.min(24,width-8));
     const label=Array.from(choice.label).slice(0,labelWidth).join('').padEnd(labelWidth);
-    return paint(i===selected?'❯':' ','1;36')+' '+paint(checked.has(i)?'☑':'☐',checked.has(i)?'32':'90')+' '+paint(label,i===selected?'1;36':'37')+(choice.detected?'  '+paint('●','32'):'');
+    return paint(i===selected?'❯':' ','1;36')+' '+paint(checked.has(i)?'■':'□',checked.has(i)?'32':'90')+' '+paint(label,i===selected?'1;36':'37')+(choice.detected?'  '+paint('●','32'):'');
    }),
    '',paint(row(`  ${choices[selected]!.detail}`),'90'),
    paint(row(`  ${checked.size} selected  ·  ● Detected on this device`),'90'),'',
