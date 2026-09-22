@@ -14,6 +14,14 @@ cd surface
 
 Use `./bin/test` to verify and `./bin/refresh` after updating the checkout. Setup opens a compact Clack wizard with an arrow-key Codex / Claude Code / custom-directory menu, progress steps, and a readable completion card instead of raw JSON in a terminal. On a fresh clone it first prepares its pinned prompt dependencies. Noninteractive runs keep the structured output. Use ↑/↓ to move, Space to toggle, Enter to confirm, and Esc or Ctrl+C to cancel. The ❯ cursor marks selection and ● marks detected providers; ■/□ show checked/unchecked choices. Saved choices or all detected providers are preselected; use Space to change the checked options and Enter to confirm them together. Override with `--provider codex`, `--provider claude`, or `--skills-dir /absolute/provider/skills`. Repeat --provider or --skills-dir for multiple destinations. Noninteractive runs reuse saved choices or all detected providers. The successful selections are saved for subsequent commands. See [agent setup](skills/surface/references/setup.md) for provider discovery, update behavior and acceptance gates. Skills are **symlinked to the checkout, never copied**. Keep that checkout in place.
 
+## Private access with Tailscale (source setup)
+
+On first interactive setup, Surface detects Tailscale and preselects private HTTPS access when it is connected. Confirm the selection, or choose local access. The help option explains installation/sign-in and continues locally. If Tailscale is disconnected, open it and connect before selecting remote access. Surface does not install Tailscale or change its account/network settings.
+
+Setup remembers the selection per installation home. Use `./bin/setup --tailscale on` or `--tailscale off` to change it. Noninteractive first runs default to local access unless explicitly enabled; subsequent setup/refresh runs reuse the saved choice. Completion shows both local and Tailscale URLs. `./bin/test` verifies the saved mapping without changing it; reachability from another device must be checked separately.
+
+Surface uses [Tailscale Serve](https://tailscale.com/docs/reference/tailscale-cli/serve), never Funnel. It selects an unused HTTPS port starting at 8463 and remembers ownership and the loopback target. Repeated runs leave matching mappings alone; refresh updates the target if the local port changes. Conflicting mappings and public endpoints are preserved and reported. Turning access off removes only the recorded, unchanged Surface mapping. Tailscale permissions and HTTPS certificate setup may require action in Tailscale; errors are reported without claiming remote access succeeded. The local service can remain running if remote configuration fails.
+
 ## Download and install
 
 Download the `.tar.gz` and `.tar.gz.sha256` assets from [this release](https://github.com/decompozr/surface/releases/tag/v0.1.0-experiment.20260922.2) into the same directory. In Terminal:
