@@ -7,9 +7,11 @@ const archive=resolve(process.argv[2]??'');
 assert(archive.endsWith('.tar.gz'),'Pass the downloaded release archive.');
 const checksum=readFileSync(archive+'.sha256','utf8').split(/\s/)[0];
 assert.equal(createHash('sha256').update(readFileSync(archive)).digest('hex'),checksum);
-const base=realpathSync(mkdtempSync('/tmp/surface-release-')),home=join(base,'Preview Home'),project=join(base,'user-project');
+const defaultHome=process.argv[3]==='--default-home';
+const base=realpathSync(mkdtempSync('/tmp/surface-release-')),home=defaultHome?join(base,'.decompozr/surface'):join(base,'Preview Home'),project=join(base,'user-project');
 const env: Record<string,string|undefined>={...process.env,PATH:'/usr/bin:/bin:/usr/sbin:/sbin',SURFACE_HOME:home};
 delete env.SURFACE_STATE_DIR;
+if(defaultHome){env.HOME=base;delete env.SURFACE_HOME;}
 async function command(args:string[],cwd=base) {
   const child=Bun.spawn(args,{cwd,env,stdout:'pipe',stderr:'pipe'});
   const [code,out,err]=await Promise.all([child.exited,new Response(child.stdout).text(),new Response(child.stderr).text()]);
@@ -21,7 +23,8 @@ async function cli(...args:string[]) {return JSON.parse(await command([cliPath,.
 try {
   await command(['tar','-xzf',archive,'-C',base]);
   let bundle=join(base,archive.split('/').at(-1)!.replace(/\.tar\.gz$/,''));
-  const installed=JSON.parse(await command([join(bundle,'install'),'--home',home]));
+  const installed=JSON.parse(await command([join(bundle,'install'),...(defaultHome?[]:['--home',home])]));
+  assert.equal(installed.home,home);
   const payload=join(home,'releases',installed.release);
   renameSync(bundle,bundle+'-moved');bundle+='-moved';
   mkdirSync(join(project,'ui/routes'),{recursive:true});
@@ -60,13 +63,13 @@ try {
   await cli('uninstall');
   assert(existsSync(join(home,'state/workspaces.json')));
   assert(existsSync(join(project,'ui/routes/+page.svelte')));
-  await command([join(bundle,'install'),'--home',home]);
+  await command([join(bundle,'install'),...(defaultHome?[]:['--home',home])]);
   await cli('start');running=true;
   assert.deepEqual(await cli('workspace','list'),before);
   const state=JSON.parse(readFileSync(join(home,'state/connection.json'),'utf8'));
   const previewUrl=state.origin+new URL(mounted.data.previewUrl).pathname;
   await cli('stop');running=false;
-  const result={passed:true,base,home,project,archive,checksum,release:installed.release,previewPath:new URL(previewUrl).pathname,observations:['archive checksum','bundled runtime with system-only PATH','install without checkout/build/dependency install','download directory moved','current app health','separate Git project and readable page mount','real installed stdio MCP project listing','lazy database remains absent','restart preserves workspace identity','uninstall/reinstall preserves source and registry'],limitations:['No real agent conversation delivery in this fixture','No human onboarding acceptance','No cross-version upgrade in this run']};
+  const result={passed:true,base,home,project,archive,checksum,release:installed.release,previewPath:new URL(previewUrl).pathname,observations:['archive checksum',defaultHome?'default ~/.decompozr/surface with isolated user home':'explicit installation home','bundled runtime with system-only PATH','install without checkout/build/dependency install','download directory moved','current app health','separate Git project and readable page mount','real installed stdio MCP project listing','lazy database remains absent','restart preserves workspace identity','uninstall/reinstall preserves source and registry'],limitations:['No real agent conversation delivery in this fixture','No human onboarding acceptance','No cross-version upgrade in this run']};
   const evidence=resolve(import.meta.dir,'../../.decompozr/surface/release-proof');mkdirSync(evidence,{recursive:true});writeFileSync(join(evidence,'result.json'),JSON.stringify(result,null,2));
   console.log(JSON.stringify(result,null,2));
 } finally {if(running)await cli('stop');}

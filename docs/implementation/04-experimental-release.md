@@ -7,7 +7,7 @@ The first downloadable artifact targets **macOS Apple Silicon**. It bundles Bun,
 Commit the intended source, then run:
 
 ```sh
-bun scripts/release/build.ts --version 0.1.0-experiment.20260922 --ref COMMIT
+bun scripts/release/build.ts --version 0.1.0-experiment.20260922.2 --ref COMMIT
 ```
 
 The build exports only the selected Git commit, prepares frozen dependencies with dependency scripts disabled, builds the app, and packages the native runtime. `dist/` receives a platform/version tarball and SHA-256 sidecar. Release metadata identifies the source commit, exact runtime and file inventory. Publish the archive and checksum as assets of an explicitly experimental GitHub prerelease pointing at that same commit. An existing archive is never overwritten.
@@ -16,17 +16,17 @@ This is not yet a signed/notarized installer or a cross-platform release matrix.
 
 ## User: download, install and start
 
-Download the [first experimental release](https://github.com/decompozr/surface/releases/tag/v0.1.0-experiment.20260922) archive and its `.sha256` file from the same release. In the download directory:
+Download the [first experimental release](https://github.com/decompozr/surface/releases/tag/v0.1.0-experiment.20260922.2) archive and its `.sha256` file from the same release. In the download directory:
 
 ```sh
-shasum -a 256 -c surface-0.1.0-experiment.20260922-darwin-arm64.tar.gz.sha256
-tar -xzf surface-0.1.0-experiment.20260922-darwin-arm64.tar.gz
-./surface-0.1.0-experiment.20260922-darwin-arm64/install --home "$HOME/Library/Application Support/Surface Preview"
-"$HOME/Library/Application Support/Surface Preview/bin/surface" start --port 4321
-"$HOME/Library/Application Support/Surface Preview/bin/surface" status
+shasum -a 256 -c surface-0.1.0-experiment.20260922.2-darwin-arm64.tar.gz.sha256
+tar -xzf surface-0.1.0-experiment.20260922.2-darwin-arm64.tar.gz
+./surface-0.1.0-experiment.20260922.2-darwin-arm64/install
+"$HOME/.decompozr/surface/bin/surface" start
+"$HOME/.decompozr/surface/bin/surface" status
 ```
 
-Use the origin returned by start/status to open the application. A separate preview home/port avoids replacing an existing installation. The installer reports the actual executable path. No shell profile, MCP host, agent skill, login item or network exposure is configured automatically. The home path must fit the current Unix socket limit (control socket path at most 100 characters).
+Use the origin returned by start/status to open the application. The default installation home is `~/.decompozr/surface` and the default port is 4319. Use `--home` consistently and a different `--port` when testing alongside another installation. Existing installations in Application Support/XDG are not moved or adopted automatically; continue using their launcher or explicit `--home` until a migration is planned. The installer reports the actual executable path. No shell profile, MCP host, agent skill, login item or network exposure is configured automatically. The home path must fit the current Unix socket limit (control socket path at most 100 characters).
 
 Installation checks platform/runtime and every packaged file before copying into a versioned release directory. The executable uses the bundled runtime and remembers its installation home, so it works from an unrelated cwd. The download folder can be removed after successful installation.
 

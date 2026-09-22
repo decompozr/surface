@@ -21,7 +21,7 @@ The existing package/global link also points at `src/cli/index.ts`, exposing the
 
 ## Shared selection and layout
 
-Home precedence: explicit `--home`, `SURFACE_HOME`, then macOS `~/Library/Application Support/Surface` or Linux `$XDG_DATA_HOME/surface` (`~/.local/share/surface` fallback). The first installed start defaults to loopback port **4319**; an explicitly selected port is retained. A conflict fails visibly rather than selecting another port. Explicit port 0 remains ephemeral.
+Home precedence: explicit `--home`, `SURFACE_HOME`, then `~/.decompozr/surface` on macOS and Linux. The first installed start defaults to loopback port **4319**; an explicitly selected port is retained. A conflict fails visibly rather than selecting another port. Explicit port 0 remains ephemeral.
 
 ```text
 Surface/

@@ -21,7 +21,8 @@ test('public service selection is shared and explicit selectors override environ
   expect(serviceState({'state-dir':'/chosen'},{SURFACE_HOME:'/other'})).toBe('/chosen');
   expect(serviceState({}, {SURFACE_STATE_DIR:'/shared'})).toBe('/shared');
   expect(()=>serviceState({home:'/a','state-dir':'/b'})).toThrow('either');
-  expect(installationHome(undefined,{},'darwin','/user')).toBe('/user/Library/Application Support/Surface');
+  expect(installationHome(undefined,{},'darwin','/user')).toBe('/user/.decompozr/surface');
+  expect(installationHome(undefined,{XDG_DATA_HOME:'/elsewhere'},'linux','/user')).toBe('/user/.decompozr/surface');
 });
 test('migration retains legacy routes and accepted history, backs up bytes, and registers linked worktrees',async()=>{
   const f=await legacy();
