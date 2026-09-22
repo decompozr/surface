@@ -1,11 +1,11 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
-import { startKitFoundation } from '../../experiments/sveltekit/server.ts';
+import { startSurfaceApp } from '../../apps/surface/server/host.ts';
 import { backendRuntime } from './backends.ts';
 import { workspaceDirectory } from '../workspaces/identity.ts';
 import { parseArgs } from 'node:util';
 
-export async function startSurface(options: Parameters<typeof startKitFoundation>[0] & { dataRoot?: string }) {
+export async function startSurface(options: Parameters<typeof startSurfaceApp>[0] & { dataRoot?: string }) {
   options.stateDir = resolve(options.stateDir);
   if (existsSync(join(options.stateDir, 'workspace-migration.pending.json'))) throw new Error('Workspace migration is incomplete; inspect and restore its backup before starting.');
   if (existsSync(join(options.stateDir, 'server.lock'))) throw new Error('Surface state is locked by a host or migration.');
@@ -22,7 +22,7 @@ export async function startSurface(options: Parameters<typeof startKitFoundation
   const backend = backendRuntime(options.stateDir, context);
   const config = join(options.stateDir, 'workspace-host.json');
   if (existsSync(config) && JSON.parse(readFileSync(config, 'utf8')).dataRoot !== dataRoot) throw new Error('Data-root change requires explicit migration.');
-  const app = await startKitFoundation({ ...options, projectIdentity: directory.identity, application: backend.application,
+  const app = await startSurfaceApp({ ...options, application: backend.application,
     async openMountResource(mount) { await context(mount); return backend.openMountResource(mount); },
   });
   try { writeFileSync(config, JSON.stringify({ version: 1, dataRoot: dataRoot }), { mode: 0o600 }); }
