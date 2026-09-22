@@ -106,3 +106,16 @@ These are trusted local components sharing one origin, not a hostile-code sandbo
 Run `bun run verify:interactions` for the real Chrome form-to-fixture-adapter-to-result loop. It also checks schema rejection, cross-workspace rejection, result publication authorization, duplicate suppression, closed requests, uncertain delivery, restart and unmount. Test state, Git worktrees, sockets and browser processes are disposable.
 
 The four agreed foundation slices are now represented here: shared host/compiler, a mounted HMR fixture, project/workspace identity, and structured interaction. This remains a development integration using the existing runtime bridge, not production adoption or a shared-installation upgrade.
+
+## Tailnet browser access
+
+For access through an existing Tailscale network, start the development host with an explicit HTTPS browser origin:
+
+```sh
+bun run start --state-dir /absolute/development-state --browser-origin https://HOST.ts.net:8463
+tailscale serve --bg --https=8463 http://127.0.0.1:4319
+```
+
+Choose an unused Serve port. This is a tailnet-only mapping, not a public Funnel. The runtime accepts the exact configured browser host/origin alongside loopback; Vite allows that hostname and HMR uses the browser's secure WebSocket connection. The management connection file remains loopback-only and management APIs still require their token. Existing mounts and request URLs can be opened by replacing the loopback origin with the configured HTTPS origin, retaining the path, query and fragment.
+
+To remove this mapping only: `tailscale serve --https=8463 off`. Other Serve/Funnel routes are unaffected. This does not install an auto-start system service.

@@ -54,3 +54,21 @@ test('state/port conflicts preserve the original host and release failed startup
     await expect(startSurfaceApp({ stateDir: other, port: -1 })).rejects.toThrow('Invalid port');
   } finally { await app.stop(); rmSync(stateDir, { recursive: true, force: true }); rmSync(other, { recursive: true, force: true }); }
 }, 30000);
+
+test('explicit HTTPS browser origin preserves host/origin and management guards', async () => {
+  const stateDir = temporary();
+  const browserOrigin = 'https://surface.example.test:8463';
+  let app: Awaited<ReturnType<typeof startSurfaceApp>> | undefined;
+  try {
+    await expect(startSurfaceApp({ stateDir, port: 0, browserOrigin: 'http://surface.example.test' })).rejects.toThrow('HTTPS origin');
+    expect(existsSync(join(stateDir, 'server.lock'))).toBe(false);
+    app = await startSurfaceApp({ stateDir, port: 0, browserOrigin });
+    const headers = { host: new URL(browserOrigin).host, origin: browserOrigin };
+    expect((await fetch(app.origin + '/health', { headers })).status).toBe(200);
+    expect((await fetch(app.origin + '/@vite/client', { headers })).status).toBe(200);
+    expect((await fetch(app.origin + '/health', { headers: { host: 'other.example.test' } })).status).toBe(403);
+    expect((await fetch(app.origin + '/health', { headers: { ...headers, origin: 'https://other.example.test' } })).status).toBe(403);
+    expect((await fetch(app.origin + '/api/mounts', { headers })).status).toBe(401);
+    expect(JSON.parse(readFileSync(join(stateDir, 'connection.json'), 'utf8')).origin).toBe(app.origin);
+  } finally { await app?.stop(); rmSync(stateDir, { recursive: true, force: true }); }
+}, 30000);
