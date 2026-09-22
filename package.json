@@ -30,7 +30,9 @@
     "check:workspaces": "tsc --noEmit -p experiments/workspaces/tsconfig.json",
     "verify:workspaces": "bun experiments/workspaces/verify.ts",
     "verify:surface": "bun scripts/verify-surface.ts",
-    "verify:surface-workspaces": "bun experiments/workspaces/verify.ts --public-cli"
+    "verify:surface-workspaces": "bun experiments/workspaces/verify.ts --public-cli",
+    "check:multi-surface": "tsc --noEmit -p experiments/multi-surface/tsconfig.json",
+    "verify:multi-surface": "bun experiments/multi-surface/verify.ts"
   },
   "dependencies": {
     "ajv": "8.20.0",

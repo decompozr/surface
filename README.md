@@ -66,6 +66,8 @@ The current implementation target focuses on Svelte + TypeScript. Additional fra
 
 - [Public Surface entry](docs/implementation/03-public-entry.md): shared installation, cwd-based workspace commands, MCP, retirement and explicit legacy migration.
 
+- [Multiple Surfaces experiment](docs/experiments/2026-09-21-multi-surface.md): two views share one lazy workspace backend with independent mount lifecycles; isolated experiment only, not adopted into the public runtime.
+
 - [Worktree workspace experiment](docs/experiments/2026-09-21-workspaces.md): one shared service, worktree namespaces, lazy isolated data, and source merge/cleanup with retained history.
 
 - [First-server contract experiments](docs/experiments/2026-09-21-server-contract.md): installed launcher, explicit schema compatibility/restore, and optional backend declarations with lazy SQLite through installed lifecycle operations.
