@@ -7,7 +7,7 @@ The first downloadable artifact targets **macOS Apple Silicon**. It bundles Bun,
 Commit the intended source, then run:
 
 ```sh
-bun scripts/release/build.ts --version 0.1.0-experiment.1 --ref COMMIT
+bun scripts/release/build.ts --version 0.1.0-experiment.20260922 --ref COMMIT
 ```
 
 The build exports only the selected Git commit, prepares frozen dependencies with dependency scripts disabled, builds the app, and packages the native runtime. `dist/` receives a platform/version tarball and SHA-256 sidecar. Release metadata identifies the source commit, exact runtime and file inventory. Publish the archive and checksum as assets of an explicitly experimental GitHub prerelease pointing at that same commit. An existing archive is never overwritten.
@@ -16,12 +16,12 @@ This is not yet a signed/notarized installer or a cross-platform release matrix.
 
 ## User: download, install and start
 
-Download the archive and its `.sha256` file from the same release. In the download directory:
+Download the [first experimental release](https://github.com/decompozr/surface/releases/tag/v0.1.0-experiment.20260922) archive and its `.sha256` file from the same release. In the download directory:
 
 ```sh
-shasum -a 256 -c surface-0.1.0-experiment.1-darwin-arm64.tar.gz.sha256
-tar -xzf surface-0.1.0-experiment.1-darwin-arm64.tar.gz
-./surface-0.1.0-experiment.1-darwin-arm64/install --home "$HOME/Library/Application Support/Surface Preview"
+shasum -a 256 -c surface-0.1.0-experiment.20260922-darwin-arm64.tar.gz.sha256
+tar -xzf surface-0.1.0-experiment.20260922-darwin-arm64.tar.gz
+./surface-0.1.0-experiment.20260922-darwin-arm64/install --home "$HOME/Library/Application Support/Surface Preview"
 "$HOME/Library/Application Support/Surface Preview/bin/surface" start --port 4321
 "$HOME/Library/Application Support/Surface Preview/bin/surface" status
 ```
