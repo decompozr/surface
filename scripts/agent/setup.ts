@@ -1,29 +1,19 @@
 import { parseArgs } from 'node:util';
 import { resolve, join } from 'node:path';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { createInterface } from 'node:readline/promises';
+import { selectSkills } from './provider.ts';
 import { requireCompatibleBun } from '../../src/installation/bun-version.ts';
 import { installationHome } from '../../src/installation/paths.ts';
 import { inspectSkillLink, linkSkill } from './skill-link.ts';
 export async function agentSetup(args=process.argv.slice(2)) {
-const {values,positionals}=parseArgs({args,allowPositionals:true,options:{home:{type:'string'},'skills-dir':{type:'string'},port:{type:'string'},ref:{type:'string'},help:{type:'boolean'}}});
+const {values,positionals}=parseArgs({args,allowPositionals:true,options:{home:{type:'string'},'skills-dir':{type:'string'},provider:{type:'string'},port:{type:'string'},ref:{type:'string'},help:{type:'boolean'}}});
 const mode=positionals[0];
-if(values.help){console.log('./bin/setup | ./bin/test | ./bin/refresh [--skills-dir PATH] [--home PATH] [--port PORT] [--ref COMMIT]\nSkills: explicit path, saved selection, CODEX_HOME/skills, or existing ~/.codex/skills; otherwise prompt in a terminal.');return;}
+if(values.help){console.log('./bin/setup | ./bin/test | ./bin/refresh [--provider codex|claude | --skills-dir PATH] [--home PATH] [--port PORT] [--ref COMMIT]\nSetup shows a Codex / Claude Code menu; saved or uniquely detected providers are preselected. Noninteractive use accepts an explicit selection or an unambiguous default.');return;}
 if(!['setup','test','refresh'].includes(mode??'')||positionals.length!==1)throw new Error('Specify setup, test or refresh.');
 const root=resolve(import.meta.dir,'../..'),home=installationHome(values.home);
 const configuration=join(home,'agent-setup.json');
 const saved=existsSync(configuration)?JSON.parse(readFileSync(configuration,'utf8')):undefined;
-let skillsPath=values['skills-dir']??saved?.skillsDirectory;
-if(!skillsPath && process.env.CODEX_HOME)skillsPath=join(process.env.CODEX_HOME,'skills');
-if(!skillsPath && existsSync(join(homedir(),'.codex/skills')))skillsPath=join(homedir(),'.codex/skills');
-if(!skillsPath) {
-  if(!process.stdin.isTTY)throw new Error('No provider skills directory found. Supply --skills-dir PATH.');
-  const terminal=createInterface({input:process.stdin,output:process.stdout});
-  try{skillsPath=(await terminal.question('Agent provider skills directory (absolute path): ')).trim();}finally{terminal.close();}
-  if(!skillsPath)throw new Error('A provider skills directory is required.');
-}
-const skills=resolve(skillsPath);
+const skills=await selectSkills({explicit:values['skills-dir'],provider:values.provider,saved:saved?.skillsDirectory,mode});
 console.log(`Surface ${mode}: ${home}\nSkill symlink: ${join(skills,'surface')} -> ${join(root,'skills/surface')}`);
 const env: NodeJS.ProcessEnv={...process.env,SURFACE_HOME:home};delete env.SURFACE_STATE_DIR;
 async function run(args:string[],cwd=root) {
