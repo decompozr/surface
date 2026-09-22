@@ -4,7 +4,7 @@ Status: implemented. The root/package `surface` CLI and the installed bootstrap 
 
 ## Install and use
 
-Requires the repository's exact Bun version. From this repository, prepare the root CLI and install a committed release:
+Requires a compatible Bun patch version (currently `>=1.4.0 <1.5.0`). From this repository, prepare the root CLI and install a committed release:
 
 ```sh
 bun install --frozen-lockfile
