@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   let active = $state(0);
+  let inRange = $state(false);
+  let navigating: number | null = null;
   let selected = $state('Billing');
   let choice = $state<'current' | 'proposal' | null>(null);
   let confirmed = $state(false);
@@ -24,6 +26,8 @@
   const selectedIndex = $derived(nodes.findIndex(n=>n.name===selected));
   const neighbors = $derived(edges.filter(e=>e.includes(selectedIndex)).map(e=>e[0]===selectedIndex?e[1]:e[0]));
   function go(index: number) {
+    index = Math.max(0, Math.min(chapters.length - 1, index));
+    navigating = index;
     active = index;
     requestAnimationFrame(() => steps[index]?.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));
   }
@@ -34,16 +38,33 @@
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     function update() {
       frame=0;
+      const bounds = root.getBoundingClientRect();
+      inRange = bounds.top < window.innerHeight * .5 && bounds.bottom > window.innerHeight * .5;
+      if (navigating !== null && Math.abs(steps[navigating].getBoundingClientRect().top - 28) < 3) navigating = null;
       if (!desktop.matches) { drift=0; return; }
       // Activate a chapter when its opening reaches the shared reading line.
       let chapter=0;
       steps.forEach((step,index)=>{if(step.getBoundingClientRect().top<=80)chapter=index});
-      active=chapter;
+      if (navigating === null) active=chapter;
       drift=reduced.matches?0:Math.max(-10,Math.min(10,(root.getBoundingClientRect().top/window.innerHeight)*6));
     }
     const schedule=()=>{if(!frame)frame=requestAnimationFrame(update)};
+    function keydown(event: KeyboardEvent) {
+      if (!inRange || event.defaultPrevented || event.repeat || event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      const target = event.target;
+      if (target instanceof Element && target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="slider"],[role="tablist"],[role="listbox"],[role="menu"],[role="tree"],[role="grid"],audio,video')) return;
+      if (target instanceof Element && target.closest('button,a') && !target.closest('.chapter-controls')) return;
+      const next = active + (event.key === 'ArrowRight' ? 1 : -1);
+      if (next < 0 || next >= chapters.length) return;
+      event.preventDefault(); go(next);
+    }
+    const cancelNavigation = () => { navigating = null; schedule(); };
+    window.addEventListener('keydown',keydown);
+    window.addEventListener('wheel',cancelNavigation,{passive:true});
+    window.addEventListener('touchstart',cancelNavigation,{passive:true});
     window.addEventListener('scroll',schedule,{passive:true});window.addEventListener('resize',schedule);reduced.addEventListener('change',schedule);update();
-    return ()=>{cancelAnimationFrame(frame);window.removeEventListener('scroll',schedule);window.removeEventListener('resize',schedule);reduced.removeEventListener('change',schedule)};
+    return ()=>{window.removeEventListener('keydown',keydown);window.removeEventListener('wheel',cancelNavigation);window.removeEventListener('touchstart',cancelNavigation);cancelAnimationFrame(frame);window.removeEventListener('scroll',schedule);window.removeEventListener('resize',schedule);reduced.removeEventListener('change',schedule)};
   });
 </script>
 
@@ -82,11 +103,19 @@
     {#if active===4}
       <div class="confirmation"><button onclick={()=>confirmed=!confirmed} aria-pressed={confirmed}>{confirmed?'Preference noted in this demo ✓':'My priority is fewer places to check'}</button><p>{confirmed?'Next: test a real billing change against both arrangements.':'Confirm an interpretation, then investigate the proposal.'}</p></div>
     {/if}
-    <div class="chapter-controls"><button disabled={active===0} onclick={()=>go(active-1)} aria-label="Previous chapter">←</button><span aria-live="polite">{active+1} / {chapters.length} · {chapters[active].label}</span><button disabled={active===4} onclick={()=>go(active+1)} aria-label="Next chapter">→</button></div>
+
     <p class="disclaimer">Interactive illustration. No real system is analyzed or changed; no message is sent to an agent.</p>
   </div></div>
 </section>
 
+{#if inRange}
+  <nav class="chapter-controls" aria-label="Story chapters">
+    <button disabled={active===0} onclick={()=>go(active-1)} aria-label="Previous chapter" aria-keyshortcuts="ArrowLeft">←</button>
+    <div><span aria-live="polite">{active+1} / {chapters.length} · {chapters[active].label}</span><small>Use ← → to explore</small></div>
+    <button disabled={active===chapters.length-1} onclick={()=>go(active+1)} aria-label="Next chapter" aria-keyshortcuts="ArrowRight">→</button>
+  </nav>
+{/if}
+
 <style>
- .story{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:48px;position:relative;margin-top:48px}.narrative article{min-height:max(85vh,800px);scroll-margin-top:28px;display:flex;flex-direction:column;justify-content:flex-start;padding:0 0 80px;opacity:.45;transition:opacity .3s}.narrative article.active{opacity:1}.narrative h2{font-size:clamp(27px,3.1vw,39px);line-height:1.16}.body{font-size:18px;color:#5c626c}.insight{font-size:15px;border-left:3px solid #c9b8a7;padding-left:16px;color:#63606b}.visual-column{min-width:0}.visual{position:sticky;top:28px;border:1px solid #e1e3e8;border-radius:20px;background:#fff;box-shadow:0 16px 60px #303a5010;overflow:hidden;margin:0}.toolbar{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #eceef1;gap:8px}.toolbar span{font-size:10px;letter-spacing:.12em;color:#626b7a}button{font:inherit;cursor:pointer}button:focus-visible{outline:3px solid #526176;outline-offset:3px}.toolbar button{background:none;border:0;text-decoration:underline;font-size:12px;color:#626b7a}.scene{background:linear-gradient(135deg,#eff3f8,#f4f0f7 55%,#f9f1e9);padding:24px 14px 12px;min-height:330px}.question{padding:20px;transform:translateY(var(--drift))}.tag{font-size:12px;color:#6b6178}.question blockquote{font-size:clamp(36px,4.5vw,57px);line-height:1.1;letter-spacing:-.04em;margin:22px 0;color:#394758}.possibilities{display:flex;flex-wrap:wrap;gap:8px}.possibilities span{padding:7px 10px;border:1px solid #d4cddf;border-radius:8px;font-size:12px;background:#ffffff90}.question p{font-size:13px;color:#656676;margin-top:20px}.diagram-title{display:flex;flex-direction:column;padding:0 8px;gap:3px}.diagram-title strong{font-size:16px}.diagram-title span{font-size:11px;color:#686f7b}.graph{position:relative;aspect-ratio:5/3;transform:translateY(var(--drift))}.graph svg{width:100%;height:100%;position:absolute;inset:0}.graph line{stroke:#bfc5d0;stroke-width:2;transition:stroke .3s}.graph line.highlight{stroke:#bb8566;stroke-width:3}.node{position:absolute;transform:translate(-50%,-50%);border:1px solid #cbd3df;border-radius:9px;background:#fff;padding:10px 12px;font-size:12px;color:#45516a;box-shadow:0 4px 10px #3743540a;transition:background .25s}.node.selected{background:#526784;color:white;border-color:#526784}.node.neighbor{background:#f4e6dc;border-color:#c8a991;color:#5b4539}.graph-readout{text-align:center;font-size:12px;margin:12px 0 0;color:#535e71}.comparison{display:flex;gap:8px;padding:16px 18px 8px}.comparison button{flex:1;border:1px solid #d8dce3;background:#fff;padding:9px 6px;border-radius:8px;font-size:12px;color:#526176}.comparison .chosen{background:#e9edf4;border-color:#8493ab}.tradeoff{font-size:12px;line-height:1.5;color:#68636b;padding:0 20px;margin:0 0 12px}.confirmation{margin:10px 18px;padding:12px;background:#f0eef5;border-radius:9px}.confirmation button{background:none;border:0;color:#514763;font-size:13px;font-weight:600;text-align:left}.confirmation p{font-size:12px;color:#665e70;margin:8px 0 0}.chapter-controls{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;gap:8px}.chapter-controls button{border:1px solid #dbe0e7;border-radius:50%;width:32px;height:32px;background:#fff;color:#526176}.chapter-controls button:disabled{opacity:.3;cursor:default}.chapter-controls span{font-size:12px;color:#626b79}.disclaimer{font-size:10px;color:#707580;padding:0 20px 16px;margin:0;line-height:1.5}@media(max-width:850px){.story{grid-template-columns:1fr;gap:0}.narrative article{display:none;min-height:0;padding:20px 0}.narrative article.active{display:block}.visual{position:static;margin:12px 0}.scene{min-height:270px}.node{padding:8px;font-size:10px}.body{font-size:17px}.graph{min-height:0}.narrative h2{font-size:30px}}@media(prefers-reduced-motion:reduce){.narrative article,.graph line,.node{transition:none}.question,.graph{transform:none}}
+ .story{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:48px;position:relative;margin-top:48px;padding-bottom:100px}.narrative article{min-height:max(85vh,800px);scroll-margin-top:28px;display:flex;flex-direction:column;justify-content:flex-start;padding:0 0 80px;opacity:.45;transition:opacity .3s}.narrative article.active{opacity:1}.narrative h2{font-size:clamp(27px,3.1vw,39px);line-height:1.16}.body{font-size:18px;color:#5c626c}.insight{font-size:15px;border-left:3px solid #c9b8a7;padding-left:16px;color:#63606b}.visual-column{min-width:0}.visual{position:sticky;top:28px;border:1px solid #e1e3e8;border-radius:20px;background:#fff;box-shadow:0 16px 60px #303a5010;overflow:hidden;margin:0}.toolbar{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #eceef1;gap:8px}.toolbar span{font-size:10px;letter-spacing:.12em;color:#626b7a}button{font:inherit;cursor:pointer}button:focus-visible{outline:3px solid #526176;outline-offset:3px}.toolbar button{background:none;border:0;text-decoration:underline;font-size:12px;color:#626b7a}.scene{background:linear-gradient(135deg,#eff3f8,#f4f0f7 55%,#f9f1e9);padding:24px 14px 12px;min-height:330px}.question{padding:20px;transform:translateY(var(--drift))}.tag{font-size:12px;color:#6b6178}.question blockquote{font-size:clamp(36px,4.5vw,57px);line-height:1.1;letter-spacing:-.04em;margin:22px 0;color:#394758}.possibilities{display:flex;flex-wrap:wrap;gap:8px}.possibilities span{padding:7px 10px;border:1px solid #d4cddf;border-radius:8px;font-size:12px;background:#ffffff90}.question p{font-size:13px;color:#656676;margin-top:20px}.diagram-title{display:flex;flex-direction:column;padding:0 8px;gap:3px}.diagram-title strong{font-size:16px}.diagram-title span{font-size:11px;color:#686f7b}.graph{position:relative;aspect-ratio:5/3;transform:translateY(var(--drift))}.graph svg{width:100%;height:100%;position:absolute;inset:0}.graph line{stroke:#bfc5d0;stroke-width:2;transition:stroke .3s}.graph line.highlight{stroke:#bb8566;stroke-width:3}.node{position:absolute;transform:translate(-50%,-50%);border:1px solid #cbd3df;border-radius:9px;background:#fff;padding:10px 12px;font-size:12px;color:#45516a;box-shadow:0 4px 10px #3743540a;transition:background .25s}.node.selected{background:#526784;color:white;border-color:#526784}.node.neighbor{background:#f4e6dc;border-color:#c8a991;color:#5b4539}.graph-readout{text-align:center;font-size:12px;margin:12px 0 0;color:#535e71}.comparison{display:flex;gap:8px;padding:16px 18px 8px}.comparison button{flex:1;border:1px solid #d8dce3;background:#fff;padding:9px 6px;border-radius:8px;font-size:12px;color:#526176}.comparison .chosen{background:#e9edf4;border-color:#8493ab}.tradeoff{font-size:12px;line-height:1.5;color:#68636b;padding:0 20px;margin:0 0 12px}.confirmation{margin:10px 18px;padding:12px;background:#f0eef5;border-radius:9px}.confirmation button{background:none;border:0;color:#514763;font-size:13px;font-weight:600;text-align:left}.confirmation p{font-size:12px;color:#665e70;margin:8px 0 0}.chapter-controls{position:fixed;z-index:20;bottom:max(16px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(580px,calc(100% - 32px));background:#fffffff5;border:1px solid #dbe0e7;border-radius:16px;box-shadow:0 8px 32px #303a5020;display:flex;align-items:center;justify-content:space-between;padding:12px 18px;gap:8px}.chapter-controls div{text-align:center}.chapter-controls small{display:block;font-size:10px;color:#707580}.chapter-controls button{border:1px solid #dbe0e7;border-radius:50%;width:44px;height:44px;flex-shrink:0;background:#fff;color:#526176}.chapter-controls button:disabled{opacity:.3;cursor:default}.chapter-controls span{font-size:12px;color:#626b79}.disclaimer{font-size:10px;color:#707580;padding:0 20px 16px;margin:0;line-height:1.5}@media(max-width:850px){.story{grid-template-columns:1fr;gap:0}.narrative article{display:none;min-height:0;padding:20px 0}.narrative article.active{display:block}.visual{position:static;margin:12px 0}.scene{min-height:270px}.node{padding:8px;font-size:10px}.body{font-size:17px}.graph{min-height:0}.narrative h2{font-size:30px}}@media(prefers-reduced-motion:reduce){.narrative article,.graph line,.node{transition:none}.question,.graph{transform:none}}
 </style>
