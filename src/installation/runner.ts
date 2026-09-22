@@ -1,5 +1,5 @@
 import { createServer } from 'node:net';
-import { writeFileSync, readFileSync, unlinkSync, chmodSync } from 'node:fs';
+import { writeFileSync, readFileSync, unlinkSync, chmodSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { timingSafeEqual } from 'node:crypto';
@@ -22,8 +22,15 @@ if (manifest.release !== release || manifest.host !== host) throw new Error('Rel
 const modulePath = host === 'surface' ? 'src/server/surface.ts' : host === 'contract' ? 'experiments/server-contract/server.ts' : host === 'sveltekit' ? 'experiments/sveltekit/server.ts' : 'experiments/singleton/server.ts';
 const module = await import(pathToFileURL(join(releasePath, modulePath)).href);
 const start = host === 'surface' ? module.startSurface : host === 'contract' ? module.startContractHost : host === 'sveltekit' ? module.startKitFoundation : module.startSingleton;
-const app = await start({ stateDir: join(home, 'state'), port: Number(portValue ?? 0) });
-const publicOwner = { version: 1, release, commit: manifest.commit, host, pid: process.pid, nonce, instanceId: app.instanceId, origin: app.origin };
+const setupPath = join(home, 'agent-setup.json');
+const access = existsSync(setupPath) ? JSON.parse(readFileSync(setupPath, 'utf8')).access : undefined;
+let browserOrigin: string | undefined;
+if (access?.enabled) {
+  if (typeof access.host !== 'string' || !/^[a-z0-9.-]+$/i.test(access.host) || !Number.isInteger(access.port) || access.port < 1 || access.port > 65535) throw new Error('Invalid saved Tailscale origin. Run setup to configure access.');
+  browserOrigin = `https://${access.host}:${access.port}`;
+}
+const app = await start({ stateDir: join(home, 'state'), port: Number(portValue ?? 0), browserOrigin });
+const publicOwner = { version: 1, release, commit: manifest.commit, host, pid: process.pid, nonce, instanceId: app.instanceId, origin: app.origin, browserOrigin };
 const owner = { ...publicOwner, secret };
 let stopTask: Promise<void> | undefined;
 const same = (value: unknown) => {
