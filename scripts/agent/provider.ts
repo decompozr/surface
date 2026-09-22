@@ -1,9 +1,10 @@
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { homedir } from 'node:os';
+import { terminalSelect, type MenuChoice } from './terminal-select.ts';
 import { createInterface } from 'node:readline/promises';
 
-export async function selectSkills(options: { explicit?: string; provider?: string; saved?: string; mode: string; userHome?: string; env?: NodeJS.ProcessEnv; interactive?: boolean; exists?: (path:string)=>boolean; ask?: (question:string)=>Promise<string> }) {
+export async function selectSkills(options: { explicit?: string; provider?: string; saved?: string; mode: string; userHome?: string; env?: NodeJS.ProcessEnv; interactive?: boolean; exists?: (path:string)=>boolean; ask?: (question:string)=>Promise<string>; choose?: (choices:MenuChoice[],initial:number)=>Promise<number> }) {
   const env=options.env??process.env, home=options.userHome??homedir(), exists=options.exists??existsSync;
   const providers=[
     {id:'codex',name:'Codex',root:resolve(env.CODEX_HOME??join(home,'.codex'))},
@@ -20,20 +21,20 @@ export async function selectSkills(options: { explicit?: string; provider?: stri
     if(preferred)return preferred;
     throw new Error('Select --provider codex|claude or --skills-dir PATH; provider detection is absent or ambiguous.');
   }
-  const choices=providers.map(p=>({label:`${p.name}${p.detected?' (detected)':''}`,path:p.path}));
+  const choices=providers.map(p=>({label:`${p.name}${p.detected?'  ✓ detected':''}`,path:p.path}));
   if(saved&&!choices.some(p=>p.path===saved))choices.push({label:'Saved custom directory',path:saved});
   const defaultIndex=choices.findIndex(p=>p.path===preferred);
-  const menu='Agent provider — skill will be symlinked:\n'+choices.map((p,i)=>`  ${i+1}) ${p.label}${i===defaultIndex?' [selected]':''} — ${p.path}`).join('\n')+`\n  ${choices.length+1}) Custom directory\n`;
+  const menuChoices=[...choices.map(p=>({label:p.label,detail:p.path})),{label:'Custom directory',detail:'Enter your provider’s skills directory'}];
+  const index=await (options.choose??terminalSelect)(menuChoices,Math.max(0,defaultIndex));
+  if(index>=0&&index<choices.length)return choices[index]!.path;
+  if(index!==choices.length)throw new Error('Invalid provider selection.');
   const terminal=options.ask?undefined:createInterface({input:process.stdin,output:process.stdout});
   const ask=options.ask??((question:string)=>terminal!.question(question));
   try {
-    let prompt=menu;
     while(true){
-      const answer=(await ask(prompt+`Choose${defaultIndex>=0?' ['+(defaultIndex+1)+']':''}: `)).trim();prompt='';
-      const index=answer===''?defaultIndex:/^\d+$/.test(answer)?Number(answer)-1:-1;
-      if(index>=0&&index<choices.length)return choices[index]!.path;
-      if(index===choices.length){const custom=(await ask('Skills directory (absolute path): ')).trim();if(custom.startsWith('/'))return resolve(custom);prompt='Enter an absolute directory path.\n';}
-      else prompt='Choose one of the listed numbers.\n';
+      const custom=(await ask('Skills directory (absolute path): ')).trim();
+      if(custom.startsWith('/'))return resolve(custom);
+      console.log('Enter an absolute directory path.');
     }
   }finally{terminal?.close();}
 }
