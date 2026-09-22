@@ -12,7 +12,7 @@ cd surface
 ./bin/setup
 ```
 
-Use `./bin/test` to verify and `./bin/refresh` after updating the checkout. Setup reuses a saved skills directory, `CODEX_HOME/skills`, or an existing `~/.codex/skills`; otherwise it asks in a terminal. Override with `--skills-dir /absolute/provider/skills`. The successful selection is saved for subsequent commands. See [agent setup](skills/surface/references/setup.md) for provider discovery, update behavior and acceptance gates. Skills are **symlinked to the checkout, never copied**. Keep that checkout in place.
+Use `./bin/test` to verify and `./bin/refresh` after updating the checkout. Setup shows a Codex / Claude Code / custom-directory menu. A saved selection or the only detected provider is preselected; press Enter to accept. If both providers are detected without a saved selection, choose one. Override with `--provider codex`, `--provider claude`, or `--skills-dir /absolute/provider/skills`. Noninteractive runs require an explicit choice when detection is ambiguous. The successful selection is saved for subsequent commands. See [agent setup](skills/surface/references/setup.md) for provider discovery, update behavior and acceptance gates. Skills are **symlinked to the checkout, never copied**. Keep that checkout in place.
 
 ## Download and install
 

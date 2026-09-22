@@ -4,11 +4,11 @@ Use this workflow when the user asks to clone/setup Surface or refresh their sou
 
 ## Select and inspect
 
-- Discover the current provider's configured skills directory from its environment/instructions. Pass that exact directory with `--skills-dir`; do not assume all agents use the same folder. For Codex the default is `${CODEX_HOME:-$HOME/.codex}/skills`. For another provider, obtain its actual directory instead of guessing.
+- Discover the current provider's configured skills directory from its environment/instructions. Pass that exact directory with `--skills-dir`; do not assume all agents use the same folder. For Codex the default is `${CODEX_HOME:-$HOME/.codex}/skills`. Claude Code uses `~/.claude/skills` ([official skills documentation](https://code.claude.com/docs/en/skills)); other locations can use `--skills-dir`.
 - Inspect the checkout branch/status and the selected service home. Existing installations elsewhere are not automatically migrated. Use `--home` throughout for a nondefault installation.
 - Git and a compatible Bun patch version (currently `>=1.4.0 <1.5.0`) are prerequisites for the source workflow. Report a missing/wrong version; do not silently install an arbitrary runtime. Downloaded releases instead include Bun.
 
-The short `./bin/*` entry points are executable Bun TypeScript scripts, not compiled binaries. Without `--skills-dir`, they reuse a saved selection, then `CODEX_HOME/skills` or an existing `~/.codex/skills`, otherwise prompt in a terminal. Noninteractive callers must supply a path when none is discoverable. The selected home and symlink are printed before setup.
+The short `./bin/*` entry points are executable Bun TypeScript scripts, not compiled binaries. Setup presents Codex, Claude Code and custom-directory choices. It detects provider home directories and preselects a saved selection or the only detected provider. Both detected without a saved selection requires a choice. Test/refresh reuse the saved directory. `--provider codex|claude` or `--skills-dir PATH` bypasses the menu. Noninteractive callers need an explicit selection when detection is absent or ambiguous. The selected home and symlink are printed before setup.
 
 ## Setup
 
