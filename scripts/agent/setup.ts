@@ -49,6 +49,17 @@ async function verify() {
   const network=await reconcileAccess(access,origin,mode==='test');
   access=network.access;
   if(mode!=='test')saveSelection();
+  if(status.lifecycle.browserOrigin!==network.url) {
+    if(mode==='test')throw new Error('Running host does not accept the configured Tailscale origin. Run ./bin/setup.');
+    step('Applying the private browser hostname');
+    await cli('stop');
+    await cli('start','--port',new URL(origin).port);
+    await verify();return;
+  }
+  if(network.url) {
+    const remoteHost=await fetch(origin+'/health',{headers:{host:new URL(network.url).host,origin:network.url},signal:AbortSignal.timeout(5000)});
+    if(!remoteHost.ok)throw new Error('Configured Tailscale hostname was rejected by the installed host.');
+  }
   if(ui){ui.note(`Open     ${origin}${network.url?'\nTailscale '+network.url:''}\n\nSkills   ${skillLinks.length} linked to this checkout\nManage   ${launcher} status\n\nReload your agent to discover the skill.`, 'Ready');ui.outro('Surface is running.');}
   else console.log(JSON.stringify({status:'verified',home,launcher,origin,tailscale:network.url,release:status.lifecycle.release,skillLinks,doctor,agentDiscovery:'Restart/reload the provider if needed. Filesystem linking does not prove provider discovery or live conversation delivery.'},null,2));
 }
