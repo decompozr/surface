@@ -1,3 +1,4 @@
+import { selectAccess, reconcileAccess } from './tailscale.ts';
 import { parseArgs } from 'node:util';
 import { resolve, join } from 'node:path';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
@@ -7,9 +8,9 @@ import { requireCompatibleBun } from '../../src/installation/bun-version.ts';
 import { installationHome } from '../../src/installation/paths.ts';
 import { inspectSkillLink, linkSkill } from './skill-link.ts';
 export async function agentSetup(args=process.argv.slice(2)) {
-const {values,positionals}=parseArgs({args,allowPositionals:true,options:{home:{type:'string'},'skills-dir':{type:'string',multiple:true},provider:{type:'string',multiple:true},port:{type:'string'},ref:{type:'string'},help:{type:'boolean'}}});
+const {values,positionals}=parseArgs({args,allowPositionals:true,options:{home:{type:'string'},'skills-dir':{type:'string',multiple:true},provider:{type:'string',multiple:true},port:{type:'string'},tailscale:{type:'string'},ref:{type:'string'},help:{type:'boolean'}}});
 const mode=positionals[0];
-if(values.help){console.log('./bin/setup | ./bin/test | ./bin/refresh [--provider codex|claude | --skills-dir PATH] [--home PATH] [--port PORT] [--ref COMMIT]\nSetup shows a Codex / Claude Code menu; saved choices or all detected providers are preselected. Space toggles; Enter confirms. Repeat --provider or --skills-dir for multiple destinations.');return;}
+if(values.help){console.log('./bin/setup | ./bin/test | ./bin/refresh [--provider codex|claude | --skills-dir PATH] [--home PATH] [--port PORT] [--tailscale on|off] [--ref COMMIT]\nSetup shows a Codex / Claude Code menu; saved choices or all detected providers are preselected. Space toggles; Enter confirms. Repeat --provider or --skills-dir for multiple destinations.');return;}
 if(!['setup','test','refresh'].includes(mode??'')||positionals.length!==1)throw new Error('Specify setup, test or refresh.');
 const root=resolve(import.meta.dir,'../..'),home=installationHome(values.home);
 const pkg=JSON.parse(readFileSync(join(root,'package.json'),'utf8'));
@@ -21,6 +22,7 @@ ui?.intro('Surface · '+mode);
 const step=(message:string)=>{if(ui)ui.log.step(message);};
 const configuration=join(home,'agent-setup.json');
 const saved=existsSync(configuration)?JSON.parse(readFileSync(configuration,'utf8')):undefined;
+let access=mode==='test' ? saved?.access??{enabled:false} : await selectAccess(saved?.access,values.tailscale,interactive);
 const skills=await selectSkills({explicit:values['skills-dir'],provider:values.provider,saved:saved?.skillsDirectories??saved?.skillsDirectory,mode});
 if(ui)ui.note(`Install  ${home}\n\n`+skills.map(directory=>`Link     ${join(directory,'surface')}`).join('\n'),'Your setup');
 else {console.log(`Surface ${mode}: ${home}`);for(const directory of skills)console.log(`Skill symlink: ${join(directory,'surface')} -> ${join(root,'skills/surface')}`);}
@@ -43,8 +45,11 @@ async function verify() {
   const response=await fetch(origin+'/health');
   const health=await response.json();
   if(!response.ok||health.runtime?.instanceId!==status.lifecycle.instanceId)throw new Error('Installed app health does not match the selected service.');
-  if(ui){ui.note(`Open     ${origin}\n\nSkills   ${skillLinks.length} linked to this checkout\nManage   ${launcher} status\n\nReload your agent to discover the skill.`, 'Ready');ui.outro('Surface is running.');}
-  else console.log(JSON.stringify({status:'verified',home,launcher,origin,release:status.lifecycle.release,skillLinks,doctor,agentDiscovery:'Restart/reload the provider if needed. Filesystem linking does not prove provider discovery or live conversation delivery.'},null,2));
+  const network=await reconcileAccess(access,origin,mode==='test');
+  access=network.access;
+  if(mode!=='test')saveSelection();
+  if(ui){ui.note(`Open     ${origin}${network.url?'\nTailscale '+network.url:''}\n\nSkills   ${skillLinks.length} linked to this checkout\nManage   ${launcher} status\n\nReload your agent to discover the skill.`, 'Ready');ui.outro('Surface is running.');}
+  else console.log(JSON.stringify({status:'verified',home,launcher,origin,tailscale:network.url,release:status.lifecycle.release,skillLinks,doctor,agentDiscovery:'Restart/reload the provider if needed. Filesystem linking does not prove provider discovery or live conversation delivery.'},null,2));
 }
 if(mode==='test'){await verify();return;}
 if(await run(['git','status','--porcelain']))throw new Error('Commit or preserve checkout changes before setup/refresh. Only committed source is installed.');
@@ -52,7 +57,7 @@ const commit=await run(['git','rev-parse','--verify',`${values.ref??'HEAD'}^{com
 // Skills stay linked to this checkout; keep the installed source and instructions aligned.
 if(commit!==await run(['git','rev-parse','HEAD']))throw new Error('Check out the selected commit before setup so linked skills match the installed release.');
 function saveSelection() {
-  const content=JSON.stringify({version:2,skillsDirectories:skills},null,2)+'\n';
+  const content=JSON.stringify({version:3,skillsDirectories:skills,access},null,2)+'\n';
   if(!existsSync(configuration)||readFileSync(configuration,'utf8')!==content)writeFileSync(configuration,content,{mode:0o600});
 }
 let wasRunning=false;
