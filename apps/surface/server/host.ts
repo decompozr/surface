@@ -4,12 +4,13 @@ import { pathToFileURL } from 'node:url';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { startSingleton } from '../../../experiments/singleton/server.ts';
 import { workspaceDirectory } from '../../../src/workspaces/identity.ts';
+import type { AgentAdapter } from '../../../src/adapters/codex.ts';
 import type { RuntimeStatus } from '../src/lib/runtime-status.ts';
 
 type Handler = (request: IncomingMessage, response: ServerResponse) => void;
 
 /** Integration slice: the built app and the existing component compiler share one listener. */
-export async function startSurfaceApp(options: { stateDir: string; port?: number; dataRoot?: string }) {
+export async function startSurfaceApp(options: { stateDir: string; port?: number; dataRoot?: string; adapter?: AgentAdapter }) {
   const port = options.port ?? 4319;
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Invalid port.');
   if (!options.stateDir) throw new Error('Specify an isolated state directory.');
@@ -28,7 +29,7 @@ export async function startSurfaceApp(options: { stateDir: string; port?: number
   let status: RuntimeStatus | undefined;
 
   const runtime = await startSingleton({
-    stateDir, port, projectIdentity: directory.identity,
+    stateDir, port, adapter: options.adapter, projectIdentity: directory.identity,
     async application(request, response) {
       const path = new URL(request.url!, 'http://127.0.0.1').pathname;
       if (path !== '/' && path !== '/health' && !path.startsWith('/_app/')) return false;

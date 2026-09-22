@@ -38,7 +38,7 @@ Startup prints the actual origin, PID and instance ID. Ctrl+C/SIGTERM stops the 
 
 The host injects only public readiness metadata into SvelteKit locals. It does not expose the management token or state path. The original runtime retains its host/origin checks, management authorization and operation endpoints.
 
-`server/host.ts` is deliberately a thin bridge to `experiments/singleton/server.ts`; this slice does not relocate or duplicate that implementation. Existing project/interaction endpoints are inherited, but these slices validate server/compiler topology, lifecycle and one fixed component mount. Backend integration, interaction workflows and management UI controls remain later slices. No live agent callback is sent during verification.
+`server/host.ts` is deliberately a thin bridge to `experiments/singleton/server.ts`; this slice does not relocate or duplicate that implementation. Existing project/interaction endpoints are inherited, but these slices validate server/compiler topology, lifecycle, fixed component mounting, workspace identity and the structured interaction loop. Backend integration and management UI controls remain later slices. No live agent callback is sent during verification.
 
 ## Verify
 
@@ -84,3 +84,26 @@ SURFACE_STATE_DIR=/tmp/surface-app-development bun /absolute/path/to/surface/src
 `--data-root PATH` selects the external location reserved for future workspace data; its default is `project-data` beside the state directory. The choice is persisted, but the directory and SQLite files are not allocated by registration or mounting. Changing it or adopting legacy single-root bindings requires explicit migration. Branch renames and detached HEAD preserve identity; independent clones with copied project UUIDs are rejected.
 
 Run `bun run verify:workspaces` to exercise two disposable real Git worktrees, namespace isolation, clone conflict, restart and data-root guards. Existing user worktrees are never involved.
+
+## Structured agent interaction
+
+The host forwards an optional typed `AgentAdapter` to the existing interaction service. The normal entry point uses the existing Codex adapter; automated checks inject a fixture adapter and never contact a live conversation. A request binds a mounted component to an exact project root and conversation, validates submitted JSON against its schema, and lets the bound agent publish a result back to the page.
+
+The fixed source includes `src/Feedback.svelte` and `feedback.schema.json`. For an explicitly selected conversation, use the existing development CLI (from the repository root):
+
+```sh
+bun experiments/singleton/cli.ts bind --project /absolute/project-root --thread EXACT_THREAD_ID --socket /absolute/control.sock --state-dir /tmp/surface-app-development
+bun experiments/singleton/cli.ts request --binding BINDING_ID --namespace WORKSPACE_NAMESPACE --name MOUNT_NAME --component src/Feedback.svelte --title 'Choose a label' --schema-file apps/surface/fixtures/counter/feedback.schema.json --state-dir /tmp/surface-app-development
+```
+
+Open the returned `previewUrl`. Opening or editing the form sends no agent message; pressing **Send feedback** submits `{ "label": "..." }`. The request capability cannot publish agent results or cross workspace namespaces. The agent receives the request/response identity and an explicit result command targeting this state directory:
+
+```sh
+bun experiments/singleton/cli.ts result --request REQUEST_ID --data '{"message":"Reviewed choice"}' --state-dir /tmp/surface-app-development
+```
+
+These are trusted local components sharing one origin, not a hostile-code sandbox. An accepted response means transport delivery was accepted, not that the agent completed the task. A delivery marked `unknown` remains uncertain and is not automatically resent. Duplicate submissions with the same response identity and data do not deliver twice. Unmount revokes browser access while preserving the original interaction record; restart preserves results without replaying responses.
+
+Run `bun run verify:interactions` for the real Chrome form-to-fixture-adapter-to-result loop. It also checks schema rejection, cross-workspace rejection, result publication authorization, duplicate suppression, closed requests, uncertain delivery, restart and unmount. Test state, Git worktrees, sockets and browser processes are disposable.
+
+The four agreed foundation slices are now represented here: shared host/compiler, a mounted HMR fixture, project/workspace identity, and structured interaction. This remains a development integration using the existing runtime bridge, not production adoption or a shared-installation upgrade.
