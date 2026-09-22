@@ -13,7 +13,7 @@ surface status
 surface doctor
 ```
 
-The default home is macOS `~/Library/Application Support/Surface` or Linux `$XDG_DATA_HOME/surface` (`~/.local/share/surface` fallback). `--home`/`SURFACE_HOME` selects another home. Releases, state, tooling and persistent project data have separate directories. The default port is 4319; a requested conflict fails without fallback. No login service is installed.
+The default home is `~/.decompozr/surface` on macOS/Linux. `--home`/`SURFACE_HOME` selects another home. Releases, state, tooling and persistent project data have separate directories. The default port is 4319; a requested conflict fails without fallback. No login service is installed.
 
 `stop` uses authenticated process ownership. `restart` preserves the configured port. `upgrade --repo ... --ref ...`, `rollback --release ...` and `uninstall` require a stopped owned host. Uninstall retains state, project data and the bootstrap launcher; unresolved accepted/delivering/unknown interactions without results block uninstall even if closed. `recover` handles only verified dead host ownership. Do not remove arbitrary locks or signal a PID merely because it appears in a file.
 
