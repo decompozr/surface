@@ -38,6 +38,7 @@
     "verify:surface-sync": "bun experiments/surface-sync/verify.ts"
   },
   "dependencies": {
+    "@clack/prompts": "1.8.1",
     "ajv": "8.20.0",
     "ws": "8.21.3"
   },
