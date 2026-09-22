@@ -16,6 +16,7 @@ const experimentRoot = import.meta.dir;
 type Phase = 'registered' | 'installing' | 'preparing' | 'ready' | 'failed' | 'unmounted';
 type Mount = {
   namespace: string; name: string; source: string; projectRoot: string; status: Phase; components: string[];
+  publicPath?: string; pages?: Record<string, string>;
   props: Record<string, Record<string, unknown>>; error?: string; log: string;
   history: { status: Phase; at: string }[];
 };
@@ -67,7 +68,7 @@ function prepareDependencyLink(workspace: string, target: string) {
 }
 
 /** Exploratory one-process, one-Vite component host. Separate from the previous runtime experiment. */
-export async function startSingleton(options: { stateDir: string; port?: number; browserOrigin?: string; adapter?: AgentAdapter; projectIdentity?: ProjectIdentityResolver; application?: (req: IncomingMessage, res: ServerResponse) => boolean | Promise<boolean>; openMountResource?: (mount: MountResourceContext) => Promise<MountResource> }) {
+export async function startSingleton(options: { stateDir: string; port?: number; browserOrigin?: string; resolveMountPath?: (mount: MountResourceContext) => Promise<string>; adapter?: AgentAdapter; projectIdentity?: ProjectIdentityResolver; application?: (req: IncomingMessage, res: ServerResponse) => boolean | Promise<boolean>; openMountResource?: (mount: MountResourceContext) => Promise<MountResource> }) {
   const browserURL = options.browserOrigin ? new URL(options.browserOrigin) : undefined;
   if (browserURL && (browserURL.protocol !== 'https:' || browserURL.origin !== options.browserOrigin || browserURL.username || browserURL.password)) throw new Error('browserOrigin must be an exact HTTPS origin.');
   const stateDir = resolve(options.stateDir), workspace = join(stateDir, 'workspace');
@@ -103,7 +104,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
   let interactions: ReturnType<typeof createInteractions>;
   const active = (mount: Mount) => mount.status === 'ready' || mount.status === 'preparing';
   const dependencies = scopedDependencies(source => registry.mounts.some(mount => mount.source === source && active(mount)));
-  const view = (mount: Mount) => ({ ...mount, previewUrl: mount.status === 'ready' ? `${origin}/n/${mount.namespace}/${mount.name}/` : undefined });
+  const view = (mount: Mount) => ({ ...mount, previewUrl: mount.status === 'ready' ? `${options.browserOrigin ?? origin}${mount.publicPath ?? `/n/${mount.namespace}/${mount.name}`}/` : undefined });
   const allowedFile = (path: string) => inside(workspace, path) || inside(join(experimentRoot, 'node_modules'), path) || registry.mounts.some(mount => active(mount) && inside(mount.source, path));
   function removeLink(mount: Mount) {
     const link = mountPath(mount);
@@ -126,6 +127,20 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       }
     }
     visit(directory);
+    mount.pages = {};
+    if (manifest.routes !== undefined) {
+      if (typeof manifest.routes !== 'string') throw new InputError('routes must name a source-relative directory.');
+      const routeRoot = realpathSync(resolve(mount.source, manifest.routes));
+      if (!inside(mount.source, routeRoot)) throw new InputError('Routes must be within the mounted source.');
+      for (const component of components) {
+        const path = relative(routeRoot, resolve(mount.source, component)).split(sep).join('/');
+        if (path === '+page.svelte' || path.endsWith('/+page.svelte')) {
+          const route = path === '+page.svelte' ? '' : path.slice(0, -'/+page.svelte'.length);
+          if (route && !route.split('/').every(part => /^[a-z0-9][a-z0-9-]*$/.test(part))) throw new InputError('Only static lowercase page route segments are supported.');
+          mount.pages[route] = component;
+        }
+      }
+    }
     mount.components = components.sort(); mount.props = manifest.props ?? {};
     if (!mount.props || typeof mount.props !== 'object' || Array.isArray(mount.props)) throw new InputError('props must map component paths to JSON objects.');
     save();
@@ -168,6 +183,12 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       if (code !== 0) throw new Error(`Dependency installation failed (${code}). Inspect mount logs. Existing lockfiles are frozen.`);
       if (closing) throw new Error('Server is closing.');
       phase(mount, 'preparing');
+      if (options.resolveMountPath && existsSync(join(mount.projectRoot, 'artifact.project.json'))) {
+        const publicPath = mount.publicPath ?? await options.resolveMountPath(mount);
+        if (!/^\/workspace\/[a-z0-9-]+\/[a-z0-9-]+\/[a-z0-9-]+$/.test(publicPath)) throw new InputError('Invalid readable mount path.');
+        if (registry.mounts.some(other => other !== mount && other.publicPath === publicPath)) throw new InputError('Readable mount path already belongs to another mount.', 409);
+        mount.publicPath = publicPath;
+      }
       scan(mount);
       const link = mountPath(mount); mkdirSync(join(workspace, 'mounts', mount.namespace), { recursive: true });
       if (existsSync(link) || (() => { try { lstatSync(link); return true; } catch { return false; } })()) removeLink(mount);
@@ -251,7 +272,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
     const value = id.replace(/^\0/, '').slice(virtualPrefix.length);
     const [namespace, name, ...component] = value.split('/');
     const record = find(slug(namespace), slug(name));
-    const path = component.join('/').replace(/\.entry\.js$/, '');
+    const path = decodeURIComponent(component.join('/').replace(/\.entry\.js$/, ''));
     if (!active(record) || !record.components.includes(path)) throw new InputError('Component is not mounted.', 404);
     return { record, path };
   }
@@ -298,19 +319,22 @@ export async function startSingleton(options: { stateDir: string; port?: number;
     }
     if (await options.application?.(req, res)) return;
     if (req.method !== 'GET' && req.method !== 'HEAD') throw new InputError('Method not allowed.', 405);
+    const readable = registry.mounts.find(record => record.publicPath && (url.pathname === record.publicPath || url.pathname.startsWith(record.publicPath + '/')));
     const catalog = /^\/n\/([a-z0-9-]+)\/([a-z0-9-]+)\/?$/.exec(url.pathname);
-    if (catalog) {
-      const record = find(catalog[1]!, catalog[2]!);
+    if (readable || catalog) {
+      const record = readable ?? find(catalog![1]!, catalog![2]!);
       if (record.status !== 'ready') throw new InputError('Mount is not ready.', 404);
-      const component = url.searchParams.get('component');
+      const route = readable ? url.pathname.slice(record.publicPath!.length).replace(/^\/|\/$/g, '') : undefined;
+      const component = readable ? record.pages?.[route!] ?? null : url.searchParams.get('component');
+      if (readable && route && !component) throw new InputError('Unknown page.', 404);
       if (component && !record.components.includes(component)) throw new InputError('Unknown component.', 404);
       const requestId = url.searchParams.get('request');
       if (requestId) interactions.checkPage(requestId, record.namespace, record.name, component ?? '');
       const context = JSON.stringify({ interactionBase: `/api/n/${record.namespace}/${record.name}/requests/`, namespace: record.namespace, name: record.name, source: record.source, component, props: component ? record.props[component] ?? {} : {} }).replaceAll('<', '\\u003c');
       const client = `<script id="artifact-preview-context" type="application/json">${context}</script><script type="module" src="/@id/__x00__virtual:surface-preview"></script>`;
       const html = component
-        ? `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHTML(component)}</title></head><body>${client}<div id="app"></div><script type="module" src="/@id/__x00__${virtualPrefix}${record.namespace}/${record.name}/${component.split('/').map(encodeURIComponent).join('/')}.entry.js"></script></body></html>`
-        : `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHTML(record.namespace + '/' + record.name)}</title></head><body>${client}<h1>${escapeHTML(record.namespace + '/' + record.name)}</h1><ul data-artifact-catalog>${record.components.map(path => `<li><a href="?component=${encodeURIComponent(path)}">${escapeHTML(path)}</a></li>`).join('')}</ul><script type="module" src="/@vite/client"></script></body></html>`;
+        ? `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHTML(readable ? route || 'Home' : component)}</title></head><body>${client}<div id="app"></div><script type="module" src="/@id/__x00__${virtualPrefix}${record.namespace}/${record.name}/${component.split('/').map(encodeURIComponent).join('/')}.entry.js"></script></body></html>`
+        : `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHTML(record.publicPath ?? record.namespace + '/' + record.name)}</title></head><body>${client}<h1>${escapeHTML(record.publicPath ?? record.namespace + '/' + record.name)}</h1><ul data-artifact-catalog>${readable ? Object.keys(record.pages ?? {}).map(route => `<li><a href="${record.publicPath}/${route}">${escapeHTML(route || 'Home')}</a></li>`).join('') : record.components.map(path => `<li><a href="?component=${encodeURIComponent(path)}">${escapeHTML(path)}</a></li>`).join('')}</ul><script type="module" src="/@vite/client"></script></body></html>`;
       res.writeHead(200, { 'content-type': 'text/html', 'cache-control': 'no-store' });
       res.end(await vite.transformIndexHtml(url.pathname, html)); return;
     }

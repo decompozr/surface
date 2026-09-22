@@ -61,9 +61,9 @@ bun src/cli/index.ts project list --state-dir /tmp/surface-app-development
 bun src/cli/index.ts project mount --artifact ARTIFACT_UUID --state-dir /tmp/surface-app-development
 ```
 
-Use the artifact ID returned by `list`. Open the mounted preview URL and select `src/Counter.svelte`. Counter and draft state survive component HMR through explicit `previewState` stores. The source has a pinned Svelte dependency and frozen Bun lockfile; installation scripts are disabled during mount preparation.
+Use the artifact ID returned by `list`. Open the mounted preview URL and select `routes/counter/+page.svelte`. Counter and draft state survive component HMR through explicit `previewState` stores. The source has a pinned Svelte dependency and frozen Bun lockfile; installation scripts are disabled during mount preparation.
 
-`src/Feedback.svelte` requires an interaction request URL with a capability, as described below. A plain catalog link does not bind it to an agent conversation.
+`routes/feedback/+page.svelte` requires an interaction request URL with a capability, as described below. A plain catalog link does not bind it to an agent conversation.
 
 To unmount, use `project unmount --artifact ARTIFACT_UUID` with the same state selection. Unmount revokes future preview/source requests and preserves source; it does not erase code already loaded into an open browser document.
 
@@ -88,11 +88,11 @@ Run `bun run verify:workspaces` to exercise two disposable real Git worktrees, n
 
 The host forwards an optional typed `AgentAdapter` to the existing interaction service. The normal entry point uses the existing Codex adapter; automated checks inject a fixture adapter and never contact a live conversation. A request binds a mounted component to an exact project root and conversation, validates submitted JSON against its schema, and lets the bound agent publish a result back to the page.
 
-The project-owned examples include `src/Feedback.svelte` and `feedback.schema.json`. For an explicitly selected conversation, use the existing development CLI (from the repository root):
+The project-owned examples include `routes/feedback/+page.svelte` and `feedback.schema.json`. For an explicitly selected conversation, use the existing development CLI (from the repository root):
 
 ```sh
 bun experiments/singleton/cli.ts bind --project /absolute/project-root --thread EXACT_THREAD_ID --socket /absolute/control.sock --state-dir /tmp/surface-app-development
-bun experiments/singleton/cli.ts request --binding BINDING_ID --namespace WORKSPACE_NAMESPACE --name MOUNT_NAME --component src/Feedback.svelte --title 'Choose a label' --schema-file examples/feedback.schema.json --state-dir /tmp/surface-app-development
+bun experiments/singleton/cli.ts request --binding BINDING_ID --namespace WORKSPACE_NAMESPACE --name MOUNT_NAME --component routes/feedback/+page.svelte --title 'Choose a label' --schema-file examples/feedback.schema.json --state-dir /tmp/surface-app-development
 ```
 
 Open the returned `previewUrl`. Opening or editing the form sends no agent message; pressing **Send feedback** submits `{ "label": "..." }`. The request capability cannot publish agent results or cross workspace namespaces. The agent receives the request/response identity and an explicit result command targeting this state directory:
@@ -119,3 +119,11 @@ tailscale serve --bg --https=8463 http://127.0.0.1:4319
 Choose an unused Serve port. This is a tailnet-only mapping, not a public Funnel. The runtime accepts the exact configured browser host/origin alongside loopback; Vite allows that hostname and HMR uses the browser's secure WebSocket connection. The management connection file remains loopback-only and management APIs still require their token. Existing mounts and request URLs can be opened by replacing the loopback origin with the configured HTTPS origin, retaining the path, query and fragment.
 
 To remove this mapping only: `tailscale serve --https=8463 off`. Other Serve/Funnel routes are unaffected. This does not install an auto-start system service.
+
+## Readable mounted page routes
+
+The app exposes `/workspace/{project-name}/{worktree-name}/{mounted-folder}/{page}`. For this checkout, `/workspace/surface/main/examples/counter` renders `examples/routes/counter/+page.svelte`; `/workspace/surface/main/examples/` lists the available pages. No component filename query is needed.
+
+Project names and folder names become lowercase URL slugs. The primary checkout is `main`; linked worktrees use their folder name. The alias is captured on first mount and persisted with the internal UUID binding, so branch switches and restarts do not rename URLs. Collisions are rejected, including aliases reserved by unmounted records. Explicit alias renaming is not yet implemented.
+
+The source manifest declares `"components": "routes", "routes": "routes"`. Static nested paths and a root `+page.svelte` are supported. This is mounted Svelte page discovery, not full SvelteKit routing: layouts, dynamic parameters, server load functions and form actions are not implemented. Legacy `/n/` component previews remain available for existing clients. Interaction URLs use the readable page path plus request identity/capability; the internal API remains UUID-scoped.

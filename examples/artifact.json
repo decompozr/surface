@@ -1,4 +1,5 @@
 {
   "framework": "svelte",
-  "components": "src"
+  "components": "routes",
+  "routes": "routes"
 }

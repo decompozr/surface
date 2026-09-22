@@ -54,7 +54,7 @@ try {
   const main = await project(f.main, 'mount'), linked = await project(f.linked, 'mount');
   const binding = await api('/api/bindings', { projectRoot: f.main, threadId: 'fixture-main', socketPath });
   const schema = JSON.parse(readFileSync(join(f.main, 'ui/feedback.schema.json'), 'utf8'));
-  const requestInput = { bindingId: binding.id, namespace: main.namespace, name: main.name, component: 'src/Feedback.svelte', title: 'Choose a label', schema };
+  const requestInput = { bindingId: binding.id, namespace: main.namespace, name: main.name, component: 'routes/feedback/+page.svelte', title: 'Choose a label', schema };
   assert.equal((await raw('/api/requests', { ...requestInput, namespace: linked.namespace })).status, 400);
   const request = await api('/api/requests', requestInput);
   const scope = `/api/n/${main.namespace}/${main.name}/requests/${request.id}`;

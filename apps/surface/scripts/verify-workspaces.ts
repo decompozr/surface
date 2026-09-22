@@ -24,8 +24,12 @@ try {
   assert.equal(ledger.snapshot().projects.length, 1);
   const a = ledger.get(main.data.workspaceId), b = ledger.get(linked.data.workspaceId);
   assert.notEqual(a.namespace, b.namespace);
-  assert.equal((await project(f.main, 'mount')).ok, true);
-  assert.equal((await project(f.linked, 'mount')).ok, true);
+  const mainMount = await project(f.main, 'mount');
+  assert.equal(mainMount.ok, true);
+  assert.equal(new URL(mainMount.data.previewUrl).pathname, '/workspace/app-fixture/main/ui/');
+  const linkedMount = await project(f.linked, 'mount');
+  assert.equal(linkedMount.ok, true);
+  assert.equal(new URL(linkedMount.data.previewUrl).pathname, '/workspace/app-fixture/linked/ui/');
   await git(f.linked, 'branch', '-m', 'renamed-fixture');
   assert.equal((await project(f.linked, 'register')).data.workspaceId, b.id);
   await git(f.linked, 'checkout', '--detach', '-q');

@@ -8,7 +8,7 @@ import { CodexAdapter, type AgentAdapter } from '../../src/adapters/codex.ts';
 
 // Namespace paths scope capabilities and prevent accidental cross-mount routing.
 // They do not isolate hostile scripts sharing this server's browser origin.
-export type InteractionMount = { namespace: string; name: string; source: string; projectRoot: string; status: string; components: string[] };
+export type InteractionMount = { namespace: string; name: string; source: string; projectRoot: string; status: string; components: string[]; publicPath?: string; pages?: Record<string, string> };
 export function createInteractions(options: {
   stateDir: string; adapter?: AgentAdapter;
   find(namespace: string, name: string): InteractionMount;
@@ -61,8 +61,10 @@ export function createInteractions(options: {
         const scope: PreviewScope = { namespace: mount.namespace, name: mount.name, source: mount.source, projectRoot: mount.projectRoot, component };
         mounted(scope);
         const record = service.create(data, scope);
-        const preview = new URL(`/n/${mount.namespace}/${mount.name}/`, url.origin);
-        preview.searchParams.set('component', component); preview.searchParams.set('request', record.id);
+        const page = Object.entries(mount.pages ?? {}).find(([, file]) => file === component);
+        const preview = new URL(mount.publicPath && page ? `${mount.publicPath}/${page[0]}` : `/n/${mount.namespace}/${mount.name}/`, url.origin);
+        if (!mount.publicPath || !page) preview.searchParams.set('component', component);
+        preview.searchParams.set('request', record.id);
         preview.hash = new URLSearchParams({ token: record.token }).toString();
         json({ ...record, previewUrl: preview.href }, 201); return true;
       }

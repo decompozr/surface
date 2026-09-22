@@ -40,7 +40,7 @@ try {
   await shell.goto(app.origin);
   await expect(shell.getByRole('heading', { name: 'Surface', exact: true })).toBeVisible();
   await page.goto(mount.previewUrl);
-  await page.getByRole('link', { name: 'src/Counter.svelte' }).click();
+  await page.getByRole('link', { name: 'routes/counter/+page.svelte' }).click();
   await expect(page.getByRole('heading', { name: 'Shared runtime counter', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Count 0', exact: true }).click();
   await page.getByRole('textbox', { name: 'Draft' }).fill('Keep my draft');
@@ -49,7 +49,7 @@ try {
     Object.assign(window, { fixtureDocument: marker });
     return marker;
   });
-  const file = join(source, 'src/Counter.svelte');
+  const file = join(source, 'routes/counter/+page.svelte');
   writeFileSync(file, readFileSync(file, 'utf8').replace('Shared runtime counter', 'Updated runtime counter'));
   await expect(page.getByRole('heading', { name: 'Updated runtime counter', exact: true })).toBeVisible();
   assert.equal(await page.evaluate(() => (window as unknown as { fixtureDocument: string }).fixtureDocument), marker);
