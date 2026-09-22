@@ -2,6 +2,18 @@
 
 This experimental release supports **Apple Silicon Macs** (`uname -m` prints `arm64`). It includes Bun and the built application. You do not need to clone or build Surface. Git is required for the projects you register; check `git --version` first. Internet access may be needed when mounting a project's dependencies.
 
+## Clone and let your agent set it up
+
+You can clone this repository into a stable directory and tell your agent: “Read AGENTS.md, set up Surface, link its skill into your configured provider skills directory, and test it.” The source workflow needs Git and Bun at the exact version in `package.json`.
+
+```sh
+git clone https://github.com/decompozr/surface.git
+cd surface
+bun scripts/agent/setup.ts setup --skills-dir /absolute/provider/skills
+```
+
+The same entry provides `test` and `refresh`. See [agent setup](skills/surface/references/setup.md) for provider discovery, update behavior and acceptance gates. Skills are **symlinked to the checkout, never copied**. Keep that checkout in place.
+
 ## Download and install
 
 Download the `.tar.gz` and `.tar.gz.sha256` assets from [this release](https://github.com/decompozr/surface/releases/tag/v0.1.0-experiment.20260922.2) into the same directory. In Terminal:

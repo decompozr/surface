@@ -1,11 +1,15 @@
 ---
 name: surface
-description: Create and mount local interactive pages in a project with Surface, then return page input to the originating agent conversation and publish results. Use for agent-created local previews and forms with an existing Surface installation.
+description: Set up, test, and refresh Surface from a cloned checkout; create and mount project-owned interactive pages and return input to the originating agent conversation. Use for Surface installation and agent-created local previews or forms.
 ---
 
 # Surface
 
 Keep source, manifests and dependency lockfiles in the user's project. Use one shared Surface service with a separate workspace identity for each Git worktree. Bind interactions to the exact originating conversation and follow the result through to the page. Mounted source is trusted local Svelte code; a namespace is not a sandbox. Current workspace hosting requires Git-root projects, not arbitrary mounted applications or SSR.
+
+## Setup, test, or refresh
+
+For installation or updates, read [agent setup](references/setup.md). Use the explicit provider skills directory and a symlink to this checkout’s entire `skills/surface` directory. Never copy the skill into a provider folder. Preserve foreign or broken links and existing directories; report conflicts. Refresh means updating an intentionally selected checkout, testing it, and refreshing the selected installation. It does not authorize unrelated Git changes or service migration.
 
 ## Select the existing service
 
