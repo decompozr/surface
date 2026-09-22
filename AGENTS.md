@@ -2,7 +2,7 @@
 
 Read `SETUP.md` for user installation and `skills/surface/references/setup.md` for the agent-managed source workflow.
 
-When asked to setup this clone, use `bun scripts/agent/setup.ts setup --skills-dir PROVIDER_SKILLS_DIRECTORY`. Discover the actual provider directory; do not copy skills. Keep its `surface` entry as a symlink to this checkout's `skills/surface` directory. Preserve existing directories and foreign/broken links. The command supports `test` and `refresh`, plus explicit `--home`/`--port` selection.
+When asked to setup this clone, use `./bin/setup --skills-dir PROVIDER_SKILLS_DIRECTORY`. Discover the actual provider directory; do not copy skills. Keep its `surface` entry as a symlink to this checkout's `skills/surface` directory. Preserve existing directories and foreign/broken links. The command supports `test` and `refresh`, plus explicit `--home`/`--port` selection.
 
 The source workflow requires Git and the exact Bun version in `package.json`. It installs committed HEAD; preserve user changes and never commit, reset, switch branches or pull solely to make an installer pass without task authorization. An update request permits inspecting/fetching and a fast-forward of the intended upstream; divergence requires reconciliation.
 
