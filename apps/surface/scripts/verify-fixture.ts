@@ -9,7 +9,7 @@ import { startSurfaceApp } from '../server/host.ts';
 const temporary = realpathSync(mkdtempSync(join(tmpdir(), 'surface-app-fixture-')));
 const stateDir = join(temporary, 'state');
 const source = join(temporary, 'counter');
-cpSync(join(import.meta.dir, '../fixtures/counter'), source, {
+cpSync(join(import.meta.dir, '../../../examples'), source, {
   recursive: true, filter: path => !path.split('/').includes('node_modules'),
 });
 let app: Awaited<ReturnType<typeof startSurfaceApp>> | undefined;

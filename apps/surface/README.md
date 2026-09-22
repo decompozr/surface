@@ -15,7 +15,7 @@ bun run check
 bun run dev --state-dir /tmp/surface-app-development
 ```
 
-`dev` builds the SvelteKit shell, then starts the combined host. The shell uses its built handler rather than a second development server. Rebuild/restart after shell changes; the component compiler is a live Vite middleware instance. The fixed counter fixture below exercises mounting and component HMR.
+`dev` builds the SvelteKit shell, then starts the combined host. The shell uses its built handler rather than a second development server. Rebuild/restart after shell changes; the component compiler is a live Vite middleware instance. The project-owned counter example below exercises mounting and component HMR.
 
 To start an already-built app:
 
@@ -51,24 +51,23 @@ bun run test
 
 The root CLI, existing experiments and shared installation are unchanged. This is a development implementation slice, not a production deployment.
 
-## Mount the fixed fixture
+## Mount this project's examples
 
-With the app running and from the repository root, use the existing development CLI against the same explicit state directory:
-
-```sh
-bun experiments/singleton/cli.ts namespace fixture --state-dir /tmp/surface-app-development
-bun experiments/singleton/cli.ts mount apps/surface/fixtures/counter --namespace fixture --name counter --state-dir /tmp/surface-app-development
-```
-
-Open the returned `previewUrl`, then select `src/Counter.svelte`. Increment the counter and enter a draft. Editing the component heading should update the open page without reloading it; `previewState` explicitly preserves the counter and draft across component replacement. The fixture has a pinned Svelte dependency and frozen Bun lockfile. Mount preparation installs dependencies with lifecycle scripts disabled.
+The source lives at root `examples/` in this Git project. `dev` and `start` automatically register this checkout and mount that source before reporting readiness. The returned startup JSON includes `previewUrl`. `artifact.project.json` records it as a project-owned Surface. The app does not contain a separate copy of the example pages. From the repository root, with this app running:
 
 ```sh
-bun experiments/singleton/cli.ts unmount --namespace fixture --name counter --state-dir /tmp/surface-app-development
+bun src/cli/index.ts project register --state-dir /tmp/surface-app-development
+bun src/cli/index.ts project list --state-dir /tmp/surface-app-development
+bun src/cli/index.ts project mount --artifact ARTIFACT_UUID --state-dir /tmp/surface-app-development
 ```
 
-Unmount revokes future preview and source requests and removes the mount symlink, while retaining the project source. It does not erase code already loaded into an open browser document.
+Use the artifact ID returned by `list`. Open the mounted preview URL and select `src/Counter.svelte`. Counter and draft state survive component HMR through explicit `previewState` stores. The source has a pinned Svelte dependency and frozen Bun lockfile; installation scripts are disabled during mount preparation.
 
-From `apps/surface`, run `bun run verify:fixture` for the automated Chrome check (requires local Google Chrome and root dependencies). It mounts a temporary fixture copy on an ephemeral port, verifies interaction and HMR with retained state, then checks unmount revocation and continued SvelteKit health. The browser, host and temporary directory are cleaned up afterward. No shared installation or agent conversation is contacted.
+`src/Feedback.svelte` requires an interaction request URL with a capability, as described below. A plain catalog link does not bind it to an agent conversation.
+
+To unmount, use `project unmount --artifact ARTIFACT_UUID` with the same state selection. Unmount revokes future preview/source requests and preserves source; it does not erase code already loaded into an open browser document.
+
+`bun run verify:fixture` (from `apps/surface`) copies the project-owned examples to a disposable directory and verifies Chrome interaction, HMR and unmount. Tests never edit or unmount the project's live example source. The examples are tracked; service state, credentials and installed dependencies remain ignored.
 
 ## Project and workspace identity
 
@@ -89,11 +88,11 @@ Run `bun run verify:workspaces` to exercise two disposable real Git worktrees, n
 
 The host forwards an optional typed `AgentAdapter` to the existing interaction service. The normal entry point uses the existing Codex adapter; automated checks inject a fixture adapter and never contact a live conversation. A request binds a mounted component to an exact project root and conversation, validates submitted JSON against its schema, and lets the bound agent publish a result back to the page.
 
-The fixed source includes `src/Feedback.svelte` and `feedback.schema.json`. For an explicitly selected conversation, use the existing development CLI (from the repository root):
+The project-owned examples include `src/Feedback.svelte` and `feedback.schema.json`. For an explicitly selected conversation, use the existing development CLI (from the repository root):
 
 ```sh
 bun experiments/singleton/cli.ts bind --project /absolute/project-root --thread EXACT_THREAD_ID --socket /absolute/control.sock --state-dir /tmp/surface-app-development
-bun experiments/singleton/cli.ts request --binding BINDING_ID --namespace WORKSPACE_NAMESPACE --name MOUNT_NAME --component src/Feedback.svelte --title 'Choose a label' --schema-file apps/surface/fixtures/counter/feedback.schema.json --state-dir /tmp/surface-app-development
+bun experiments/singleton/cli.ts request --binding BINDING_ID --namespace WORKSPACE_NAMESPACE --name MOUNT_NAME --component src/Feedback.svelte --title 'Choose a label' --schema-file examples/feedback.schema.json --state-dir /tmp/surface-app-development
 ```
 
 Open the returned `previewUrl`. Opening or editing the form sends no agent message; pressing **Send feedback** submits `{ "label": "..." }`. The request capability cannot publish agent results or cross workspace namespaces. The agent receives the request/response identity and an explicit result command targeting this state directory:

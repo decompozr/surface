@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "surface-counter-fixture",
+      "name": "surface-project-examples",
       "dependencies": {
         "svelte": "5.57.1",
       },

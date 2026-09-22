@@ -10,7 +10,8 @@
     "test": "bun run build && bun test server/host.test.ts",
     "verify:fixture": "bun run build && bun scripts/verify-fixture.ts",
     "verify:workspaces": "bun run build && bun scripts/verify-workspaces.ts",
-    "verify:interactions": "bun run build && bun scripts/verify-interactions.ts"
+    "verify:interactions": "bun run build && bun scripts/verify-interactions.ts",
+    "verify:examples": "bun run build && bun scripts/verify-default-examples.ts"
   },
   "dependencies": {
     "@sveltejs/adapter-node": "5.5.7",
