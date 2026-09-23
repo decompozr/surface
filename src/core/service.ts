@@ -28,6 +28,7 @@ export const feedbackSchema = {
 };
 
 export class Service {
+  private pending = new Set<string>();
   constructor(public store: Store, private adapter: AgentAdapter, private cliPath: string, private stateDir?: string) {}
   async bind(input: unknown) {
     const data = object(input);
@@ -57,7 +58,7 @@ export class Service {
       id: crypto.randomUUID(), bindingId, title: text(data.title, 'title', 200),
       runtimeId: data.runtimeId === undefined ? undefined : text(data.runtimeId, 'runtime ID'),
       previewPath: data.previewPath === undefined ? undefined : text(data.previewPath, 'preview path'),
-      previewScope, schema, token: randomBytes(32).toString('hex'), createdAt: new Date().toISOString(), closed: false,
+      recipientSelection: data.recipientSelection === true, previewScope, schema, token: randomBytes(32).toString('hex'), createdAt: new Date().toISOString(), closed: false,
     };
     return this.store.update(state => { state.requests.push(record); return record; });
   }
@@ -71,8 +72,47 @@ export class Service {
     return record;
   }
   close(id: string) {
+    if (this.pending.has(id)) throw new InputError('Interaction operation in progress.', 409);
     this.get(id);
     this.store.update(state => { state.requests.find(item => item.id === id)!.closed = true; });
+  }
+  async directory(id: string) {
+    const request = this.get(id);
+    if (!request.recipientSelection) throw new InputError('Recipient selection was not enabled for this request.', 403);
+    const binding = this.store.state.bindings.find(item => item.id === request.bindingId)!;
+    if (this.adapter.discover) return this.adapter.discover(binding);
+    const worktree = await Promise.all(this.store.state.bindings.filter(item => item.projectRoot === binding.projectRoot && item.socketPath === binding.socketPath).map(async item => ({
+      id: item.threadId, title: item.threadId, provider: 'Bound conversation', workspaceId: item.projectRoot, projectRoot: item.projectRoot,
+      status: (await this.adapter.inspect(item)).status,
+    })));
+    return { available: true, worktree, project: [], checkedAt: new Date().toISOString() };
+  }
+  async takeOver(id: string, input: unknown, revalidate: () => void = () => {}) {
+    if (this.pending.has(id)) throw new InputError('Interaction operation in progress.', 409);
+    this.pending.add(id);
+    try {
+      const old = this.get(id);
+      if (old.response) throw new InputError('Reconcile the submitted request before starting another interaction.', 409);
+      if (old.closed) throw new InputError('This request is closed.', 409);
+      const threadId = text(object(input).threadId, 'thread ID');
+      const directory = await this.directory(id);
+      if (!directory.worktree.some(row => row.id === threadId)) throw new InputError('Recipient must belong to this exact worktree.', 409);
+      const previous = this.store.state.bindings.find(item => item.id === old.bindingId)!;
+      const binding = this.store.state.bindings.find(item => item.threadId === threadId && item.projectRoot === previous.projectRoot && item.socketPath === previous.socketPath)
+        ?? { ...previous, id: crypto.randomUUID(), threadId };
+      const { status } = await this.adapter.inspect(binding);
+      if (!['active', 'idle', 'notLoaded'].includes(status)) throw new InputError('New recipient is unavailable.', 409);
+      revalidate();
+      const next: RequestRecord = { ...old, id: crypto.randomUUID(), bindingId: binding.id, token: randomBytes(32).toString('hex'), createdAt: new Date().toISOString(), closed: false, replaces: id, replacedBy: undefined, response: undefined, result: undefined };
+      // One atomic store replacement owns both lifecycle changes and the new binding.
+      this.store.update(state => {
+        if (!state.bindings.some(item => item.id === binding.id)) state.bindings.push(binding);
+        const current = state.requests.find(item => item.id === id)!;
+        current.closed = true; current.replacedBy = next.id;
+        state.requests.push(next);
+      });
+      return next;
+    } finally { this.pending.delete(id); }
   }
   async recipient(id: string) {
     const request = this.get(id);
@@ -82,7 +122,7 @@ export class Service {
       return { threadId: binding.threadId, ...state, canSubmit: !request.closed && !request.response && ['active', 'idle', 'notLoaded'].includes(state.status) };
     } catch { return { threadId: binding.threadId, status: 'unknown', canSubmit: false }; }
   }
-  async submit(id: string, input: unknown) {
+  async submit(id: string, input: unknown, revalidate: () => void = () => {}) {
     const body = object(input);
     const responseId = text(body.responseId, 'response ID', 100);
     const data = object(body.data);
@@ -94,14 +134,26 @@ export class Service {
       throw new InputError('This request already has a submission. Create a new request for another response.', 409);
     }
     if (request.closed) throw new InputError('This request is closed.', 409);
+    if (this.pending.has(id)) throw new InputError('Interaction operation in progress. Inspect the existing request.', 409);
     const validate = ajv.compile(request.schema);
     if (!validate(data)) throw new InputError('Response does not match the request schema: ' + ajv.errorsText(validate.errors));
     const binding = this.store.state.bindings.find(item => item.id === request.bindingId)!;
-    this.store.update(state => {
+    this.pending.add(id);
+    try {
+      let observed;
+      try { observed = await this.adapter.inspect(binding); }
+      catch { throw new InputError('Recipient unavailable. Draft was not submitted.', 409); }
+      if (!['active', 'idle', 'notLoaded'].includes(observed.status)) throw new InputError('Recipient unavailable. Draft was not submitted.', 409);
+      if (delivery && (observed.status !== delivery.expectedStatus || (delivery.expectedTurnId && observed.turnId !== delivery.expectedTurnId))) throw new InputError('Recipient state changed. Refresh and confirm delivery mode again.', 409);
+      if (observed.status === 'active' && (!delivery || !['queue', 'steer'].includes(delivery.mode))) throw new InputError('Choose queue or steer explicitly for an active recipient.', 409);
+      if (delivery && ((observed.status === 'active') !== (delivery.mode !== 'start') || (delivery.mode === 'steer' && !delivery.expectedTurnId))) throw new InputError('Confirm delivery mode and active turn again.', 409);
+      revalidate();
+      this.store.update(state => {
       state.requests.find(item => item.id === id)!.response = {
         id: responseId, data, delivery, createdAt: new Date().toISOString(), status: 'delivering',
       };
     });
+    } finally { this.pending.delete(id); }
     const quote = (value: string) => "'" + value.replaceAll("'", "'\"'\"'") + "'";
     const stateOption = this.stateDir ? ` --state-dir ${quote(this.stateDir)}` : '';
     const message = [

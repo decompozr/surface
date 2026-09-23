@@ -6,6 +6,7 @@ import type { Binding, Receipt, DeliveryIntent } from '../adapters/codex.ts';
 export type PreviewScope = { namespace: string; name: string; source: string; projectRoot: string; component: string };
 export type RequestRecord = {
   id: string; bindingId: string; title: string; token: string; schema: Record<string, unknown>;
+  recipientSelection?: boolean; replaces?: string; replacedBy?: string;
   previewScope?: PreviewScope; runtimeId?: string; previewPath?: string; createdAt: string; closed: boolean; response?: ResponseRecord; result?: Record<string, unknown>;
 };
 export type ResponseRecord = {

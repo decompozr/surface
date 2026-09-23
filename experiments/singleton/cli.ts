@@ -6,7 +6,7 @@ import { startSingleton } from './server.ts';
 const args = process.argv.slice(2);
 const { values, positionals, tokens } = parseArgs({ args, tokens: true, allowPositionals: true, options: {
   project: { type: 'string' }, thread: { type: 'string' }, socket: { type: 'string' }, binding: { type: 'string' }, title: { type: 'string' }, component: { type: 'string' },
-  'schema-file': { type: 'string' }, request: { type: 'string' }, data: { type: 'string' }, 'response-id': { type: 'string' },
+  'allow-recipient-selection': { type: 'boolean' }, 'schema-file': { type: 'string' }, request: { type: 'string' }, data: { type: 'string' }, 'response-id': { type: 'string' },
   'state-dir': { type: 'string' }, port: { type: 'string' }, namespace: { type: 'string' }, name: { type: 'string' }, help: { type: 'boolean' },
 } });
 const stateDir = resolve(values['state-dir'] ?? join(import.meta.dir, '../../.decompozr/surface/singleton'));
@@ -43,7 +43,7 @@ Svelte 5.57.1 components only; experimental development compilation, not product
     if (base.protocol !== 'http:' || base.hostname !== '127.0.0.1') throw new Error('Expected a local connection.');
     let path: string, data: unknown;
     switch (command) {
-      case 'request': path = '/api/requests'; data = { bindingId: values.binding, title: values.title, namespace: values.namespace, name: values.name, component: values.component, schema: values['schema-file'] ? JSON.parse(readFileSync(resolve(values['schema-file']), 'utf8')) : undefined }; break;
+      case 'request': path = '/api/requests'; data = { recipientSelection: values['allow-recipient-selection'] === true, bindingId: values.binding, title: values.title, namespace: values.namespace, name: values.name, component: values.component, schema: values['schema-file'] ? JSON.parse(readFileSync(resolve(values['schema-file']), 'utf8')) : undefined }; break;
       case 'namespace': path = '/api/namespaces'; data = { name: argument }; break;
       case 'mount': if (!argument) throw new Error('Expected source directory.'); path = '/api/mounts'; data = { namespace: values.namespace, name: values.name, source: resolve(argument), projectRoot: values.project ? resolve(values.project) : undefined }; break;
       case 'unmount': path = '/api/unmount'; data = { namespace: values.namespace, name: values.name }; break;

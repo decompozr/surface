@@ -13,6 +13,8 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 
 const compilerVersion = '5.57.1';
 const experimentRoot = import.meta.dir;
+const sharedUI = resolve(experimentRoot, '../../apps/surface/src/lib/components');
+const browserClient = resolve(experimentRoot, '../../src/client');
 type Phase = 'registered' | 'installing' | 'preparing' | 'ready' | 'failed' | 'unmounted';
 type Mount = {
   namespace: string; name: string; source: string; projectRoot: string; status: Phase; components: string[];
@@ -105,7 +107,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
   const active = (mount: Mount) => mount.status === 'ready' || mount.status === 'preparing';
   const dependencies = scopedDependencies(source => registry.mounts.some(mount => mount.source === source && active(mount)));
   const view = (mount: Mount) => ({ ...mount, previewUrl: mount.status === 'ready' ? `${options.browserOrigin ?? origin}${mount.publicPath ?? `/n/${mount.namespace}/${mount.name}`}/` : undefined });
-  const allowedFile = (path: string) => inside(workspace, path) || inside(join(experimentRoot, 'node_modules'), path) || registry.mounts.some(mount => active(mount) && inside(mount.source, path));
+  const allowedFile = (path: string) => inside(sharedUI, path) || inside(browserClient, path) || inside(workspace, path) || inside(join(experimentRoot, 'node_modules'), path) || registry.mounts.some(mount => active(mount) && inside(mount.source, path));
   function removeLink(mount: Mount) {
     const link = mountPath(mount);
     try { if (!lstatSync(link).isSymbolicLink()) throw new Error('Refusing to remove a non-symlink mount.'); unlinkSync(link); }
@@ -282,7 +284,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
     name: 'surface-singleton-components',
     resolveId(id) {
       // Both names resolve to one module identity so compatibility imports share preview state.
-      if (id === 'virtual:artifact-client') return '\0virtual:surface-client';
+      if (id === 'virtual:artifact-client' || id === 'virtual:surface-client') return join(browserClient, 'index.ts');
       if (id === 'virtual:artifact-preview') return '\0virtual:surface-preview';
       if (id === 'virtual:surface-client' || id === 'virtual:surface-preview') return '\0' + id;
       if (id.startsWith(virtualPrefix)) { parseVirtual(id); return '\0' + id; }
@@ -292,7 +294,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       if (id === '\0virtual:surface-preview') return readFileSync(join(experimentRoot, 'preview-client.js'), 'utf8');
       if (!id.startsWith('\0' + virtualPrefix)) return;
       const { record, path } = parseVirtual(id);
-      return `import { mount } from 'svelte'; import { previewProps } from 'virtual:surface-preview'; import Component from ${JSON.stringify(`/mounts/${record.namespace}/${record.name}/${path}`)}; mount(Component, {target:document.getElementById('app'), props:previewProps()});`;
+      return `import { mount } from 'svelte'; import RecipientPanel from ${JSON.stringify(join(sharedUI, 'RecipientPanel.svelte'))}; mount(RecipientPanel, {target:document.getElementById('surface-recipient')}); import { previewProps } from 'virtual:surface-preview'; import Component from ${JSON.stringify(`/mounts/${record.namespace}/${record.name}/${path}`)}; mount(Component, {target:document.getElementById('app'), props:previewProps()});`;
     },
   };
   const http = createHTTPServer((req, res) => { void handle(req, res).catch(error => { if (!res.headersSent) json(res, { error: error instanceof Error ? error.message : String(error) }, error instanceof InputError ? error.status : 500); else res.end(); }); });
@@ -336,7 +338,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       const context = JSON.stringify({ interactionBase: `/api/n/${record.namespace}/${record.name}/requests/`, namespace: record.namespace, name: record.name, source: record.source, component, props: component ? record.props[component] ?? {} : {} }).replaceAll('<', '\\u003c');
       const client = `<script id="artifact-preview-context" type="application/json">${context}</script><script type="module" src="/@id/__x00__virtual:surface-preview"></script>`;
       const html = component
-        ? `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHTML(readable ? route || 'Home' : component)}</title></head><body>${client}<div id="app"></div><script type="module" src="/@id/__x00__${virtualPrefix}${record.namespace}/${record.name}/${component.split('/').map(encodeURIComponent).join('/')}.entry.js"></script></body></html>`
+        ? `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHTML(readable ? route || 'Home' : component)}</title></head><body>${client}<div id="surface-recipient"></div><div id="app"></div><script type="module" src="/@id/__x00__${virtualPrefix}${record.namespace}/${record.name}/${component.split('/').map(encodeURIComponent).join('/')}.entry.js"></script></body></html>`
         : `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHTML(record.publicPath ?? record.namespace + '/' + record.name)}</title></head><body>${client}<h1>${escapeHTML(record.publicPath ?? record.namespace + '/' + record.name)}</h1><ul data-artifact-catalog>${pageRouting ? Object.keys(record.pages ?? {}).map(route => `<li><a href="${record.publicPath}/${route}">${escapeHTML(route || 'Home')}</a></li>`).join('') : record.components.map(path => `<li><a href="?component=${encodeURIComponent(path)}">${escapeHTML(path)}</a></li>`).join('')}</ul><script type="module" src="/@vite/client"></script></body></html>`;
       res.writeHead(200, { 'content-type': 'text/html', 'cache-control': 'no-store' });
       res.end(await vite.transformIndexHtml(url.pathname, html)); return;
@@ -366,7 +368,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       plugins: [dependencies.plugin, plugin, svelte({ configFile: false, prebundleSvelteLibraries: false })],
       resolve: { preserveSymlinks: false },
       optimizeDeps: { noDiscovery: true, include: [], exclude: ['svelte'] },
-      server: { allowedHosts: browserURL ? [browserURL.hostname] : [], middlewareMode: true, hmr: { server: http, overlay: false }, fs: { strict: true, allow: [workspace, join(experimentRoot, 'node_modules')] } },
+      server: { allowedHosts: browserURL ? [browserURL.hostname] : [], middlewareMode: true, hmr: { server: http, overlay: false }, fs: { strict: true, allow: [workspace, sharedUI, browserClient, join(experimentRoot, 'node_modules')] } },
       logLevel: 'error',
     });
     vite.watcher.on('all', (event, file) => {

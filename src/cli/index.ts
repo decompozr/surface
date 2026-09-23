@@ -103,7 +103,7 @@ Migration without --apply prints a plan. Existing data requires explicit project
     case 'doctor': print({bun:Bun.version,home:installationHome(values.home),stateDir,service:await api(stateDir,'/api/health')});break;
     case 'access': print(await api(stateDir,'/project-db/access'));break;
     case 'bind': print(await api(stateDir,'/api/bindings',{projectRoot:await currentProject(values.project),threadId:required('thread'),socketPath:resolve(required('socket'))}));break;
-    case 'request': print(await api(stateDir,'/api/requests',{bindingId:required('binding'),namespace:required('namespace'),name:required('name'),component:required('component'),title:required('title'),schema:JSON.parse(readFileSync(resolve(required('schema-file')),'utf8'))}));break;
+    case 'request': print(await api(stateDir,'/api/requests',{recipientSelection:values['allow-recipient-selection']===true,bindingId:required('binding'),namespace:required('namespace'),name:required('name'),component:required('component'),title:required('title'),schema:JSON.parse(readFileSync(resolve(required('schema-file')),'utf8'))}));break;
     case 'list':case 'requests':print(await api(stateDir,'/api/requests'));break;
     case 'inspect': print(await api(stateDir,`/api/requests/${encodeURIComponent(required('request'))}`));break;
     case 'result':print(await api(stateDir,`/api/requests/${encodeURIComponent(required('request'))}/result`,JSON.parse(required('data'))));break;
