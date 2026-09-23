@@ -42,6 +42,17 @@
     enabled = true;
     try { client = createSurfaceClient(); void refresh(); }
     catch (cause) { error = String(cause); busy = false; }
+    const update = (event: Event) => {
+      const detail = (event as CustomEvent<{ requestId: string; interaction?: Interaction; error?: string }>).detail;
+      if (detail.requestId !== url.searchParams.get('request')) return;
+      if (detail.interaction) { request = detail.interaction; error = ''; }
+      else if (detail.error) {
+        error = detail.error;
+        if (/state changed|Recipient unavailable|Confirm delivery mode/.test(detail.error)) { mode = ''; client?.configureDelivery(); }
+      }
+    };
+    window.addEventListener('surface:submission', update);
+    return () => window.removeEventListener('surface:submission', update);
   });
 </script>
 

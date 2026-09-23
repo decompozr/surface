@@ -54,6 +54,8 @@ try {
   await page.getByRole('button', { name: 'Send feedback' }).click();
   await expect(page.getByRole('status')).toHaveText('accepted').catch(async error => { console.log(JSON.stringify(traces)); console.log('mode', await page.getByLabel('Delivery mode').inputValue()); console.log(await page.locator('body').innerText()); throw error; });
   assert.equal(deliveries[0].intent?.mode, 'queue');
+  await expect(page.getByRole('region', { name: 'Agent recipient' })).toContainText('Delivery: accepted · queue');
+  await expect(page.getByLabel('Delivery mode')).toHaveCount(0);
   const nextRequest = await api('/api/requests', input); await page.goto(nextRequest.previewUrl);
   await expect(page.getByLabel('Conversation in this worktree')).toBeEnabled();
   await page.getByLabel('Conversation in this worktree').selectOption('fixture-b');
@@ -65,7 +67,8 @@ try {
   active = false;
   await page.getByRole('textbox', { name: 'Feedback' }).fill('State changed');
   await page.getByRole('button', { name: 'Send feedback' }).click();
-  await expect(page.getByRole('alert')).toContainText('state changed');
+  await expect(page.getByRole('region', { name: 'Agent recipient' }).getByRole('alert')).toContainText('state changed');
+  await expect(page.getByLabel('Delivery mode')).toHaveValue('');
   assert.equal(deliveries.length, 1);
   const current = new URL(page.url()).searchParams.get('request');
   assert.equal((await api(`/api/requests/${current}`)).response, undefined);

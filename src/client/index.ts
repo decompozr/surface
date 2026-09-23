@@ -30,6 +30,7 @@ export function createSurfaceClient(options?: { api: string; requestId: string; 
       body: data === undefined ? undefined : JSON.stringify(data), signal: AbortSignal.timeout(90_000),
     });
     const result = await response.json();
+    if (path === '/responses') window.dispatchEvent(new CustomEvent('surface:submission', { detail: { requestId, ...(response.ok ? { interaction: result } : { error: result.error ?? `Surface returned HTTP ${response.status}.` }) } }));
     if (!response.ok) throw new Error(result.error ?? `Surface returned HTTP ${response.status}.`);
     return result;
   }
