@@ -18,3 +18,9 @@ Each tab keeps its selection and draft in sessionStorage scoped to this fixture 
 Validation: `bun test experiments/agent-picker/directory.test.ts`, app check, and `bun experiments/agent-picker/verify.ts` while the dev server is running. Browser checks cover two independent tabs, reload persistence, offline/deleted state, retained drafts and explicit cross-worktree selection. No message or binding is created. Screenshot inspected at `/tmp/surface-agent-picker.png` during this run.
 
 Next acceptance gate: adapter-owned real directory discovery using verified Git project/worktree identities, pagination and bounded refresh; authenticated directory access; submit-time recipient validation; explicit creation of a new request binding (current delivery requires the conversation cwd to match the bound project root). Cross-worktree fixture selection is not proof that real cross-worktree delivery works. Keep existing submitted requests immutable and test deletion/transport races without sending fixture data to real conversations.
+
+## Live read-only directory
+
+Set `SURFACE_AGENT_DIRECTORY_SOCKET` to the existing provider control socket and `SURFACE_AGENT_DIRECTORY_ROOT` to the intended Git worktree root, alongside the experiment flag. The parent load then uses real Codex `thread/list`, paginates up to 20 pages, excludes archives and foreign roots, and retains `notLoaded` separately from idle. Git common-directory identity defines the project. No thread is resumed or sent input. Live mode remains loopback-only and the action remains a simulation. Transport failure is unavailable, not an empty successful directory. The provider socket and filesystem roots stay on the server.
+
+Read-only discovery on September 23 found the actual current Surface conversation as active. No model turn was started. Protocol reference: https://learn.chatgpt.com/docs/app-server (thread/list and thread/read).
