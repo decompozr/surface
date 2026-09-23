@@ -43,3 +43,7 @@ When the user requests an update, inspect WIP and the intended branch first. Fet
 Setup checks before stopping the selected owned service, installs HEAD, verifies the existing link and starts/tests the selected release. It preserves project data and other services. Installation failures remain visible; recovery may restart the selected release to restore availability, but is not a promised rollback of a newly activated release. Inspect the reported release/status before claiming recovery. A moved checkout or different link source requires explicit reconciliation.
 
 The provider link is stable because it targets the checkout, not a copied skill or a version-specific installed directory. Source edits are visible through the link immediately; after setup updates the installation, have the provider reload/restart its skill discovery if required. Verify discovery separately. Avoid leaving this linked checkout on an incompatible development revision while relying on an older installed runtime.
+
+## Private Tailscale access
+
+Source setup detects a connected Tailscale and preselects private HTTPS on first interactive use. Saved choices are reused; noninteractive first setup stays local unless `--tailscale on` is explicit. Use `./bin/setup --tailscale on|off` to change the selection. Setup manages only its recorded Serve mapping, configures the accepted browser origin, and prints the HTTPS URL. It does not enable Funnel. See [remote browser verification](pages.md#remote-browser-access); provider discovery and real conversation delivery remain separate checks.

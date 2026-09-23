@@ -51,6 +51,8 @@ The agent keeps source files in your project. Registration and mounts use the sh
 
 For an MCP-capable agent host, use the absolute executable path `/Users/YOUR_NAME/.decompozr/surface/bin/surface` as the command and `["mcp"]` as its arguments. Do not put a literal `~` in configurations that do not expand it. MCP configuration is host-specific and is not installed automatically.
 
+For new project pages, follow the [route-based page guide](skills/surface/references/pages.md): declare `routes` and use `+page.svelte` files for readable `/workspace/...` URLs. Read-only pages need no interaction binding; submitting to an agent requires a separate request URL.
+
 ## Manage it
 
 ```sh

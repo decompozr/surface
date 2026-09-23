@@ -21,7 +21,7 @@ Check `surface status` and `surface doctor` for the selected installation. Start
 
 ## Create, mount and bind
 
-1. Create or edit an ordinary Svelte component source folder inside the selected Git project. Read the [source/dependency contract](../../experiments/singleton/README.md) for pinned Svelte, discovery, props and optional source-scoped prebundling. Preserve existing framework/package-manager choices and report unsupported cases rather than converting a project implicitly.
+1. Prefer route-based pages for new previews: read [project pages and readable URLs](references/pages.md), create `routes/+page.svelte` and optional nested pages, and declare `routes` in the source `artifact.json`. Read the [source/dependency contract](../../experiments/singleton/README.md) for pinned Svelte, discovery, props and optional source-scoped prebundling. Preserve existing framework/package-manager choices and report unsupported cases rather than converting a project implicitly.
 2. Use the project commands from the worktree. They also infer the containing Git root from a subdirectory. Initialize only when the versioned manifest is absent; registration gives a linked worktree its own namespace without copying service state:
    ```sh
    surface project init --name "Project name"
@@ -35,7 +35,7 @@ Check `surface status` and `surface doctor` for the selected installation. Start
    ```sh
    surface bind --project /absolute/project --thread EXACT_THREAD_ID --socket /absolute/control.sock
    surface request --binding BINDING_ID --namespace RETURNED_NAMESPACE --name RETURNED_MOUNT \
-     --component src/Panel.svelte --schema-file /absolute/project/artifacts/panel/interaction.schema.json \
+     --component routes/+page.svelte --schema-file /absolute/project/artifacts/panel/interaction.schema.json \
      --title "Choose a direction"
    ```
    The component must be in a ready mount. Supply the custom schema and share the returned private `previewUrl` only with the intended user. Do not commit capabilities or service state. If the session identity is unavailable, obtain it instead of guessing.
@@ -64,6 +64,6 @@ Include fields expected by the page and verify rendered source changes when appl
 
 If the session cannot contact the service, report that boundary without changing its permissions. On `failed` or `unknown`, inspect the existing request and exact session before deciding what to do; do not blindly resend. `close --request ID` prevents a new submission but does not cancel running work. It preserves records and allows administrative publication for an already submitted request.
 
-Use `surface project unmount --artifact ARTIFACT_ID` for previews you own when done. It blocks page reads/new submissions and preserves source, dependencies, interaction records, and in-flight delivery. Administrative `inspect`, `result`, and `close` still work; remounting the original source/project/component restores page access. Reload the unavailable preview after remount: revisiting an identical capability-fragment URL can be only a same-document navigation. Do not stop a shared singleton to clean up one mount. Leave requested review previews mounted and provide their URL and observed status. Loopback links work only on the host; mobile/remote access is not implemented.
+Use `surface project unmount --artifact ARTIFACT_ID` for previews you own when done. It blocks page reads/new submissions and preserves source, dependencies, interaction records, and in-flight delivery. Administrative `inspect`, `result`, and `close` still work; remounting the original source/project/component restores page access. Reload the unavailable preview after remount: revisiting an identical capability-fragment URL can be only a same-document navigation. Do not stop a shared singleton to clean up one mount. Leave requested review previews mounted and provide their URL and observed status. Loopback links work only on the host. Installed setup supports private Tailscale browser access; use the returned HTTPS preview URL and follow [remote access verification](references/pages.md#remote-browser-access).
 
 This skill ships as a link to its Surface checkout so its CLI and references remain together. `surface mcp` exposes the same core operations, but neither the CLI workflow nor this skill requires an MCP connection. MCP does not itself wake a session; the existing runtime adapter performs delivery.

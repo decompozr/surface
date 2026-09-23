@@ -1,6 +1,6 @@
 # Public Surface entry point and workspace service
 
-Status: implemented. The root/package `surface` CLI and the installed bootstrap now operate the shared workspace service. This increment adopts the bounded local command/layout contract below; it does not claim arbitrary frameworks, remote access or indefinite daemon reliability.
+Status: implemented. The root/package `surface` CLI and the installed bootstrap now operate the shared workspace service. This increment adopts the bounded local command/layout contract below; it does not claim arbitrary frameworks or indefinite daemon reliability. Source setup now supports private Tailscale browser access; remote CLI management and agent-session delivery are separate concerns. See [current page and access workflow](../../skills/surface/references/pages.md).
 
 ## Install and use
 
