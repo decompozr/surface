@@ -76,9 +76,11 @@ if (context && import.meta.hot) {
     }
     const list = document.querySelector('[data-artifact-catalog]');
     if (!list) return;
-    list.replaceChildren(...event.components.map(component => {
+    const route = context.publicPath ? location.pathname.slice(context.publicPath.length).replace(/^\/|\/$/g, '') : '';
+    const entries = context.publicPath ? Object.keys(event.pages ?? {}).filter(page => !route || page.startsWith(route + '/')) : event.components;
+    list.replaceChildren(...entries.map(component => {
       const item = document.createElement('li'), link = document.createElement('a');
-      link.href = '?component=' + encodeURIComponent(component); link.textContent = component; item.append(link); return item;
+      link.href = context.publicPath ? context.publicPath + '/' + component : '?component=' + encodeURIComponent(component); link.textContent = component; item.append(link); return item;
     }));
   });
 }

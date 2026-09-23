@@ -1,3 +1,4 @@
+import { navigationTree, type NavigationNode } from '../../../src/server/navigation';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -32,10 +33,12 @@ export async function startSurfaceApp(options: { stateDir: string; port?: number
 
   const runtime = await startSingleton({
     stateDir, port, openMountResource: options.openMountResource, resolveMountPath: readableMountPath, browserOrigin: options.browserOrigin, adapter: options.adapter, projectIdentity: directory.identity,
-    async application(request, response) {
+    navigation: mounts => navigationTree(mounts, directory.snapshot()),
+    async application(request, response, navigation) {
       if (await options.application?.(request, response)) return true;
       const path = new URL(request.url!, 'http://127.0.0.1').pathname;
       if (path !== '/' && path !== '/health' && !path.startsWith('/_app/')) return false;
+      (request as IncomingMessage & { surfaceNavigation?: NavigationNode[] }).surfaceNavigation = navigation;
       (request as IncomingMessage & { surfaceRuntime?: RuntimeStatus }).surfaceRuntime = status;
       handler(request, response);
       return true;
