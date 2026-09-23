@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { RuntimeDefinition } from './runtime.ts';
-import type { Binding, Receipt } from '../adapters/codex.ts';
+import type { Binding, Receipt, DeliveryIntent } from '../adapters/codex.ts';
 
 export type PreviewScope = { namespace: string; name: string; source: string; projectRoot: string; component: string };
 export type RequestRecord = {
@@ -11,7 +11,7 @@ export type RequestRecord = {
 export type ResponseRecord = {
   id: string; data: Record<string, unknown>; createdAt: string;
   status: 'delivering' | 'accepted' | 'failed' | 'unknown';
-  receipt?: Receipt; error?: string;
+  receipt?: Receipt; error?: string; delivery?: DeliveryIntent;
 };
 export type State = { version: 1; bindings: Binding[]; requests: RequestRecord[]; runtimes: RuntimeDefinition[] };
 
