@@ -96,3 +96,6 @@ The current implementation target focuses on Svelte + TypeScript. Additional fra
 - [Experiment roadmap](docs/exploration.md): small experiments, acceptance criteria, and open questions.
 
 The singleton now has scoped compiler-error UI, live catalog updates, and opt-in state preservation across HMR; see the [follow-up evidence](docs/experiments/2026-09-20-scoped-hmr.md). The follow-ups also observed a real agent edit with draft retention and MCP/CLI interoperability. Repeated source reuse stabilized measured resources; continuously introducing new sources retained compiler metadata. The first server needs a resource budget and an explicit restart/recreation policy before promising indefinite operation.
+
+
+The shared UI now groups registered route pages by project and worktree, with a collapsible sidebar, mobile drawer, and breadcrumbs. Interaction pages offer explicit queue/steer choices and optional scoped recipient selection. See the [delivery contract](docs/agent-interaction.md#explicit-delivery-intent) for provider race limits and the distinction between fixture verification and actual user delivery.
