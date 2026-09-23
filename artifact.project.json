@@ -8,6 +8,12 @@
       "name": "Examples",
       "source": "examples",
       "archived": false
+    },
+    {
+      "id": "3736cdae-896b-4518-829b-f9b89425202a",
+      "name": "Integrated loop validation",
+      "source": "experiments/integrated-loop",
+      "archived": false
     }
   ]
 }

@@ -20,6 +20,13 @@ Requirements describe observable behavior. Design records its presentation and k
 
 ## Recording a run
 
+September 23 follow-up evidence: [INTEGRATED-LOOP-03](../experiments/2026-09-23-integrated-loop.md)
+records one real queued submission through source change and observed callback
+rendering; human acceptance is not inferred. [INTERRUPTED-DELIVERY-04](../experiments/2026-09-23-interrupted-delivery.md)
+adds E-05 evidence for a killed sender at three provider acknowledgement cut
+points and fresh-process reconciliation without replay. It uses a fixture
+provider and explicit owned-lock recovery, not SSE or fresh-agent acceptance.
+
 Record source revision plus relevant WIP/snapshot, selected service/release identity, environment/runtime/browser, exact command, fixture or real participant, expected and observed outcome, retained receipt and failure limits. A result can be pass, fail, inconclusive or not run. “Implemented” and “has a verifier” are not result statuses. Historical counts remain attached to their original experiment, not summed as current coverage.
 
 Verifiers can build/install dependencies, start disposable services, edit fixture sources and launch Chrome. Read each script and run only within the task's authority. They must not target the user's installation or a live conversation as a fixture. The current documentation task authorizes no such runtime work. For future UI reproduction, prepare frozen root/app/fixture dependencies and build the shell as required by the linked verifier; invoke a dedicated disposable environment.

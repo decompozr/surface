@@ -3,10 +3,14 @@
   import type { NavigationNode } from '../../../../../src/server/navigation';
   import NavigationTree from './NavigationTree.svelte';
   import RecipientPanel from './RecipientPanel.svelte';
+  import { lockPageScroll } from './page-scroll-lock';
   let { navigation = [], currentPath = '/', children }: { navigation?: NavigationNode[]; currentPath?: string; children?: Snippet } = $props();
   let collapsed = $state(false), mobile = $state(false), drawer = $state(false), currentURL = $state('');
   let toggleButton: HTMLButtonElement;
   let pageContent: HTMLDivElement;
+  $effect(() => {
+    if (mobile && drawer) return lockPageScroll();
+  });
   async function skipToContent(event: MouseEvent) {
     event.preventDefault();
     drawer = false;
@@ -79,8 +83,8 @@
   .page-content :global([data-artifact-catalog] a:hover) { background: #f0ecf7; }
   @media(max-width: 760px) {
     .surface-shell { grid-template-columns: minmax(0, 1fr); } .content { grid-column: 1; }
-    aside, .collapsed aside { display: none; } .drawer aside { display: block; position: fixed; top: 60px; bottom: 0; left: 0; width: min(280px, calc(100vw - 64px)); box-sizing: border-box; z-index: 25; box-shadow: 8px 0 24px #33415515; }
-    .backdrop { display: block; position: fixed; inset: 60px 0 0; border: 0; background: #33415540; z-index: 20; }
+    aside, .collapsed aside { display: none; } .drawer aside { display: block; position: fixed; top: 60px; bottom: 0; left: 0; width: min(280px, calc(100vw - 64px)); box-sizing: border-box; z-index: 25; box-shadow: 8px 0 24px #33415515; overscroll-behavior-y: contain; }
+    .backdrop { display: block; position: fixed; inset: 60px 0 0; border: 0; background: #33415540; z-index: 20; touch-action: none; }
     .breadcrumbs { padding: 12px 16px; } header { padding: 0 16px; }
   }
 </style>

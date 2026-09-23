@@ -1,6 +1,6 @@
 # Project continuation and remaining autonomy gaps
 
-Status: proposed project-operation contracts, with one completed bounded documentation trial and independent review, plus a completed UI implementation continuation awaiting independent review. Reconciled September 23, 2026 at `7fceefc` from the [preserved earlier reflection](../observations/2026-09-23-autonomy-input.md), current source, and [DOCS-TAKEOVER-01](../experiments/docs-takeover/task.md). This does not implement an agent scheduler or authorize a new product backlog.
+Status: proposed project-operation contracts, with completed bounded documentation/UI continuation trials and independent reviews. Later live-loop and interruption fixtures are separately scoped below. Originally reconciled September 23, 2026 at `7fceefc` from the [preserved earlier reflection](../observations/2026-09-23-autonomy-input.md), current source, and [DOCS-TAKEOVER-01](../experiments/docs-takeover/task.md). This does not implement an agent scheduler or authorize a new product backlog.
 
 ## Current evidence and corrections
 
@@ -27,8 +27,10 @@ The authorized [UI-CONTINUATION-02](../experiments/ui-continuation/task.md) adds
 
 ## Next permitted work and open questions
 
-DOCS-TAKEOVER-01 completed its documentation scope and gate 8 independent review. UI-CONTINUATION-02 and independent review are complete in the isolated worktree. The reviewable increment is ready for PR delivery. Do not repeat the completed task or infer deployment or general autonomy from it. The trial records the actual preparation, interventions and limits.
+DOCS-TAKEOVER-01 completed its documentation scope and gate 8 independent review. UI-CONTINUATION-02 and independent review are complete; local baseline `4b629b8` includes its PR #45 merge. Do not repeat the completed task or infer deployment or general autonomy from it. The trial records the actual preparation, interventions and limits.
 
-A later integrated-loop experiment could separately observe intentional user input, exact delivery, source change, checks, rendered result and updated progress at one revision. A subsequent fixture could interrupt accepted work and test reconciliation before a fresh session continues. These are proposed next experiments, not authorization to run them now. Scheduling, cancellation, workload/duration limits, data-loss policy and durable task ownership remain unresolved.
+[INTEGRATED-LOOP-03](../experiments/2026-09-23-integrated-loop.md) subsequently recorded intentional user input, exact queued delivery, source change, checks and rendered result on one identified installed runtime/page snapshot. Human acceptance remains unrecorded. Existing comments/SSE coverage must be considered before proposing another loop test.
+
+[INTERRUPTED-DELIVERY-04](../experiments/2026-09-23-interrupted-delivery.md) then killed an owned sender at three acknowledgement-loss points and used a fresh process to distinguish missing evidence, acceptance without completion and matched completed output. No input replay occurred. Explicit harness lock recovery and fixture provider evidence remain limitations. This does not test a fresh agent independently recovering an arbitrary task, and the general R-13 contract remains proposed. Scheduling, cancellation, workload/duration limits, data-loss policy and durable task ownership remain unresolved.
 
 Within existing authorized scope, routine choices and reversible work should proceed without repeated approval. Ask only for genuinely missing decisions or authority. Surface Core remains responsible for runtime/exchange, while project outcome selection and orchestration belong to the project or an external controller.
