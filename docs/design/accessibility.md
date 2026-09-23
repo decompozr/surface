@@ -1,6 +1,6 @@
 # Mobile and accessibility
 
-Status: source-backed mechanics with unverified acceptance criteria. Existing automated browser scripts are available, but were not run for DOCS-TAKEOVER-01. No accessibility certification or actual-phone acceptance is claimed.
+Status: source-backed mechanics with bounded keyboard-bypass browser evidence from [UI-CONTINUATION-02](../experiments/ui-continuation/completion.md); broader acceptance remains unverified. Existing automated browser scripts are available, but were not run for DOCS-TAKEOVER-01. No accessibility certification or actual-phone acceptance is claimed.
 
 ## D-07: responsive behavior
 
@@ -19,7 +19,7 @@ These dimensions describe current code, not a frozen universal design system. [E
 | Content | Named focusable horizontal scroll region | Wide content scrolls locally, shell does not overflow; visible focus and keyboard scrolling need manual checking. |
 | Recipient input | Native select/button and labels; errors use `role="alert"` | Controls are usable without pointer input; errors associate with the attempted action. Loading and success/status announcements remain incomplete. |
 | Readability and touch | Responsive wrapping; toggle is currently 34×34 CSS px | Proposed: review touch targets, contrast, focus visibility, 200% zoom and 320px reflow. No blanket WCAG conformance claim; wide intrinsic project visuals may need documented local scrolling. |
-| Repeated shell | Header/nav/content regions | A skip-to-content affordance is not present. Proposed: make repeated navigation bypassable and verify focus destination. |
+| Repeated shell | First shell link “Skip to content” becomes visible on focus and focuses the existing named Page content region; activation closes an open drawer | Required: preserve the complete URL and document while bypassing navigation, on home and mounted pages. UI-CONTINUATION-02 passed keyboard fixtures at 1440/390/320px, including open drawers, unique destination and visible focus. Assistive-technology and physical-device acceptance remain open. |
 
 ## Open decisions
 

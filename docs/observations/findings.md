@@ -23,6 +23,12 @@ Reconciled at source baseline `7fceefc` for DOCS-TAKEOVER-01. This is a review o
 | Earlier comments work and absent September 23 source records mentioned in [reflection input](2026-09-23-reflection-input.md) | Unresolved / retained as prior interpretation | No implementation import, invented source record or comments adoption. |
 | Missing UI docs and fragmented current/historical progress, recorded in [trial task](../experiments/docs-takeover/task.md) | Documentation organization incorporated; bounded trial and independent review passed | [Decision 0003](../decisions/0003-source-documentation-organization.md), [UI/evaluation contracts](../design/README.md), [completion](../experiments/docs-takeover/completion.md), [independent outcome](../experiments/2026-09-23-docs-takeover.md). One prepared cooperative handoff is not full autonomy. |
 
+### UI-CONTINUATION-02 follow-up
+
+[Phase B completion](../experiments/ui-continuation/completion.md) records the keyboard-bypass implementation and actual Chrome fixture acceptance at 1440/390/320px. Disposition: incorporated into [D-08](../design/accessibility.md#d-08-accessibility-criteria) and the bounded [E-12](../evaluations/ui-eval.md#e-12-mobile-and-accessibility) skip gate. The first run exposed an invalid fabricated request in the verifier; it was corrected to a disposable request with its real query/fragment, without changing runtime authorization. Navigation and recipient regressions passed. Broader accessibility and human/device acceptance remain open.
+
+The successor reconstructed scope from repository records and completed Phase B after a planned interruption. This supports another bounded cooperative continuation; [independent coordinator review](../experiments/ui-continuation/review.md) passed after finding and correcting a verifier readiness race. It does not establish crash recovery or automatic scheduling.
+
 ## Historical synthesis boundary
 
 The sections below retain the original observations and checkpoint-level conclusions, including statements that the public entry or remote access was future work at that time. Use the current dispositions above for present behavior. No old pass count was refreshed by this reorganization.

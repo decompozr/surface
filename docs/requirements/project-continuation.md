@@ -1,6 +1,6 @@
 # Project continuation and remaining autonomy gaps
 
-Status: proposed project-operation contracts, with one completed bounded documentation trial and independent review. Reconciled September 23, 2026 at `7fceefc` from the [preserved earlier reflection](../observations/2026-09-23-autonomy-input.md), current source, and [DOCS-TAKEOVER-01](../experiments/docs-takeover/task.md). This does not implement an agent scheduler or authorize a new product backlog.
+Status: proposed project-operation contracts, with one completed bounded documentation trial and independent review, plus a completed UI implementation continuation awaiting independent review. Reconciled September 23, 2026 at `7fceefc` from the [preserved earlier reflection](../observations/2026-09-23-autonomy-input.md), current source, and [DOCS-TAKEOVER-01](../experiments/docs-takeover/task.md). This does not implement an agent scheduler or authorize a new product backlog.
 
 ## Current evidence and corrections
 
@@ -9,6 +9,8 @@ Shared project/workspace identity, installed lifecycle and exact-session request
 The earlier reflection refers to comments WIP and two September 23 source records absent from this checkout. Their [retained input](../observations/2026-09-23-reflection-input.md) is evidence of a prior interpretation, not current implementation or verified browser behavior. No comments feature is adopted by this task.
 
 The [completed trial](../experiments/2026-09-23-docs-takeover.md) observed a fresh successor completing the documentation task from durable records without additional briefing; independent review passed. This supports one cooperative handoff with a prepared checkpoint and single writer. Crash recovery, automatic replay, long-running scheduling and full autonomy remain untested.
+
+The authorized [UI-CONTINUATION-02](../experiments/ui-continuation/task.md) adds a planned interruption after implementation and before browser acceptance. Its successor recorded [intake](../experiments/ui-continuation/intake.md), corrected a fixture-context error, and completed browser/check/source reconciliation in [completion](../experiments/ui-continuation/completion.md). [Independent coordinator review](../experiments/ui-continuation/review.md) passed after one verifier readiness correction; no crash or uncertain external mutation was tested.
 
 ## Proposed continuation contract
 
@@ -25,7 +27,7 @@ The [completed trial](../experiments/2026-09-23-docs-takeover.md) observed a fre
 
 ## Next permitted work and open questions
 
-This worktree has completed the requested documentation scope and gate 8 independent review. Changes remain uncommitted for review; do not repeat the completed task or treat completion as authorization to integrate/deploy. The trial records the actual preparation, interventions and limits.
+DOCS-TAKEOVER-01 completed its documentation scope and gate 8 independent review. UI-CONTINUATION-02 and independent review are complete in the isolated worktree. The reviewable increment is ready for PR delivery. Do not repeat the completed task or infer deployment or general autonomy from it. The trial records the actual preparation, interventions and limits.
 
 A later integrated-loop experiment could separately observe intentional user input, exact delivery, source change, checks, rendered result and updated progress at one revision. A subsequent fixture could interrupt accepted work and test reconciliation before a fresh session continues. These are proposed next experiments, not authorization to run them now. Scheduling, cancellation, workload/duration limits, data-loss policy and durable task ownership remain unresolved.
 
