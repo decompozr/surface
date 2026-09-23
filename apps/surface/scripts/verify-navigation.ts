@@ -6,7 +6,7 @@ import { startSurfaceApp } from '../server/host';
 import { workspaceFixture } from './workspace-fixture';
 const f = await workspaceFixture();
 mkdirSync(join(f.main, 'ui/routes/review/detail'), { recursive: true });
-writeFileSync(join(f.main, 'ui/routes/review/detail/+page.svelte'), '<h1>Nested review</h1><p>A route-owned page.</p>');
+writeFileSync(join(f.main, 'ui/routes/review/detail/+page.svelte'), '<h1>Nested review</h1><p>A route-owned page.</p><div style="width:900px">Wide project-owned content</div>');
 let app: Awaited<ReturnType<typeof startSurfaceApp>> | undefined;
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 try {
@@ -44,6 +44,9 @@ try {
   await page.screenshot({ path: '.decompozr/surface/screenshots/navigation-mobile-drawer.png', fullPage: true });
   await page.keyboard.press('Escape'); await expect(nav).toBeHidden();
   await expect(page.getByRole('button', { name: 'Toggle navigation' })).toBeFocused();
+  await page.goto(app.origin + '/workspace/app-fixture/main/ui/review/detail');
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  assert.ok(await page.getByRole('region', { name: 'Page content' }).evaluate(element => element.scrollWidth > element.clientWidth), 'Wide source content stays scrollable within the shell.');
   assert.deepEqual(errors, []);
   console.log('Navigation fixture passed: parent SSR, worktree separation, nested page/folder index, breadcrumbs, persistent desktop collapse, mobile drawer and Escape.');
 } finally { await browser?.close(); await app?.stop(); rmSync(f.directory, { recursive: true, force: true }); }

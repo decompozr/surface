@@ -41,7 +41,8 @@
   <div class="content">
     <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/" data-sveltekit-reload>Home</a>{#each breadcrumbs as node}<span aria-hidden="true">/</span>{#if node.href}<a data-sveltekit-reload href={node.href.replace(/\/$/, '') === currentPath.replace(/\/$/, '') && currentURL ? currentURL : node.href}>{node.label}</a>{:else}<span>{node.label}</span>{/if}{/each}</nav>
     <RecipientPanel />
-    <div class="page-content">{#if children}{@render children()}{:else}<div id="surface-page"></div>{/if}</div>
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this horizontal scroll region.) -->
+    <div class="page-content" role="region" aria-label="Page content" tabindex="0">{#if children}{@render children()}{:else}<div id="surface-page"></div>{/if}</div>
   </div>
 </div>
 <style>
@@ -57,7 +58,7 @@
   .content { grid-column: 2; min-width: 0; background: white; }
   .breadcrumbs { display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #f0eef3; padding: 14px 24px; font-size: 12px; color: #64748b; }
   .breadcrumbs a { color: #64748b; text-decoration: none; } .breadcrumbs a:hover { text-decoration: underline; }
-  .page-content { min-width: 0; } .collapsed { grid-template-columns: 0 minmax(0, 1fr); } .collapsed aside { display: none; }
+  .page-content { min-width: 0; overflow-x: auto; } .collapsed { grid-template-columns: 0 minmax(0, 1fr); } .collapsed aside { display: none; }
   .backdrop { display: none; }
   .page-content :global(.surface-folder) { padding: 32px; max-width: 780px; }
   .page-content :global(.surface-folder > p) { color: #64748b; font-size: 12px; }
