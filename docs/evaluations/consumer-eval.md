@@ -6,6 +6,8 @@ Covers [R-13](../requirements/project-continuation.md#r-13). DOCS-TAKEOVER-01 us
 
 Evidence: [task](../experiments/docs-takeover/task.md), [intake](../experiments/docs-takeover/intake.md), [migration](../experiments/docs-takeover/migration.md), [completion](../experiments/docs-takeover/completion.md) and the final worktree diff. [Coordinator gate 8](../experiments/2026-09-23-docs-takeover.md#independent-review) passed its independent scope, content, intervention and preservation checks. A successor report is not independent review. Abrupt crash recovery, duplicate-effect reconciliation and indefinite autonomous work were not tested.
 
+UI-CONTINUATION-02 additionally exercised a planned pause after UI implementation and before browser acceptance. A fresh-context subagent reconstructed the scope from repository records, repaired fixture context, completed browser checks and updated source. [Independent review](../experiments/ui-continuation/review.md) then caught and corrected a verifier readiness race. This is a bounded cooperative pass with one post-completion coordinator correction, not a zero-intervention or abrupt-crash result.
+
 ## E-15: consumer boundary
 
 Covers [R-01/R-02](../requirements/consumers.md). Use a disposable Git project with project-owned route source and declared schema; mount without a DecompozR service or request binding for read-only use. Pass if it renders through returned routes, source/dependencies remain project-owned and Core makes no domain judgment. Add a separate scoped request for submission; clean browsing alone must not imply permission to send.

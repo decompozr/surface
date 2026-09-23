@@ -1,6 +1,6 @@
 # UI evaluation gates
 
-Status: source/verifier inventory, not a browser run. Source baseline is `7fceefc`. These gates cover the shared shell plus an explicitly identified project page. Existing scripts use disposable fixture projects and adapters, not user intent or a live model.
+Status: source/verifier inventory, with the dated UI-CONTINUATION-02 browser evidence below. Original inventory baseline is `7fceefc`; newer runs identify their own baseline and WIP. These gates cover the shared shell plus an explicitly identified project page. Existing scripts use disposable fixture projects and adapters, not user intent or a live model.
 
 For future isolated execution, use the dependencies/build required by the app and fixture scripts. `bun run --cwd apps/surface build` prepares the shell; the direct scripts below do not themselves run that build. Inspect [workspace-fixture.ts](../../apps/surface/scripts/workspace-fixture.ts) for additional fixture preparation. Record actual browser/viewport and screenshots when run; source CSS is not rendered acceptance.
 
@@ -36,6 +36,8 @@ Available partial evidence: `bun run verify:singleton-interactions`; [scoped HMR
 
 ## E-12: mobile and accessibility
 
-Covers [D-07/D-08](../design/accessibility.md). Existing `bun apps/surface/scripts/verify-navigation.ts` checks 1440×1000 desktop, 390×844 mobile drawer, Escape/toggle focus and contained wide-content overflow. `bun apps/surface/scripts/verify-recipients.ts` checks mobile document overflow at 390×844. These scripts are available, not newly executed.
+Covers [D-07/D-08](../design/accessibility.md). Existing `bun apps/surface/scripts/verify-navigation.ts` checks 1440×1000 desktop, 390×844 mobile drawer, Escape/toggle focus and contained wide-content overflow. `bun apps/surface/scripts/verify-recipients.ts` checks mobile document overflow at 390×844. Both scripts passed on September 23 in [UI-CONTINUATION-02](../experiments/ui-continuation/completion.md), against baseline `6dd9083` plus the recorded WIP.
+
+The focused `bun apps/surface/scripts/verify-skip-link.ts` gate requires first-Tab discoverability, Enter focus to the unique named content region, byte-for-byte URL/document retention, content Tab continuation, drawer dismissal and contained wide content on home/nested routes at 1440×1000, 390×844 and 320×844. These checks passed in UI-CONTINUATION-02; rendered screenshots were inspected. The nested route uses a real disposable fixture capability and a rejecting delivery adapter. This closes only the bounded keyboard-bypass increment.
 
 Proposed broader gate: keyboard-only opening/navigation/closing, focus visibility and hidden-link exclusion, screen-reader location and loading/status/error announcements, backdrop/background interaction, long labels, 320px width, 200% zoom, contrast and touch targets. Pass if the intended journey remains perceivable/operable without shell overflow or inaccessible controls. Specify the chosen drawer modality before judging focus trapping. No existing comprehensive verifier establishes these criteria; actual phone access and user acceptance remain separate from emulated viewport tests.
