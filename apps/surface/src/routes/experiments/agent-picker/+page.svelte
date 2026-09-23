@@ -12,8 +12,8 @@
 <main>
   <p class="eyebrow">Surface / Interaction experiment</p>
   <h1>Who receives this?</h1>
-  <p>Simulated conversations. No message is sent, and no real binding is created.</p>
-  <nav aria-label="Failure scenarios"><a href="?scenario=normal">Connected</a><a href="?scenario=offline">Provider offline</a><a href="?scenario=deleted">Selected agent deleted</a></nav>
+  <p>{data.scenario==='live-readonly'?'Real conversation directory · read-only.':'Simulated conversations.'} No message is sent, and no real binding is created.</p>
+  {#if data.scenario!=='live-readonly'}<nav aria-label="Failure scenarios"><a href="?scenario=normal">Connected</a><a href="?scenario=offline">Provider offline</a><a href="?scenario=deleted">Selected agent deleted</a></nav>{:else}<a href="?refresh=1" data-sveltekit-reload>Refresh conversations</a>{/if}
   <section>
     <h2>Reply to</h2>
     {#if !data.agents.available}<p role="status">Cannot check conversations. Your draft is retained. Reconnect before continuing.</p>{/if}
