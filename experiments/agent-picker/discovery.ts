@@ -1,7 +1,7 @@
 import {realpathSync} from 'node:fs';
 import {basename} from 'node:path';
-import {inspectGit} from '../../src/workspaces/identity.ts';
-import {CodexRpc,type Rpc} from '../../src/adapters/rpc.ts';
+import {inspectGit} from '../../src/workspaces/identity';
+import {CodexRpc,type Rpc} from '../../src/adapters/rpc';
 export type AgentRow={id:string;title:string;provider:string;workspaceId:string;status:string};
 type Thread={id:string;name?:string;cwd:string;status?:{type:string};archived?:boolean};
 export async function discoverAgents(root:string,socket:string,connect:(p:string)=>Promise<Rpc>=CodexRpc.connect) {
