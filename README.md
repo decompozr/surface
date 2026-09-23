@@ -10,7 +10,9 @@ Web is the first implementation path. v0 focuses on a local Svelte loop: create 
 
 This project is exploring the domain. Its executable code is an experimental implementation for testing design hypotheses; the architecture, API, storage model, and packaging are not finalized product commitments. The first local prototype includes a Bun server and CLI, a Svelte feedback page, and a Codex adapter that delivers page responses to an existing conversation. Active-turn steering and idle continuation have been exercised against a local Codex session.
 
-Two experimental runtime paths currently coexist: the earlier CLI mounts external Svelte or vanilla projects through separate development processes; the preferred singleton pilot hosts discovered Svelte components through one Vite instance and now connects their forms to the existing interaction service. Automated fixture checks and separate live Codex idle/active round trips passed. The September 21 experiments now cover a real MCP adapter, scoped CommonJS prebundles, a built SvelteKit management shell, live agent source edits, bounded resource measurements, pinned repository installation, and project-owned artifact management. See the [server implementation readiness review](docs/server-readiness.md) for the proposed first-server scope and remaining limits. Remote access and additional frameworks remain deferred.
+The public entry now operates the shared workspace service with one live Vite compiler, the built application, CLI/MCP access, optional lazy project storage and experimental release packaging. The earlier per-project runtime remains available through `surface legacy`. Source setup also supports opt-in private Tailscale browser access. Multiple views sharing a backend, cross-view synchronization and recipient selection/takeover have separate bounded experiments; they are not adopted into the public runtime. See [consolidated findings](docs/findings.md) and [current readiness](docs/server-readiness.md) for evidence and remaining limits.
+
+`docs/` is the project's source specification. Experiments feed evidence back into reviewable changes to that specification through the [source workflow](docs/source-workflow.md). The [project autonomy assessment](docs/project-autonomy.md) identifies what is still missing for an agent to continue the project reliably with minimal repeated user coordination.
 
 ## Experimental download
 
@@ -69,6 +71,10 @@ The project or experience defines whether an interaction previews a value, propo
 The current implementation target focuses on Svelte + TypeScript. Additional frameworks and non-Web capabilities are deferred. The seven [readiness experiments](docs/experiments/2026-09-21-readiness-plan.md) are complete within their stated boundaries. They support the Bun, built SvelteKit shell, and single live Vite compiler foundation. Shared project operations, the installed public entry and workspace lifecycle are implemented for this bounded local loop. Broader service-store migrations, compiler operating budgets and further internal runtime consolidation remain.
 
 ## Documentation
+
+- [Documentation as project source](docs/source-workflow.md): how experiments update intent, contracts, acceptance criteria and progress while preserving their evidence.
+- [Progress and project autonomy](docs/project-autonomy.md): current gaps, responsibility boundaries and a proposed interruption/continuation trial.
+- [Agent recipient experiments](docs/experiments/2026-09-23-agent-recipient.md): real read-only discovery, separate fixture takeover evidence and limits.
 
 - [Public Surface entry](docs/implementation/03-public-entry.md): shared installation, cwd-based workspace commands, MCP, retirement and explicit legacy migration.
 

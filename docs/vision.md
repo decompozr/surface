@@ -37,6 +37,8 @@ Projects define the meaning of their representations and interactions. People an
 
 An interaction is an observation, not automatically confirmed intent. A previewed change is not automatically an instruction to apply it. An experiment result is evidence to interpret, not automatically a requirement or proof of a hypothesis. Experiences should make these distinctions visible and preserve the context needed to review how an observation informed a decision. Confirmation and authority follow the experience's explicit contract.
 
+For Surface's own development, `docs/` is the source specification. Experiments feed observations and interpretations back into reviewable source changes, with explicit disposition and acceptance criteria. Implementation realizes those contracts; a successful prototype does not silently replace them. Follow the [source workflow](source-workflow.md) to preserve evidence while keeping the current specification and progress accurate.
+
 ## Architecture boundaries
 
 The conceptual architecture has three layers:
@@ -99,17 +101,17 @@ The v0 implementation target is:
 - Source iteration with scoped diagnostics and eligible HMR state preservation. Full refresh or compiler recreation can lose temporary view state.
 - A supported installation/lifecycle workflow that separates releases, durable service state, and project content, with observable failures and data-preserving recovery.
 
-This is a delivery target, not a claim that v0 is complete. The seven readiness experiments and [Milestone 1 shared project operations](implementation/01-project-core.md) establish parts of the loop. Supported packaging/lifecycle, runtime consolidation, management UI write flows, schema transitions, and resource policies remain implementation work. The [readiness review](server-readiness.md) records evidence and exit criteria.
+This is a delivery target, not a claim that v0 is complete. Shared project operations, the [public workspace service](implementation/03-public-entry.md), and [experimental distribution](implementation/04-experimental-release.md) are implemented with bounded evidence. Full management UI write flows, further runtime consolidation, general future schema transitions, operating budgets and fresh-user end-to-end acceptance remain open. The [readiness review](server-readiness.md) distinguishes current status from earlier plans.
 
 ### Deferred scope
 
 v0 does not require a general capability registry or plugin marketplace, native renderers, a universal domain state/action schema, built-in CAD or simulation engines, or additional frontend frameworks. Projects can build useful visualizations with their supported dependencies without implying that Surface already offers those capabilities as platform services.
 
-Public hosting, multi-user collaboration, remote access, untrusted code execution, arbitrary application hosting, and general agent orchestration are also outside v0. Future capabilities should address concrete user needs and validate their own contracts; they should not expand Core with domain-specific behavior.
+Public hosting, multi-user collaboration, untrusted code execution, arbitrary application hosting, and general agent orchestration are also outside v0. Source setup now supports opt-in private Tailscale browser access as described in [SETUP](../SETUP.md); that does not establish remote CLI management or remote agent-session delivery. Future capabilities should address concrete user needs and validate their own contracts; they should not expand Core with domain-specific behavior.
 
 ## Delivery priority and success
 
-The next implementation milestone is supported installation and lifecycle for this local Web loop. It must preserve the architecture boundaries above without making a generic capability platform a prerequisite. Follow the [implementation sequence](server-readiness.md#implementation-sequence-and-exit-criteria); introduce new experiments only for specific unanswered decisions.
+Installation and lifecycle now have implemented local contracts and release evidence. The proposed next acceptance priority is an integrated useful loop through the current installed entry, followed by interruption and continuation from durable project records. The [project autonomy assessment](project-autonomy.md) describes that sequence and names the missing contracts. It is a project-development goal, not a requirement to turn Core into a general agent orchestrator. Preserve the architecture boundaries and introduce new experiments only for specific unanswered decisions.
 
 Success means that a project can create an experience, a person can understand and manipulate it, the responsible project or agent receives meaningful structured input, and the resulting change is observable. The project retains its source and domain data so another session or agent can continue the work. Rendering a page alone does not complete that loop. For an exploration experience, success also means that observations help people and agents clarify a question, confirm intent, or choose a next experiment, while keeping observations, interpretations, and adopted decisions distinguishable.
 

@@ -109,3 +109,27 @@ Reject closed or stale requests explicitly. If the session or control endpoint i
 Use one Svelte page with options A and B, a width parameter, and a submit button. Deliver the selection to its originating agent session and observe the agent modify the page accordingly. Exercise both active-turn steering and idle continuation separately.
 
 See [experiment 1B](exploration.md#experiment-1b-a-button-steers-the-originating-agent-session) for acceptance criteria. Success requires evidence of the same conversation receiving the correct data and acting on it, not merely a successful submission request.
+
+
+## Contextual comment batches — experimental
+
+The user-selected experiment collects element comments and optional frozen element images into one reviewable draft, then submits the batch in an explicit action. Preserve each comment's target, source revision and capture context; distinguish unsent edits, a transport receipt and an actual agent result. Selection and capture alone do not instruct an agent. A preview requested for another device must use the selected private browser origin, and submission must enforce that same origin.
+
+This is an experimental interaction direction, not an adopted general chat API or a replacement for the exact-session request binding above. The [September 23 experiment](experiments/2026-09-23-element-comments.md) implements a limited playground and local fixture receiver. Adoption requires observed element capture, draft recovery and batch interaction in the intended browser, plus a separately authorized exact-recipient delivery run. HTTPS reachability or a fixture receipt does not satisfy those gates.
+
+
+### September 23 review correction
+
+User feedback refined the experiment: keep global controls compact and icon-only with accessible names, use a small icon/text connection status, hide the comment drawer until requested, and allow selection of the actual DOM element rather than a manually marked card. Generate a selector from IDs, suitable classes and structural position; a friendly label is presentation metadata, not required instrumentation. Preserve text, revision and an optional image alongside that selector. A selector is not stable identity after arbitrary DOM edits, so unmatched or changed context needs review rather than silent retargeting.
+
+The user explicitly authorized binding manual submissions to the originating conversation. The current experiment uses a private browser capability, a server-owned exact thread/worktree/socket binding, the existing Surface interaction store and Codex adapter, and a separate result callback. Prior fixture records retain their fixture identity and are never automatically forwarded. The [v2 evidence record](experiments/2026-09-23-element-comments.md#v2-user-review-and-exact-conversation-binding) distinguishes tested delivery logic and read-only live connectivity from an observed user submission. This remains an experimental page, not a general mounted-page or chat API adoption.
+
+The hover/selection identifier in this experiment must show the DOM selector (tag, ID, suitable classes and structural path), not the element's prose. Element text remains separate evidence in the submitted payload. Long paths should wrap rather than hide the selected target behind content-derived labels.
+
+For this minimal review experiment, select elements directly in the workspace; do not show an element dropdown or a persistent step-by-step footer. Draft persistence remains automatic and silent on success. Show storage failures rather than a routine “saved on this browser” status.
+
+### Comment experiment push updates (September 23)
+
+The opt-in comment preview uses authenticated fetch-based SSE for durable batch receipts and complete results. Subscribe before taking the initial snapshot; each committed store update emits a new snapshot. Reconnection reads current state and never resubmits input. Keep the bearer capability in a header, not a stream URL. Heartbeats maintain transport liveness only. Agent availability is checked at connection time and labeled accordingly; it is not continuous agent presence or work progress. Token streaming and execution-event subscriptions remain unimplemented.
+
+The experiment reply shorthand is `bun run reply REQUEST_PREFIX "Message"` from its bound checkout. The prefix must uniquely identify a stored request belonging to the configured conversation and project; there is no latest-request fallback. The CLI wraps text in JSON and retains the legacy callback format.

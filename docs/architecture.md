@@ -10,7 +10,13 @@ The conceptual layers are project-owned experiences, capabilities they use, and 
 
 These layers guide dependency direction rather than prescribe a new package layout or public plugin protocol. The Svelte browser runtime is the first implementation path. Graph, CAD, simulation, native renderers, and capability discovery remain future directions to validate through concrete integrations. Existing artifact manifests, identifiers, and browser compatibility aliases remain unchanged.
 
-The next installation/lifecycle milestone should package the bounded Web loop while keeping domain logic outside Core. It does not require a general capability registry, universal state/action schema, or new renderer first. Surface lifecycle responsibility covers its service and mounted resources; it does not absorb general project or agent orchestration.
+The [public entry](implementation/03-public-entry.md) and [experimental release](implementation/04-experimental-release.md) now package the bounded Web loop while keeping domain logic outside Core. Surface lifecycle responsibility covers its service and mounted resources; it does not absorb general project or agent orchestration. The [autonomy assessment](project-autonomy.md) identifies missing project-level coordination separately from runtime responsibilities.
+
+## Current contract and experimental follow-ups
+
+Use the public entry contract for installation selection, workspace identities, optional lazy backend declarations and retained interaction history. Use [SETUP](../SETUP.md) for source installation and optional private browser access, and the [page guide](../skills/surface/references/pages.md) for current route-based authoring. The earlier topology sections below preserve architectural reasoning and are not current command instructions.
+
+The [multi-Surface](experiments/2026-09-21-multi-surface.md) and [sync](experiments/2026-09-21-surface-sync.md) pilots suggest shared workspace resource ownership with per-mount access, lazy data use, invalidation hints, snapshot recovery and explicit dirty-draft conflicts. They remain isolated experiments. The [recipient experiment](experiments/2026-09-23-agent-recipient.md) likewise separates real read-only discovery from fixture-backed takeover; it does not add live binding controls to the installed host. Their source dispositions are tracked in [findings](findings.md#september-23-synthesis-and-disposition).
 
 ## Preferred direction after the mounting discussion
 

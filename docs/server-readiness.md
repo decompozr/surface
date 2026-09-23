@@ -1,11 +1,20 @@
 # First-server implementation readiness
 
-Current increment: the [public Surface entry](implementation/03-public-entry.md) integrates installed lifecycle, shared worktree identities, optional lazy backend storage, CLI/MCP access and an explicit namespace-preserving legacy-binding migration. Historical experiment outcomes below retain their original scope.
+Current status reviewed September 23, 2026 (America/Toronto). The [public Surface entry](implementation/03-public-entry.md) integrates installed lifecycle, shared worktree identities, optional lazy backend storage, CLI/MCP access and namespace-preserving legacy migration. [Experimental distribution](implementation/04-experimental-release.md) and [source setup](../SETUP.md) are also implemented; installation is no longer an untouched next milestone.
 
+| Original milestone | Current disposition |
+| --- | --- |
+| 1. Shared core and ownership | [Shared project operations](implementation/01-project-core.md) implemented; further internal runtime consolidation remains |
+| 2. Installation/lifecycle | Public home/port/commands, bounded compatibility gates, packaged releases and agent setup implemented; general future migrations and fresh-user acceptance remain |
+| 3. Project artifact management | Core/CLI/MCP and workspace lifecycle implemented; complete management-shell write flows remain |
+| 4. Agent access and instructions | Shared operations, installed MCP and current skill exist; recipient controls remain experimental and a fresh-user installed live loop is still an acceptance gap |
+| 5. Operating envelope | Bounded measurements and cleanup fixes exist; supported long-duration budgets and installed interruption/reconciliation evidence remain open |
 
-Date: September 21, 2026 (America/Toronto).
+The [findings synthesis](findings.md#september-23-synthesis-and-disposition) includes later storage, worktree, multi-view, synchronization and recipient experiments. The [autonomy assessment](project-autonomy.md) proposes the next integrated acceptance and continuation gates. This status reconciliation reviews existing records; it does not rerun them or claim production readiness.
 
-Implementation status: [Milestone 1 — shared project operations](implementation/01-project-core.md) is implemented; its own verification record distinguishes that increment from the remaining milestones. Supported installation and lifecycle is next; its [contract in preparation](implementation/02-installation-lifecycle.md) records the accepted lazy project-storage policy and remaining choices.
+## Historical recommendation — September 21
+
+The remaining sections preserve the original first-server recommendation, proposed milestone criteria and integrated verification at that checkpoint. Later adoption of defaults, backend declarations, workspace migration, release distribution and private browser access is governed by the current documents linked above. Statements below that call those decisions future work describe September 21, not the current backlog.
 
 ## Product goal and v0 boundary
 

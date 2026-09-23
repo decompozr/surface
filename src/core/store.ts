@@ -18,6 +18,8 @@ export type State = { version: 1; bindings: Binding[]; requests: RequestRecord[]
 /** Single-server prototype store. The server holds an exclusive lock for this directory. */
 export class Store {
   state: State;
+  private listeners = new Set<() => void>();
+  subscribe(listener: () => void) { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
   constructor(private file: string) {
     mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
     try { this.state = JSON.parse(readFileSync(file, 'utf8')); }
@@ -46,6 +48,7 @@ export class Store {
     writeFileSync(temporary, JSON.stringify(next, null, 2) + '\n', { mode: 0o600 });
     renameSync(temporary, this.file);
     this.state = next;
+    for (const listener of this.listeners) { try { listener(); } catch { /* Observers cannot invalidate a durable write. */ } }
     return result;
   }
 }

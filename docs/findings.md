@@ -2,7 +2,47 @@
 
 Current commands and defaults in this document use Surface after [Decision 0002](decisions/0002-surface-name-and-local-state.md). Earlier checkpoints and experiment records retain their original Artifact names, commands, and evidence paths; renaming does not constitute a new verification run.
 
-Updated September 21, 2026 (America/Toronto), including the completed seven-track readiness exploration. See the [implementation recommendation](server-readiness.md). Earlier rendering/state checkpoint: `c6abf5f`. This records executable experiments and the user's intended direction, not a finalized production architecture. The detailed experiment records remain the source for each observation.
+Updated September 23, 2026 (America/Toronto), through the recipient lifecycle experiments at `a97e34f`, with unverified local comments WIP identified separately. This is a review of recorded evidence, not a fresh run of those experiments. See the [source-documentation workflow](source-workflow.md) and [project autonomy gaps](project-autonomy.md). Detailed experiment records retain each observation's revision and scope; the earlier synthesis below preserves the original checkpoints.
+
+## September 23 synthesis and disposition
+
+The central lesson is that useful automation needs explicit identity, ownership, state transitions and evidence of completion. A successful page, message, test or release proves only its own step. The source specification must join those steps into an inspectable user outcome.
+
+| Experiments reviewed | Lesson to carry into the source specification | Disposition and source |
+| --- | --- | --- |
+| [Original loop](prototype.md), [external projects](experiments/2026-09-20-external-projects.md), [singleton integration](experiments/2026-09-20-singleton-interactions.md) | Preserve exact project/conversation identity; separate saved input, delivery, action, result and user acceptance | Incorporated in [vision](vision.md#interaction-preserves-identity-and-observable-outcomes) and [agent interaction](agent-interaction.md); general agent execution remains unproved |
+| [Singleton namespaces](experiments/2026-09-20-singleton-namespaces.md), [dependencies](experiments/2026-09-21-dependencies.md), [SvelteKit](experiments/2026-09-21-sveltekit-foundation.md) | A symlink needs a host; dependency versions must execute correctly in the browser; built shell and live mounted compiler have separate lifecycles | Bounded Svelte topology incorporated in [architecture](architecture.md) and [public entry](implementation/03-public-entry.md); arbitrary applications/frameworks excluded |
+| [Scoped HMR](experiments/2026-09-20-scoped-hmr.md), [live source edit](experiments/2026-09-21-live-source-edit.md) | Source updates, view-state retention and durable records require separate contracts | Incorporated in [vision](vision.md#state-and-actions-have-explicit-owners); transparent arbitrary draft preservation is not promised |
+| [MCP](experiments/2026-09-21-mcp.md), [project artifacts](experiments/2026-09-21-project-artifacts.md) | Thin interfaces must share identities, operations and truthful failure semantics; labels and paths cannot substitute for ownership | Incorporated in [shared project operations](implementation/01-project-core.md) and [public entry](implementation/03-public-entry.md) |
+| [Lifecycle resources](experiments/2026-09-21-lifecycle-resources.md) | Releasing active resources does not evict all compiler metadata; short successful runs cannot establish indefinite operation | Cleanup corrections implemented; operating budget and recreation policy remain open in [readiness](server-readiness.md#implementation-sequence-and-exit-criteria) |
+| [Installation](experiments/2026-09-21-installation.md), [server contract](experiments/2026-09-21-server-contract.md) | Releases, service records and project data need separate ownership; code rollback is not data rollback; unresolved callbacks retain executables | Bounded contracts incorporated in [lifecycle](implementation/02-installation-lifecycle.md) and [public entry](implementation/03-public-entry.md); preferences migration does not prove general store migrations |
+| [Project database](experiments/2026-09-21-project-database.md) | Persistence is optional and acquired on valid demand; projects own schemas, operations and transactions | Lazy storage adopted in [lifecycle](implementation/02-installation-lifecycle.md); eager opening is superseded, scheduling budgets remain open |
+| [Workspaces](experiments/2026-09-21-workspaces.md) | Shared source identity and separate execution/data identity must coexist; merging source does not merge databases or reassign pending work | Incorporated in [public workspace contract](implementation/03-public-entry.md#worktree-workflow) |
+| [Multiple Surfaces](experiments/2026-09-21-multi-surface.md) | Share a workspace resource owner while preserving mount-specific access, lifetime and cleanup | Retained as experimental; no ordinary-runtime adoption. Proposed constraints summarized below |
+| [Surface synchronization](experiments/2026-09-21-surface-sync.md) | Invalidation hints prompt snapshot reads; dirty drafts and stale writes need explicit reconciliation | Retained as experimental; no durable event bus, offline write replay or collaborative merge adopted |
+| [Release loop](experiments/2026-09-22-release-loop.md), [agent setup](experiments/2026-09-22-agent-setup.md) | Delivery and onboarding are part of the product; artifact integrity, health, provider discovery and real user interaction are independent gates | Implemented bounded distribution/setup; current contracts in [release guide](implementation/04-experimental-release.md) and [SETUP](../SETUP.md). Fresh-user loop still open |
+| [Recipient picker, live directory and lifecycle](../experiments/agent-picker/README.md) | Discovering an agent, selecting it, binding work and transferring responsibility are separate steps | Retained as experimental; read-only live discovery and fixture lifecycle evidence must not imply live takeover. See [source record](experiments/2026-09-23-agent-recipient.md) |
+| [Element comments follow-up](experiments/2026-09-23-element-comments.md) | Preserve target/capture context and drafts; private remote previews need an explicit origin for both page and submission | Retained as experimental in [agent interaction](agent-interaction.md#contextual-comment-batches--experimental). V2 adds direct DOM selection, a hidden drawer and user-authorized exact-conversation binding. Nine tests and read-only live connection checks passed; one real user comment reached the originating conversation and prompted a selector-label correction; further user review removed the element dropdown, workflow footer and routine save status; browser capture and rendered-result acceptance remain open |
+
+The [seven-track readiness plan](experiments/2026-09-21-readiness-plan.md) organized the earlier gates; it is historical planning evidence, not an additional runtime proof. The table also includes later experiments outside those seven tracks. It distinguishes incorporated behavior from proposals rather than treating everything in `experiments/` as either unsupported or adopted.
+
+### Ownership extends beyond files
+
+The database and workspace experiments support an explicit distinction among project source, temporary view state, durable domain data and service interaction records. A source merge transfers code; it cannot decide whether to combine domain rows. A retired workspace retains the original identity of pending work. Registration and mounting must remain useful without allocating SQLite.
+
+The multi-Surface pilot adds a narrower proposed rule: one backend owner per project/workspace can serve multiple views, but each view keeps its own access lifetime. Removing one view must not close the neighbor's store. The sync pilot adds another: notifications announce that data may have changed, while a current snapshot supplies the data. Neither mechanism may silently overwrite a dirty draft or convert a stale revision into a successful save. These remain constraints for a future adoption decision, not newly supported runtime features.
+
+### Recipient continuity is part of task continuity
+
+The latest lab found a hydration race that browser tests exposed: inputs needed to remain disabled until tab state was restored. A lost recipient must leave the draft intact. A new recipient for an unsent request gets a new request/token; submitted work requires reconciliation first. These observations strengthen the need for explicit lifecycle state, but the live directory only reads actual conversations and the delivery/takeover lab uses a fake adapter. Full project takeover needs the additional contracts in [project autonomy](project-autonomy.md).
+
+### Learning must change the next run
+
+Recorded findings have value when the next agent uses them. This review found current-status prose lagging behind implementation and recent experiments absent from this synthesis. The [source workflow](source-workflow.md) therefore requires a source disposition and an updated progress pointer when closing an experiment. Retain historical observations, but make the current contract discoverable without reconstructing every conversation.
+
+## Historical synthesis through September 21
+
+The sections below retain the earlier experiment topology and limits. For current commands and installed behavior, use [public entry](implementation/03-public-entry.md), [SETUP](../SETUP.md) and the [page workflow](../skills/surface/references/pages.md). Their later adopted contracts supersede earlier statements about separate root/singleton entry points or installation still being future work. Earlier rendering/state checkpoint: `c6abf5f`.
 
 ## Intended direction
 
@@ -118,3 +158,9 @@ The [resource experiment](experiments/2026-09-21-lifecycle-resources.md) found a
 - [Original live proof](prototype.md): exact-session setup, delivery limits, and recorded live outcomes. Automated fixture suites do not contact a model session.
 
 Versioned scripts and experiment records make the observations reviewable. New local screenshots, receipts, and diagnostic logs use ignored `.decompozr/surface/` directories; earlier runs used `.artifact/` or `.decompozr/artifact/`. These records are not portable public evidence. The earlier consolidation recorded existing checkpoints. The linked integration follow-up records the subsequent fresh core, singleton, fixture/browser, review, and live-session checks separately.
+
+### Comment preview push follow-up
+
+The authorized comment experiment replaces periodic browser result reads with store-triggered SSE snapshots. Durable storage and push delivery remain separate; transport liveness does not prove agent activity. See [the experiment checkpoint](experiments/2026-09-23-element-comments.md#sse-follow-up) and [interaction contract](agent-interaction.md#comment-experiment-push-updates-september-23). This is experimental preview behavior, not a shared-service deployment.
+
+The comment preview also trials the user-requested DecompozR arrow-brace identity with an S center; see [identity trial](experiments/2026-09-23-element-comments.md#surface-identity-trial). Scope is the experiment header; visual acceptance is pending.

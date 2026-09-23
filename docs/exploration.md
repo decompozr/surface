@@ -1,5 +1,15 @@
 # Experiment roadmap
 
+## Current learning and acceptance priority — September 23
+
+Experiments must feed back into the source specification through the [source workflow](source-workflow.md). The [findings map](findings.md#september-23-synthesis-and-disposition) records all experiment families reviewed through the recipient lifecycle work, including later work beyond the seven-track plan. Multi-Surface ownership, synchronization and recipient controls remain experimental; comments WIP is unverified.
+
+Installation, the public workspace entry and an experimental downloadable release now exist. The proposed next gate is one useful integrated installed interaction, followed by interruption and continuation from durable project records. See the [autonomy assessment](project-autonomy.md#proposed-next-sequence) for measurable outcomes and missing contracts. A new experiment should answer one of those concrete gaps and finish with a source disposition, not only another successful demo.
+
+## Historical roadmap through September 21
+
+The roadmap below preserves the original progression and its acceptance criteria. Its future-work statements are not a current backlog; use [current readiness](server-readiness.md) and the autonomy assessment above for later implementation and remaining work.
+
 The goal is to progressively validate whether agents in any project can create and run interactive interfaces. Record actual results at each step before expanding the scope. The first prototype covers a bundled Svelte page and live delivery into a dedicated Codex conversation. External project mounting, Svelte/vanilla starters, a generic browser client, custom CLI schemas, and a reusable skill are now implemented. Browser verification covers two external projects with a fixture adapter. A separate singleton pilot validates two versions of one ESM dependency and component previews; integrated singleton interactions now have fixture and live-session evidence. The September 21 follow-ups complete a bounded dependency/MCP, SvelteKit, live-edit, resource, installation, and project-management exploration. See the [server readiness review](server-readiness.md) for the implementation recommendation. See [prototype evidence](prototype.md#validation-on-2026-09-20).
 
 ## Current priority: first-server implementation plan

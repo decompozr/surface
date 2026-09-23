@@ -17,6 +17,8 @@
     "@sveltejs/adapter-node": "5.5.7",
     "@sveltejs/kit": "2.70.3",
     "@sveltejs/vite-plugin-svelte": "7.3.0",
+    "html-to-image": "1.11.13",
+    "lucide-svelte": "1.0.1",
     "svelte": "5.57.1",
     "vite": "8.3.0"
   },
