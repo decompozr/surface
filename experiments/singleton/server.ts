@@ -1,11 +1,12 @@
 import { createServer as createHTTPServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { mkdirSync, readFileSync, writeFileSync, renameSync, realpathSync, existsSync, symlinkSync, unlinkSync, readdirSync, lstatSync, openSync, closeSync, readlinkSync } from 'node:fs';
-import { join, resolve, relative, sep } from 'node:path';
+import { join, resolve, relative, sep, basename } from 'node:path';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer as createViteServer, type ViteDevServer, type Plugin } from 'vite';
 import { scopedDependencies } from './dependencies.ts';
 import { createInteractions } from './interactions.ts';
 import { createProjectRoutes } from '../../src/server/project-routes.ts';
+import type { NavigationNode, NavigationMount } from '../../src/server/navigation.ts';
 import { InputError } from '../../src/core/service.ts';
 import type { ProjectIdentityResolver } from '../../src/core/project-contract.ts';
 import type { AgentAdapter } from '../../src/adapters/codex.ts';
@@ -70,7 +71,7 @@ function prepareDependencyLink(workspace: string, target: string) {
 }
 
 /** Exploratory one-process, one-Vite component host. Separate from the previous runtime experiment. */
-export async function startSingleton(options: { stateDir: string; port?: number; browserOrigin?: string; resolveMountPath?: (mount: MountResourceContext) => Promise<string | undefined>; adapter?: AgentAdapter; projectIdentity?: ProjectIdentityResolver; application?: (req: IncomingMessage, res: ServerResponse) => boolean | Promise<boolean>; openMountResource?: (mount: MountResourceContext) => Promise<MountResource> }) {
+export async function startSingleton(options: { stateDir: string; port?: number; browserOrigin?: string; resolveMountPath?: (mount: MountResourceContext) => Promise<string | undefined>; adapter?: AgentAdapter; projectIdentity?: ProjectIdentityResolver; navigation?: (mounts: NavigationMount[]) => NavigationNode[]; application?: (req: IncomingMessage, res: ServerResponse, navigation?: NavigationNode[]) => boolean | Promise<boolean>; openMountResource?: (mount: MountResourceContext) => Promise<MountResource> }) {
   const browserURL = options.browserOrigin ? new URL(options.browserOrigin) : undefined;
   if (browserURL && (browserURL.protocol !== 'https:' || browserURL.origin !== options.browserOrigin || browserURL.username || browserURL.password)) throw new Error('browserOrigin must be an exact HTTPS origin.');
   const stateDir = resolve(options.stateDir), workspace = join(stateDir, 'workspace');
@@ -285,16 +286,18 @@ export async function startSingleton(options: { stateDir: string; port?: number;
     resolveId(id) {
       // Both names resolve to one module identity so compatibility imports share preview state.
       if (id === 'virtual:artifact-client' || id === 'virtual:surface-client') return join(browserClient, 'index.ts');
+      if (id === 'virtual:surface-shell') return '\0virtual:surface-shell';
       if (id === 'virtual:artifact-preview') return '\0virtual:surface-preview';
       if (id === 'virtual:surface-client' || id === 'virtual:surface-preview') return '\0' + id;
       if (id.startsWith(virtualPrefix)) { parseVirtual(id); return '\0' + id; }
     },
     load(id) {
+      if (id === '\0virtual:surface-shell') return `import {mount, flushSync} from 'svelte'; import SurfaceShell from ${JSON.stringify(join(sharedUI, 'SurfaceShell.svelte'))}; const context=JSON.parse(document.getElementById('artifact-preview-context').textContent); if(context.navigation){flushSync(()=>mount(SurfaceShell,{target:document.getElementById('surface-shell'),props:{navigation:context.navigation,currentPath:location.pathname}})); document.getElementById('surface-page').append(document.getElementById('app'));}`;
       if (id === '\0virtual:surface-client') return new Bun.Transpiler({ loader: 'ts' }).transformSync(readFileSync(join(experimentRoot, '../../src/client/index.ts'), 'utf8'));
       if (id === '\0virtual:surface-preview') return readFileSync(join(experimentRoot, 'preview-client.js'), 'utf8');
       if (!id.startsWith('\0' + virtualPrefix)) return;
       const { record, path } = parseVirtual(id);
-      return `import { mount } from 'svelte'; import RecipientPanel from ${JSON.stringify(join(sharedUI, 'RecipientPanel.svelte'))}; mount(RecipientPanel, {target:document.getElementById('surface-recipient')}); import { previewProps } from 'virtual:surface-preview'; import Component from ${JSON.stringify(`/mounts/${record.namespace}/${record.name}/${path}`)}; mount(Component, {target:document.getElementById('app'), props:previewProps()});`;
+      return `import 'virtual:surface-shell'; import { mount } from 'svelte'; import RecipientPanel from ${JSON.stringify(join(sharedUI, 'RecipientPanel.svelte'))}; if(!document.getElementById('surface-page')) mount(RecipientPanel, {target:document.getElementById('surface-recipient')}); import { previewProps } from 'virtual:surface-preview'; import Component from ${JSON.stringify(`/mounts/${record.namespace}/${record.name}/${path}`)}; mount(Component, {target:document.getElementById('app'), props:previewProps()});`;
     },
   };
   const http = createHTTPServer((req, res) => { void handle(req, res).catch(error => { if (!res.headersSent) json(res, { error: error instanceof Error ? error.message : String(error) }, error instanceof InputError ? error.status : 500); else res.end(); }); });
@@ -321,7 +324,8 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       if (req.method === 'POST' && url.pathname === '/api/unmount') { const input = await body(req); return json(res, await mutate(() => unmount(slug(input.namespace), slug(input.name)))); }
       throw new InputError('Unknown operation.', 404);
     }
-    if (await options.application?.(req, res)) return;
+    const navigation = options.navigation?.(registry.mounts);
+    if (await options.application?.(req, res, navigation)) return;
     if (req.method !== 'GET' && req.method !== 'HEAD') throw new InputError('Method not allowed.', 405);
     const readable = registry.mounts.find(record => record.publicPath && (url.pathname === record.publicPath || url.pathname.startsWith(record.publicPath + '/')));
     const catalog = /^\/n\/([a-z0-9-]+)\/([a-z0-9-]+)\/?$/.exec(url.pathname);
@@ -331,15 +335,15 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       const route = readable ? url.pathname.slice(record.publicPath!.length).replace(/^\/|\/$/g, '') : undefined;
       const pageRouting = readable && Object.keys(record.pages ?? {}).length > 0;
       const component = pageRouting ? record.pages?.[route!] ?? null : url.searchParams.get('component');
-      if (readable && route && !component) throw new InputError('Unknown page.', 404);
+      if (readable && route && !component && !Object.keys(record.pages ?? {}).some(page => page.startsWith(route + '/'))) throw new InputError('Unknown page.', 404);
       if (component && !record.components.includes(component)) throw new InputError('Unknown component.', 404);
       const requestId = url.searchParams.get('request');
       if (requestId) interactions.checkPage(requestId, record.namespace, record.name, component ?? '');
-      const context = JSON.stringify({ interactionBase: `/api/n/${record.namespace}/${record.name}/requests/`, namespace: record.namespace, name: record.name, source: record.source, component, props: component ? record.props[component] ?? {} : {} }).replaceAll('<', '\\u003c');
+      const context = JSON.stringify({ navigation, publicPath: record.publicPath, interactionBase: `/api/n/${record.namespace}/${record.name}/requests/`, namespace: record.namespace, name: record.name, source: record.source, component, props: component ? record.props[component] ?? {} : {} }).replaceAll('<', '\\u003c');
       const client = `<script id="artifact-preview-context" type="application/json">${context}</script><script type="module" src="/@id/__x00__virtual:surface-preview"></script>`;
       const html = component
-        ? `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHTML(readable ? route || 'Home' : component)}</title></head><body>${client}<div id="surface-recipient"></div><div id="app"></div><script type="module" src="/@id/__x00__${virtualPrefix}${record.namespace}/${record.name}/${component.split('/').map(encodeURIComponent).join('/')}.entry.js"></script></body></html>`
-        : `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHTML(record.publicPath ?? record.namespace + '/' + record.name)}</title></head><body>${client}<h1>${escapeHTML(record.publicPath ?? record.namespace + '/' + record.name)}</h1><ul data-artifact-catalog>${pageRouting ? Object.keys(record.pages ?? {}).map(route => `<li><a href="${record.publicPath}/${route}">${escapeHTML(route || 'Home')}</a></li>`).join('') : record.components.map(path => `<li><a href="?component=${encodeURIComponent(path)}">${escapeHTML(path)}</a></li>`).join('')}</ul><script type="module" src="/@vite/client"></script></body></html>`;
+        ? `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHTML(readable ? route || 'Home' : component)}</title></head><body>${client}<div id="surface-shell"></div><div id="surface-recipient"></div><div id="app"></div><script type="module" src="/@id/__x00__${virtualPrefix}${record.namespace}/${record.name}/${component.split('/').map(encodeURIComponent).join('/')}.entry.js"></script></body></html>`
+        : `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHTML(route || basename(record.source))}</title></head><body>${client}<div id="surface-shell"></div><div id="app"><section class="surface-folder"><p>Pages in this folder</p><h1>${escapeHTML(route || basename(record.source))}</h1><ul data-artifact-catalog>${pageRouting ? Object.keys(record.pages ?? {}).filter(page => !route || page.startsWith(route + '/')).map(route => `<li><a href="${record.publicPath}/${route}">${escapeHTML(route || 'Home')}</a></li>`).join('') : record.components.map(path => `<li><a href="?component=${encodeURIComponent(path)}">${escapeHTML(path)}</a></li>`).join('')}</ul></section></div><script type="module" src="/@id/__x00__virtual:surface-shell"></script><script type="module" src="/@vite/client"></script></body></html>`;
       res.writeHead(200, { 'content-type': 'text/html', 'cache-control': 'no-store' });
       res.end(await vite.transformIndexHtml(url.pathname, html)); return;
     }
@@ -385,7 +389,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
               const previous = record.props;
               scan(record);
               const changedProps = [...new Set([...Object.keys(previous), ...Object.keys(record.props)])].filter(key => JSON.stringify(previous[key]) !== JSON.stringify(record.props[key]));
-              vite.ws.send({ type: 'custom', event: 'artifact:discovery', data: { namespace: record.namespace, name: record.name, components: record.components, changedProps, props: record.props } });
+              vite.ws.send({ type: 'custom', event: 'artifact:discovery', data: { namespace: record.namespace, name: record.name, components: record.components, pages: record.pages, publicPath: record.publicPath, changedProps, props: record.props } });
             } catch (error) { phase(record, 'failed', String(error)); }
           }
           rescans.clear();

@@ -44,6 +44,9 @@ try {
   page.on('console', msg => { if (msg.text().includes('reload')) traces.push({ console: msg.text() }); });
   await page.goto(request.previewUrl);
   await expect(page.getByLabel('Delivery mode')).toBeEnabled();
+  const originalURL = page.url();
+  await page.getByRole('complementary', { name: 'Workspace navigation' }).getByRole('link', { name: 'feedback', exact: true }).click();
+  assert.equal(page.url(), originalURL, 'Current readable route must retain request credentials.');
   await page.getByLabel('Delivery mode').selectOption('queue');
   const second = await browser.newPage(); await second.goto(request.previewUrl);
   await expect(second.getByLabel('Delivery mode')).toHaveValue('');
