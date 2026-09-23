@@ -1,6 +1,6 @@
 # Singleton namespace experiment
 
-For current installed usage, start with the [Surface page workflow](../../skills/surface/references/pages.md). It prefers readable route-based pages and documents private Tailscale browser access. The commands below describe the standalone experiment and its legacy component catalog.
+For current installed usage, start with the [Surface page workflow](../../skills/surface/references/pages.md). It requires readable route-based pages and documents private Tailscale browser access. The commands below describe the standalone experiment and its legacy component catalog.
 
 An executable experiment for the preferred direction: start one server, create a namespace, then mount component folders into it. One HTTP listener and one Vite instance serve every mount. Installation uses short-lived Bun subprocesses; no per-project development server is launched.
 

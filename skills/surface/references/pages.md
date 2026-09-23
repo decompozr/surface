@@ -1,6 +1,6 @@
 # Project pages and readable URLs
 
-Prefer route-based pages for new user-facing Surface previews. Keep sources inside the user's Git project; do not convert its existing application or package manager implicitly. Surface mounts trusted Svelte source, not an arbitrary existing Vite app or a full SvelteKit application.
+Route-based pages are the only supported authoring workflow for new or updated user-facing Surface previews. Do not create component-catalog previews. Keep sources inside the user's Git project; do not convert its existing application or package manager implicitly. Surface mounts trusted Svelte source, not an arbitrary existing Vite app or a full SvelteKit application.
 
 ## Minimal source
 
@@ -51,7 +51,7 @@ The installed workspace host produces:
 
 Project names and folder names are normalized to lowercase slugs. The canonical Git checkout is called `main` regardless of its current branch; linked worktrees use their directory basename. The last segment comes from the mounted source folder basename, not the artifact display name. Names are captured when the readable alias is assigned; UUIDs remain authoritative. Do not fabricate URLs or rename identities to resolve collisions: use the returned mount metadata.
 
-`routes/+page.svelte` supplies the mount index; `routes/history/+page.svelte` supplies `/history`. Prefer these clean URLs for browsing. Sources without `routes` retain the legacy `/n/.../?component=...` catalog. Existing mounts are not automatically migrated by documentation changes; add route wrappers and remount only within an authorized project task, retaining its artifact ID. Verify the resulting URL and rendering.
+`routes/+page.svelte` supplies the mount index; `routes/history/+page.svelte` supplies `/history`. Use only these clean URLs for browsing. For historical compatibility, the runtime still serves sources without `routes` through the legacy `/n/.../?component=...` catalog. Existing mounts are not automatically migrated by documentation changes; add route wrappers and remount only within an authorized project task, retaining its artifact ID. Verify the resulting URL and rendering.
 
 ## Interaction requests
 
