@@ -2,7 +2,7 @@
 
 A small CLI above the existing singleton APIs. Sources stay in the caller's project; a versionable `artifact.project.json` records stable project/artifact UUIDs, human labels, relative source folders, and archive flags. The CLI does not run per-project servers or copy source into the Surface checkout.
 
-This earlier wrapper remains a comparison fixture. For current project operations, use the [shared-core `surface project` interface](../../docs/implementation/01-project-core.md), which requires the running service for every operation. The commands below retain this experiment's original direct-filesystem behavior; do not run both writers as independent authorities.
+This earlier wrapper remains a comparison fixture. For current project operations, use the [shared-core `surface project` interface](../../docs/architecture/project-operations.md), which requires the running service for every operation. The commands below retain this experiment's original direct-filesystem behavior; do not run both writers as independent authorities.
 
 ## Use
 

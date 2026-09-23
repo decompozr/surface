@@ -4,23 +4,23 @@ Surface gives humans and agents a shared, extensible interactive environment for
 
 Projects own their interactive content and domain meaning. Surface provides the common runtime and interaction mechanisms so people can manipulate a representation and projects or agents can receive structured input and continue the work. Surface operates independently of DecompozR, which can use it as one producer and consumer among others.
 
-Web is the first implementation path. v0 focuses on a local Svelte loop: create project-owned source, mount and run it, interact in a browser, return structured input to the bound agent conversation, and update the result or interface. Graph, CAD, simulation, native representations, and a general capability protocol remain future directions rather than v0 requirements. See the [product vision](docs/vision.md) for the long-term goal, architecture boundaries, and v0 commitment.
+Web is the first implementation path. v0 focuses on a local Svelte loop: create project-owned source, mount and run it, interact in a browser, return structured input to the bound agent conversation, and update the result or interface. Graph, CAD, simulation, native representations, and a general capability protocol remain future directions rather than v0 requirements. See the [product vision](docs/intent/vision.md) for the long-term goal, architecture boundaries, and v0 commitment.
 
 ## Current status
 
-This project is exploring the domain. Its executable code is an experimental implementation for testing design hypotheses; the architecture, API, storage model, and packaging are not finalized product commitments. The first local prototype includes a Bun server and CLI, a Svelte feedback page, and a Codex adapter that delivers page responses to an existing conversation. Active-turn steering and idle continuation have been exercised against a local Codex session.
+Surface has a bounded experimental implementation: one shared service for Git projects/worktrees, a built SvelteKit shell, mounted client-rendered Svelte route pages, CLI/MCP project operations, optional lazy project storage, installation lifecycle, navigation and explicit recipient/delivery controls. These contracts remain limited to trusted local code and the supported compiler/dependency boundary.
 
-Two experimental runtime paths currently coexist: the earlier CLI mounts external Svelte or vanilla projects through separate development processes; the preferred singleton pilot hosts discovered Svelte components through one Vite instance and now connects their forms to the existing interaction service. Automated fixture checks and separate live Codex idle/active round trips passed. The September 21 experiments now cover a real MCP adapter, scoped CommonJS prebundles, a built SvelteKit management shell, live agent source edits, bounded resource measurements, pinned repository installation, and project-owned artifact management. See the [server implementation readiness review](docs/server-readiness.md) for the proposed first-server scope and remaining limits. Remote access and additional frameworks remain deferred.
+Source setup can configure private Tailscale browser access. It does not establish remote CLI management or agent connectivity. Earlier per-runtime hosting and isolated backend/synchronization pilots remain historical or experimental. See the [source documentation guide](docs/README.md) for current requirements, concrete UI design, evidence and untested gates. Historical fixture/live results do not jointly establish fresh-user acceptance or indefinite reliability.
 
 ## Experimental download
 
 Start with the [laptop setup guide](SETUP.md): download, install into `~/.decompozr/surface`, start, connect your agent, and manage the service.
 
-The build-to-release experiment now packages the current app, Bun runtime and frozen dependencies for macOS Apple Silicon. See the [release and installation guide](docs/implementation/04-experimental-release.md) for building a versioned artifact, installing it without a checkout, agent setup and lifecycle commands. This remains an experimental prerelease path.
+The build-to-release experiment now packages the current app, Bun runtime and frozen dependencies for macOS Apple Silicon. See the [release and installation guide](docs/architecture/release-distribution.md) for building a versioned artifact, installing it without a checkout, agent setup and lifecycle commands. This remains an experimental prerelease path.
 
 ## Shared local service
 
-The public `surface` entry point now installs and operates one shared service for Git projects and linked worktrees. See the [public entry guide](docs/implementation/03-public-entry.md) for the complete command, storage and migration contract.
+The public `surface` entry point now installs and operates one shared service for Git projects and linked worktrees. See the [public entry guide](docs/architecture/workspace-service.md) for the complete command, storage and migration contract.
 
 ```sh
 bun install --frozen-lockfile
@@ -70,32 +70,14 @@ The current implementation target focuses on Svelte + TypeScript. Additional fra
 
 ## Documentation
 
-- [Public Surface entry](docs/implementation/03-public-entry.md): shared installation, cwd-based workspace commands, MCP, retirement and explicit legacy migration.
+Start with the [source documentation guide](docs/README.md) for authority, reading paths and the complete migration map.
 
-- [Cross-Surface synchronization experiment](docs/experiments/2026-09-21-surface-sync.md): opt-in live updates, draft protection and snapshot recovery after disconnection; isolated experiment only.
+- [Vision and principles](docs/intent/vision.md): purpose, ownership and bounded scope.
+- [Requirements](docs/requirements/runtime.md): observable runtime contracts and exclusions.
+- [Architecture](docs/architecture/components.md): component ownership, lifecycle and detailed operation contracts.
+- [UI design](docs/design/README.md): navigation, recipient journeys, state/recovery tables, drafts, mobile behavior and accessibility gaps.
+- [Evaluations](docs/evaluations/README.md): traceable pass/fail criteria and available verification.
+- [Observations](docs/observations/README.md): historical measurements, reported feedback, incidents and source dispositions.
+- [Documentation workflow](docs/source-workflow.md): how experiments update the source specification.
 
-- [Multiple Surfaces experiment](docs/experiments/2026-09-21-multi-surface.md): two views share one lazy workspace backend with independent mount lifecycles; isolated experiment only, not adopted into the public runtime.
-
-- [Worktree workspace experiment](docs/experiments/2026-09-21-workspaces.md): one shared service, worktree namespaces, lazy isolated data, and source merge/cleanup with retained history.
-
-- [First-server contract experiments](docs/experiments/2026-09-21-server-contract.md): installed launcher, explicit schema compatibility/restore, and optional backend declarations with lazy SQLite through installed lifecycle operations.
-
-- [Project-owned SQLite experiment](docs/experiments/2026-09-21-project-database.md): optional project databases acquired on demand, named backend operations, browser persistence, and lifecycle/failure evidence; not yet a supported backend API.
-- [Installation/lifecycle contract](docs/implementation/02-installation-lifecycle.md): accepted lazy project-storage policy, lifecycle requirements, and remaining implementation decisions.
-- [Server readiness and implementation sequence](docs/server-readiness.md): seven experiment outcomes, proposed scope, operational limits, and the next build milestones.
-- [Consolidated findings](docs/findings.md): lessons and evidence boundaries.
-- [Repository installation and lifecycle](experiments/lifecycle/README.md): isolated pinned releases, start/stop/restart, rollback, recovery, and non-destructive uninstall.
-- [Project artifact management](experiments/projects/README.md): project-owned identities, registration, mounting, and archive/restore.
-- [MCP adapter](experiments/mcp/README.md): existing-singleton stdio access and CLI interoperability.
-- [SvelteKit foundation](experiments/sveltekit/README.md): build and run the experimental management shell.
-- [External-project workflow](docs/workflow.md): CLI setup, scaffolding, mounting, custom interactions, skill installation, and verification.
-- [Product vision](docs/vision.md): user value, core concepts, and design principles.
-- [Architecture exploration](docs/architecture.md): initial proposals for the service, project runtimes, interfaces, and dependency boundaries.
-- [Agent interaction](docs/agent-interaction.md): session registration, page responses, and delivery through agent adapters.
-- [Prototype usage and evidence](docs/prototype.md): setup, implemented behavior, validation, and limits.
-- [Experiment roadmap](docs/exploration.md): small experiments, acceptance criteria, and open questions.
-
-The singleton now has scoped compiler-error UI, live catalog updates, and opt-in state preservation across HMR; see the [follow-up evidence](docs/experiments/2026-09-20-scoped-hmr.md). The follow-ups also observed a real agent edit with draft retention and MCP/CLI interoperability. Repeated source reuse stabilized measured resources; continuously introducing new sources retained compiler metadata. The first server needs a resource budget and an explicit restart/recreation policy before promising indefinite operation.
-
-
-The shared UI now groups registered route pages by project and worktree, with a collapsible sidebar, mobile drawer, and breadcrumbs. Interaction pages offer explicit queue/steer choices and optional scoped recipient selection. See the [delivery contract](docs/agent-interaction.md#explicit-delivery-intent) for provider race limits and the distinction between fixture verification and actual user delivery.
+The shared UI groups registered route pages by project/worktree. Interaction pages offer explicit queue/steer choices and opt-in same-worktree recipient changes. See the [delivery contract](docs/requirements/agent-interaction.md#explicit-delivery-intent) for provider race limits and the distinction between fixture checks and actual user delivery.

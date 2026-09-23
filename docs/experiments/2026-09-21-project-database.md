@@ -8,7 +8,7 @@ Status: the bounded experiment passed. This is an additional ownership/backend g
 
 Can each project own its own SQLite database and domain operations while Surface hosts its Svelte interface, routes structured operations, and manages the connection lifecycle?
 
-This tests a concrete consequence of the [product vision](../vision.md): project data and domain logic retain their ownership while Surface supplies common runtime mechanisms. A page alone cannot provide access to a local server-side SQLite file; the missing boundary is a project backend operation and its lifecycle.
+This tests a concrete consequence of the [product vision](../intent/vision.md): project data and domain logic retain their ownership while Surface supplies common runtime mechanisms. A page alone cannot provide access to a local server-side SQLite file; the missing boundary is a project backend operation and its lifecycle.
 
 ## Original implementation and ownership
 
@@ -88,7 +88,7 @@ Before promoting this into v0, define the supported backend declaration and load
 
 ## Follow-up: optional lazy acquisition
 
-The user adopted lazy project SQLite: registration and mounting must not create or open a database. An application-owned SQLite metadata store could be initialized by default if separately selected, but no such decision or migration is part of this change. The accepted policy is recorded in the [Milestone 2 contract](../implementation/02-installation-lifecycle.md).
+The user adopted lazy project SQLite: registration and mounting must not create or open a database. An application-owned SQLite metadata store could be initialized by default if separately selected, but no such decision or migration is part of this change. The accepted policy is recorded in the [Milestone 2 contract](../architecture/installation-lifecycle.md).
 
 The backend factory is now inert. It validates operations before acquiring storage, reuses one connection after first demand, and closes only a connection that was actually acquired. `describeProject` is a non-database fixture operation. A project can also omit backend configuration and the backend file entirely. Remount and process restart reconstruct unopened backends rather than reconnecting databases eagerly.
 

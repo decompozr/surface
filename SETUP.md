@@ -65,4 +65,4 @@ For new project pages, follow the [route-based page guide](skills/surface/refere
 
 Logs are at `~/.decompozr/surface/run/host.log`. Stop before running a newer release's installer against the same home. `uninstall` removes application releases while retaining service metadata and project data; it requires the service to be stopped and unresolved callbacks to be reconciled. Project source files are not removed.
 
-This prerelease is unsigned/unnotarized. No Tailscale exposure, auto-start, agent configuration, or global skill installation is performed. See `docs/implementation/04-experimental-release.md` for the build/release contract and current limits.
+This prerelease is unsigned/unnotarized. The downloaded installer does not configure Tailscale exposure, auto-start, agent configuration or global skill installation. Source setup separately offers the private Serve and provider-symlink workflow described above. See the [release contract](docs/architecture/release-distribution.md) for the build/release contract and current limits.

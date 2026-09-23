@@ -1,6 +1,6 @@
 # Server implementation readiness experiments
 
-Date: September 21, 2026. Status: all seven tracks concluded with bounded evidence; see the [readiness review](../server-readiness.md) for the recommendation and integrated validation. This records experiments, not production delivery.
+Date: September 21, 2026. Status: all seven tracks concluded with bounded evidence; see the [readiness review](first-server-readiness.md) for the recommendation and integrated validation. This records experiments, not production delivery.
 
 The user authorized the remaining Svelte experiments and asked for a recommendation on when to start building the actual server. Scope includes the application, repository installation, service lifecycle, and management of project-owned artifacts. Additional frontend frameworks remain deferred.
 
