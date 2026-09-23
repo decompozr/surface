@@ -2,7 +2,7 @@
 
 Status: bounded experiment implemented and verified. This is evidence for a workspace contract, not adoption of a new global installation or automatic migration of existing service state.
 
-Follow-up: the [public entry implementation](../implementation/03-public-entry.md) now integrates this model, adds namespace-preserving legacy migration and verifies the installed executable. The original experiment observations below retain their scope.
+Follow-up: the [public entry implementation](../architecture/workspace-service.md) now integrates this model, adds namespace-preserving legacy migration and verifies the installed executable. The original experiment observations below retain their scope.
 
 ## Question
 

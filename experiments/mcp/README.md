@@ -50,7 +50,7 @@ Request creation intentionally returns a private `previewUrl` containing the bro
 
 The eight `surface_project_init`, `surface_project_add`, `surface_project_list`, `surface_project_register`, `surface_project_mount`, `surface_project_unmount`, `surface_project_archive`, and `surface_project_restore` tools use the same versioned project API and core as `surface project`. Discover their strict schemas for required fields. All require an existing singleton, including init/list; only list is annotated read-only. Structured results include `version: 1`, `ok`, `status`, and `data` or an error with `code`/`message`. Transport uncertainty never causes an automatic retry.
 
-Read the [implementation contract](../../docs/implementation/01-project-core.md). Run `bun experiments/mcp/verify-projects.ts` for real SDK/CLI/browser verification of the shared lifecycle. The earlier eleven mount/interaction tools retain their original response contract.
+Read the [implementation contract](../../docs/architecture/project-operations.md). Run `bun experiments/mcp/verify-projects.ts` for real SDK/CLI/browser verification of the shared lifecycle. The earlier eleven mount/interaction tools retain their original response contract.
 
 ## Evidence
 
