@@ -1,5 +1,7 @@
 # Singleton namespace experiment
 
+For current installed usage, start with the [Surface page workflow](../../skills/surface/references/pages.md). It prefers readable route-based pages and documents private Tailscale browser access. The commands below describe the standalone experiment and its legacy component catalog.
+
 An executable experiment for the preferred direction: start one server, create a namespace, then mount component folders into it. One HTTP listener and one Vite instance serve every mount. Installation uses short-lived Bun subprocesses; no per-project development server is launched.
 
 This does not replace the previous `surface serve` implementation. Use the separate commands below to reproduce and compare the designs. The host now connects mounted components to the existing interaction service and exact-session adapter. A separate [MCP adapter](../mcp/README.md) now exposes this same running service. The [SvelteKit wrapper](../sveltekit/README.md), [installation manager](../lifecycle/README.md), and [project artifact manager](../projects/README.md) are additional experimental entry points. The interaction integration is an experiment; its verification outcomes are recorded separately from the earlier rendering checks.
@@ -144,7 +146,7 @@ The browser client uses `/api/n/<namespace>/<name>/requests/<id>`. The server ch
 - Unmount blocks page reads and new submissions, preserves request records, and does not cancel delivery already in flight. Administrative `inspect`, `result`, and `close` remain available.
 - Remounting the original source/project and restoring the selected component restores page access. Replacing the source under the same mount name is rejected. A full service restart retains requests and restores registered mounts; use the current server origin if its port changes.
 
-Receipt persistence, adapter acceptance, agent completion, result publication, browser display, and personal user acceptance are separate observations. The session must be able to contact the local service for the CLI callback; Surface does not alter its permissions. Local links work only on the host computer; remote/mobile access is outside this pilot.
+Receipt persistence, adapter acceptance, agent completion, result publication, browser display, and personal user acceptance are separate observations. The session must be able to contact the local service for the CLI callback; Surface does not alter its permissions. Local links work only on the host computer. This standalone pilot does not configure remote access; the installed setup supports private Tailscale browser access as described in the current workflow above.
 
 ## Dependency and framework boundary
 
