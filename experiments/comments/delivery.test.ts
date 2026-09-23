@@ -32,6 +32,30 @@ describe('exact conversation comment delivery using a fake adapter', () => {
     const changed = batch(); changed.comments[0].text = 'Different payload';
     await expect(restored.submit(changed)).rejects.toThrow('already has a submission');
   });
+  test('preflight shares identical pending batches but rejects changed payloads', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    let inspected!: () => void;
+    const entered = new Promise<void>(resolve => { inspected = resolve; });
+    let calls = 0;
+    let inspections = 0;
+    const { bridge } = await fixture({ inspect: async () => { if (++inspections > 1) { inspected(); await gate; } return { status: 'idle' }; }, deliver: async () => { calls++; return { mode: 'start', turnId: 'fake-turn' }; } });
+    const first = bridge.submit(batch());
+    await entered;
+    const duplicate = bridge.submit(batch());
+    const changed = batch(); changed.comments[0].text = 'Changed while preflight is pending';
+    await expect(bridge.submit(changed)).rejects.toThrow('already has a submission');
+    release();
+    await Promise.all([first, duplicate]);
+    expect(calls).toBe(1);
+  });
+  test('active recipient requires explicit delivery choice and leaves the draft unsent', async () => {
+    let calls = 0;
+    const { bridge } = await fixture({ inspect: async () => ({ status: 'active', turnId: 'active-turn' }), deliver: async () => { calls++; return { mode: 'steer', turnId: 'active-turn' }; } });
+    await expect(bridge.submit(batch())).rejects.toThrow('Choose queue or steer explicitly');
+    expect(calls).toBe(0);
+    expect(bridge.view('batch-1')?.status).toBe('pending');
+  });
   test('uncertain acknowledgement is retained and never automatically replayed', async () => {
     let calls = 0;
     const { bridge } = await fixture({ inspect: async () => ({ status: 'idle' }), deliver: async () => { calls++; throw new DeliveryError('Lost acknowledgement', 'unknown'); } });

@@ -127,3 +127,10 @@ The app exposes `/workspace/{project-name}/{worktree-name}/{mounted-folder}/{pag
 Project names and folder names become lowercase URL slugs. The primary checkout is `main`; linked worktrees use their folder name. The alias is captured on first mount and persisted with the internal UUID binding, so branch switches and restarts do not rename URLs. Collisions are rejected, including aliases reserved by unmounted records. Explicit alias renaming is not yet implemented.
 
 The source manifest declares `"components": "routes", "routes": "routes"`. Static nested paths and a root `+page.svelte` are supported. This is mounted Svelte page discovery, not full SvelteKit routing: layouts, dynamic parameters, server load functions and form actions are not implemented. Legacy `/n/` component previews remain available for existing clients. Interaction URLs use the readable page path plus request identity/capability; the internal API remains UUID-scoped.
+
+
+## Shared workspace shell
+
+`src/routes/+layout.server.ts` receives the registered route tree from the host, and `SurfaceShell.svelte` renders it for both the SvelteKit home and mounted pages. `src/server/navigation.ts` derives project/worktree/folder/page nodes only from the service ledger and ready route mounts. Folder indexes do not expose raw filesystem contents. The shell uses a white background with slate, sand, and lavender accents, desktop collapse, a mobile drawer, and breadcrumbs.
+
+Run `bun apps/surface/scripts/verify-navigation.ts` from the repository root after building this app for parent SSR, worktree separation, nested folder/page routes, desktop and mobile behavior. `verify-recipients.ts` exercises the common interaction UI with fixture adapters. Browser screenshots remain in ignored `.decompozr/surface/screenshots`. Health, provider directory inspection, fixture delivery, installation identity, and actual user delivery are separate evidence.

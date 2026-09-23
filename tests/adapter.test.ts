@@ -27,7 +27,7 @@ function fixture(state: string, mutate?: (method: string) => unknown) {
 }
 test('steers the exact active turn without starting a new one', async () => {
   const rpc = fixture('active');
-  const receipt = await new CodexAdapter(async () => rpc).deliver(binding, 'choice B');
+  const receipt = await new CodexAdapter(async () => rpc).deliver(binding, 'choice B', { mode: 'steer', expectedStatus: 'active', expectedTurnId: 'active-turn' });
   expect(receipt).toEqual({ mode: 'steer', turnId: 'active-turn' });
   expect(rpc.calls.at(-1)).toMatchObject({ method: 'turn/steer', params: { threadId: 'thread-exact', expectedTurnId: 'active-turn' } });
   expect(rpc.calls.map(call => call.method)).not.toContain('turn/start');
@@ -41,7 +41,7 @@ test('starts a new turn in the same idle thread', async () => {
 });
 test('an explicit turn-race rejection is failed and never falls back to another turn', async () => {
   const rpc = fixture('active', () => { throw new RpcError('Turn no longer active'); });
-  try { await new CodexAdapter(async () => rpc).deliver(binding, 'choice B'); throw new Error('Expected failure'); }
+  try { await new CodexAdapter(async () => rpc).deliver(binding, 'choice B', { mode: 'steer', expectedStatus: 'active', expectedTurnId: 'active-turn' }); throw new Error('Expected failure'); }
   catch (error) { expect(error).toBeInstanceOf(DeliveryError); expect((error as DeliveryError).outcome).toBe('failed'); }
   expect(rpc.calls.filter(call => call.method.startsWith('turn/'))).toHaveLength(1);
 });
@@ -65,4 +65,24 @@ test('reopens only the specified unloaded thread without configuration overrides
     throw new Error(method);
   });
   expect(await new CodexAdapter(async () => rpc).deliver(binding, 'input')).toEqual({ mode: 'start', turnId: 'resumed-turn' });
+});
+
+test('queues active input using provider queue and retains its identity', async () => {
+  const rpc = new FakeRpc((method, params) => {
+    if (method === 'thread/read') return { thread: { id: binding.threadId, cwd: binding.projectRoot, status: { type: 'active' } } };
+    if (method === 'thread/turns/list') return { data: [{ id: 'active-turn', status: 'inProgress' }] };
+    if (method === 'thread/queue/add') { expect(params.clientUserMessageId).toBe('response-id'); return { queuedSubmission: { id: 'queued-id' } }; }
+    throw Error(method);
+  });
+  expect(await new CodexAdapter(async () => rpc).deliver(binding, 'queued input', { mode: 'queue', expectedStatus: 'active', expectedTurnId: 'active-turn' }, 'response-id')).toEqual({ mode: 'queue', queuedSubmissionId: 'queued-id' });
+  expect(rpc.calls.some(call => call.method.startsWith('turn/'))).toBe(false);
+});
+test('rejects changed recipient state without changing delivery mode', async () => {
+  const rpc = fixture('idle');
+  await expect(new CodexAdapter(async () => rpc).deliver(binding, 'input', { mode: 'queue', expectedStatus: 'active' })).rejects.toThrow('state changed');
+  expect(rpc.calls).toHaveLength(1);
+});
+test('active delivery requires an explicit mode and steer requires the confirmed turn', async () => {
+  await expect(new CodexAdapter(async () => fixture('active')).deliver(binding, 'input')).rejects.toThrow('Choose queue or steer');
+  await expect(new CodexAdapter(async () => fixture('active')).deliver(binding, 'input', { mode: 'steer', expectedStatus: 'active', expectedTurnId: 'previous-turn' })).rejects.toThrow('active turn changed');
 });

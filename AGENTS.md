@@ -1,8 +1,8 @@
 # Surface repository agent entry
 
-Read `SETUP.md` for user installation and `skills/surface/references/setup.md` for the agent-managed source workflow.
+Treat `docs/` as the project source specification. Read `docs/README.md` and `docs/source-workflow.md` for documentation authority and evidence-to-source updates. The completed documentation continuation trial is recorded under `docs/experiments/docs-takeover/`.
 
-Treat `docs/` as the project source specification. Follow `docs/source-workflow.md` when experiments or implementation change what the project has learned: record evidence and limits, update the relevant source contract and current progress, and distinguish adopted behavior from proposals and historical observations. Use `docs/findings.md` for the evidence map and `docs/project-autonomy.md` for the current autonomy gap assessment.
+Read `SETUP.md` for user installation and `skills/surface/references/setup.md` for the agent-managed source workflow.
 
 When asked to setup this clone, use `./bin/setup --skills-dir PROVIDER_SKILLS_DIRECTORY`. Discover the actual provider directory; do not copy skills. Keep its `surface` entry as a symlink to this checkout's `skills/surface` directory. Preserve existing directories and foreign/broken links. Use `./bin/setup` for both installation and updates: it reuses a matching running release, starts a stopped matching release, and installs the checkout revision when different. `./bin/test` is read-only; `./bin/refresh` is a compatibility alias for setup. Explicit `--home`/`--port` selection is supported.
 

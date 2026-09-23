@@ -7,7 +7,10 @@ declare module 'virtual:surface-preview' {
 
 /** The singleton host supplies this module; do not add it as a package dependency. */
 declare module 'virtual:surface-client' {
+  export type DeliveryIntent = { mode: 'queue' | 'steer' | 'start'; expectedStatus: string; expectedTurnId?: string };
+  export type Recipient = { threadId: string; status: string; turnId?: string; canSubmit: boolean };
   export type Interaction = {
+    recipientSelection?: boolean;
     id: string;
     title: string;
     closed: boolean;
@@ -23,7 +26,11 @@ declare module 'virtual:surface-client' {
   /** Reads the request capability and mount scope from the returned interaction preview URL. */
   export function createSurfaceClient(options?: { api: string; requestId: string; token: string }): {
     read(): Promise<Interaction>;
-    submit(data: Record<string, unknown>, responseId: string): Promise<Interaction>;
+    recipient(): Promise<Recipient>;
+    configureDelivery(intent?: DeliveryIntent): void;
+    directory(): Promise<{ available: boolean; worktree: { id: string; title: string; status: string; workspaceId: string; projectRoot: string }[]; project: { id: string; title: string; status: string; workspaceId: string; projectRoot: string }[]; checkedAt: string }>;
+    takeOver(threadId: string): Promise<Interaction & { token: string }>;
+    submit(data: Record<string, unknown>, responseId: string, delivery?: DeliveryIntent): Promise<Interaction>;
     waitForResult(options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<Record<string, unknown>>;
   };
   export const createArtifactClient: typeof createSurfaceClient;

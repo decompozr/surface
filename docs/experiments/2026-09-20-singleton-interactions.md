@@ -8,7 +8,7 @@ Status: the deterministic fixture/browser integration suite, lifecycle race regr
 
 Can the preferred singleton host preserve the original exact-session interaction semantics while serving independently mounted Svelte components, retaining useful HMR state, and keeping neighboring previews usable?
 
-The earlier [live interaction proof](../prototype.md) and [singleton rendering experiment](2026-09-20-singleton-namespaces.md) established separate parts. They did not establish this integrated path.
+The earlier [live interaction proof](original-prototype.md) and [singleton rendering experiment](2026-09-20-singleton-namespaces.md) established separate parts. They did not establish this integrated path.
 
 ## Integration under test
 
@@ -82,6 +82,6 @@ Graceful draining does not establish crash-safe delivery completion. An abrupt s
 
 ## Reproduce and inspect
 
-The [singleton guide](../../experiments/singleton/README.md#connect-a-mounted-component-to-an-agent) documents mounting, binding, request creation, client imports, administrative inspection/publication, and lifecycle semantics. The [Artifact skill](../../skills/artifact/SKILL.md) routes agents to this workflow and keeps the older per-process workflow separately discoverable.
+The [singleton guide](../../experiments/singleton/README.md#connect-a-mounted-component-to-an-agent) documents mounting, binding, request creation, client imports, administrative inspection/publication, and lifecycle semantics. The [Artifact skill](../../skills/surface/SKILL.md) routes agents to this workflow and keeps the older per-process workflow separately discoverable.
 
 Keep private interaction links, request capabilities, session receipts, logs, and screenshots in ignored `.artifact/` evidence folders. Version the scripts and summary observations, not private state.

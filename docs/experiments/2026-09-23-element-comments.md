@@ -2,7 +2,7 @@
 
 ## Question and disposition
 
-Can users select an element, attach its image, accumulate comments and send one reviewable batch? The user requested this experiment and subsequently requested its Tailscale URL. Source direction: [contextual comment batches](../agent-interaction.md#contextual-comment-batches--experimental). Disposition: retained as experimental; browser and real-recipient acceptance remain open.
+Can users select an element, attach its image, accumulate comments and send one reviewable batch? The user requested this experiment and subsequently requested its Tailscale URL. Source direction: [contextual comment batches](../requirements/agent-interaction.md#contextual-comment-batches--experimental). Disposition: retained as experimental; browser and real-recipient acceptance remain open.
 
 ## Implementation and observations
 
@@ -66,3 +66,11 @@ Validation: 17 comment/core tests passed; Svelte and server type checks and the 
 ### Surface identity trial
 
 The user requested the DecompozR design-system logo adapted to {S}. The comment preview preserves the arrow-brace SVG geometry from the canonical DecompozR apps/design-system/src/lib/Logo.svelte, replaces its equals mark with a vector S, and uses a compact charcoal mark instead of the Surface wordmark and green decorative period. This is a preview identity trial, not adoption across all Surface pages. Browser visual acceptance remains pending.
+
+### Main integration follow-up
+
+The user authorized preserving this worktree and integrating main on September 23. Commit `f5daafc` preserves the complete pre-integration WIP. The merge includes main `6dd9083`, the canonical documentation structure, and the newer explicit delivery-intent preflight. The comments callback customization and store notifications remain present.
+
+The first integration test found concurrent duplicate batches colliding with the new preflight lock. The comment bridge now shares only an identical pending batch operation, rejects concurrent changed data, and retains the core lock. An initial new fixture accidentally blocked binding rather than submission; its barrier was corrected and the abandoned test process stopped. Fresh targeted verification passed: 22 service/comment tests, 78 assertions; root type check and app Svelte/server checks passed. No fixture contacted a live adapter.
+
+Active recipients now require explicit queue/steer intent in Core; the comment playground does not yet collect that choice. Its active submission is therefore rejected before consuming the response slot. Idle submission remains supported. This is an explicit integration limitation, not permission to restore automatic steering. Earlier live active-delivery observations describe their older revision. No installed service or preview was restarted during this reconciliation.

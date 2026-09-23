@@ -38,11 +38,15 @@ Check `surface status` and `surface doctor` for the selected installation. Start
      --component routes/+page.svelte --schema-file /absolute/project/artifacts/panel/interaction.schema.json \
      --title "Choose a direction"
    ```
+   Add `--allow-recipient-selection` only when the task authorizes choosing another conversation in this exact worktree. It enables the shared recipient picker and explicit takeover; the default remains bound to the original conversation. The picker creates a new scoped request/token and closes the old request without sending or replaying input. Other worktrees are listed for context only.
+
    The component must be in a ready mount. Supply the custom schema and share the returned private `previewUrl` only with the intended user. Do not commit capabilities or service state. If the session identity is unavailable, obtain it instead of guessing.
 
 ## Build the interaction component
 
-Import `createSurfaceClient` from `virtual:surface-client`. It exposes `read()`, `submit(data, responseId)`, and `waitForResult()`. Existing components may still use the legacy `createArtifactClient` export and `virtual:artifact-client` / `virtual:artifact-preview` aliases; use Surface names for new source. Copy the guide's linked `preview.d.ts` into the mounted project's included declarations for editor/type-check support.
+Import `createSurfaceClient` from `virtual:surface-client`. It exposes `read()`, `recipient()`, `submit(data, responseId, delivery)`, and `waitForResult()`. Existing components may still use the legacy `createArtifactClient` export and `virtual:artifact-client` / `virtual:artifact-preview` aliases; use Surface names for new source. Copy the guide's linked `preview.d.ts` into the mounted project's included declarations for editor/type-check support.
+
+Read `recipient()` before submission. For an active recipient, explicitly offer queue (after the current turn) and steer (during the current turn); pass `{ mode, expectedStatus, expectedTurnId }` from that observation. For idle or notLoaded recipients, use `start`. Refresh and reconfirm after a state-change rejection. Queue receipts identify a queued submission, not a completed turn.
 
 Read existing interaction state before enabling submission and after reload. Submit only in an explicit action handler; never submit on page load. Generate one response ID per submission and retain it with the data if transport fails. Do not silently retry a failed/unknown delivery with a new ID. A request accepts one submission; create a new request for another interaction. Polling for results does not resend.
 

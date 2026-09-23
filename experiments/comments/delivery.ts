@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { shortRequestId } from './reply-id';
 import { Service } from '../../src/core/service';
 import { Store } from '../../src/core/store';
@@ -12,6 +13,7 @@ export class CommentDelivery {
   readonly service: Service;
   private binding?: Binding;
   private initializing?: Promise<Binding>;
+  private submissions = new Map<string, { data: unknown; operation: Promise<unknown> }>();
   constructor(readonly directory: string, readonly connection: Connection, private adapter: AgentAdapter = new CodexAdapter()) {
     this.service = new Service(new Store(join(directory, 'interactions.json')), adapter, connection.resultCli, directory, id => `bun run reply ${shortRequestId(id, this.service.store.state.requests)} 'Your response'`);
   }
@@ -40,8 +42,16 @@ export class CommentDelivery {
       imageInstructions: 'Attached capture.imagePath values identify local PNG files. Inspect them with the image tool before interpreting visual feedback.' };
     let request = this.service.store.state.requests.find(item => item.runtimeId === `comments:${batch.id}`);
     if (!request) request = this.service.create({ bindingId: binding.id, title: 'Surface element comments', runtimeId: `comments:${batch.id}`, schema: { type: 'object' } });
-    await this.service.submit(request.id, { responseId: batch.id, data });
-    return this.view(batch.id);
+    const pending = this.submissions.get(batch.id);
+    if (pending) {
+      if (!isDeepStrictEqual(pending.data, data)) throw new Error('This batch already has a submission with different data.');
+      await pending.operation;
+      return this.view(batch.id);
+    }
+    const operation = this.service.submit(request.id, { responseId: batch.id, data });
+    this.submissions.set(batch.id, { data, operation });
+    try { await operation; return this.view(batch.id); }
+    finally { this.submissions.delete(batch.id); }
   }
   view(batchId: string) {
     const request = this.service.store.state.requests.find(item => item.runtimeId === `comments:${batchId}`);

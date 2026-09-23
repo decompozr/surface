@@ -36,6 +36,8 @@ test('deduplicates concurrent retries, and rejects reused IDs with changed data'
   const wait = new Promise<void>(resolve => { finish = resolve; });
   const { service, request, calls } = fixture(async () => { await wait; return { mode: 'start', turnId: 'turn' }; });
   const original = service.submit(request.id, payload);
+  await expect(service.submit(request.id, payload)).rejects.toThrow('operation in progress');
+  await new Promise(resolve => setTimeout(resolve, 0));
   expect((await service.submit(request.id, payload)).response?.status).toBe('delivering');
   await expect(service.submit(request.id, { ...payload, data: { ...payload.data, width: 180 } })).rejects.toThrow('already has a submission');
   finish(); await original;
@@ -66,4 +68,38 @@ test('records a published result separately from delivery acceptance', async () 
   await service.submit(request.id, payload);
   service.result(request.id, { message: 'Updated', option: 'B', width: 160 });
   expect(service.view(request.id)).toMatchObject({ response: { status: 'accepted' }, result: { width: 160 } });
+});
+
+test('duplicate reconciliation cannot silently change delivery mode', async () => {
+  const { service, request, calls } = fixture();
+  const delivery = { mode: 'start', expectedStatus: 'idle' };
+  await service.submit(request.id, { ...payload, delivery });
+  await service.submit(request.id, { ...payload, delivery });
+  await expect(service.submit(request.id, { ...payload, delivery: { mode: 'queue', expectedStatus: 'active' } })).rejects.toThrow('already has a submission');
+  expect(calls).toHaveLength(1);
+});
+
+test('takeover is opt-in, exact-worktree, atomic and never replays submissions', async () => {
+  const { service, store, request, calls } = fixture();
+  store.update(state => state.bindings.push({ ...state.bindings[0]!, id: 'next-binding', threadId: 'next-thread' }));
+  await expect(service.takeOver(request.id, { threadId: 'next-thread' })).rejects.toThrow('not enabled');
+  const enabled = service.create({ bindingId: request.bindingId, title: 'Select', recipientSelection: true });
+  await expect(service.takeOver(enabled.id, { threadId: 'foreign' })).rejects.toThrow('exact worktree');
+  const next = await service.takeOver(enabled.id, { threadId: 'next-thread' });
+  expect(service.get(enabled.id)).toMatchObject({ closed: true, replacedBy: next.id });
+  expect(next).toMatchObject({ replaces: enabled.id, bindingId: 'next-binding' });
+  expect(next.token).not.toBe(enabled.token);
+  expect(next.response).toBeUndefined();
+  expect(calls).toHaveLength(0);
+  await service.submit(next.id, payload);
+  await expect(service.takeOver(next.id, { threadId: 'exact-thread' })).rejects.toThrow('Reconcile');
+});
+test('preflight blocks close and takeover and revalidates the mount before reserving data', async () => {
+  const { service, request, calls } = fixture();
+  const pending = service.submit(request.id, payload, () => { throw Error('mount unavailable'); });
+  expect(() => service.close(request.id)).toThrow('operation in progress');
+  await expect(service.takeOver(request.id, { threadId: 'next' })).rejects.toThrow('operation in progress');
+  await expect(pending).rejects.toThrow('mount unavailable');
+  expect(service.get(request.id).response).toBeUndefined();
+  expect(calls).toHaveLength(0);
 });

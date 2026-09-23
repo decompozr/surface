@@ -46,7 +46,7 @@ The trial used an earlier template snapshot and did not test restoration on page
 
 ## Interpretation and limits
 
-The evidence supports external mounting and custom browser/CLI interaction on this macOS/Bun setup. These new automated runs use an explicit fixture adapter: they do not establish a new live model turn. The prior dedicated Codex experiment separately established active steering and idle continuation; see [that evidence](../prototype.md#validation-on-2026-09-20).
+The evidence supports external mounting and custom browser/CLI interaction on this macOS/Bun setup. These new automated runs use an explicit fixture adapter: they do not establish a new live model turn. The prior dedicated Codex experiment separately established active steering and idle continuation; see [that evidence](original-prototype.md#validation-on-2026-09-20).
 
 Two projects with separately installed dependencies are not yet evidence for conflicting versions of the same dependency. Deliberate process detachment by untrusted code is not covered. Windows, OS-managed background service installation, remote access, arbitrary framework compatibility, and MCP remain untested or unimplemented.
 

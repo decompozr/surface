@@ -20,4 +20,4 @@ No production binding controls, authenticated shared-shell directory, live takeo
 
 ## Source disposition
 
-Keep the implementation experimental. Carry its evidence into [findings](../findings.md#recipient-continuity-is-part-of-task-continuity) and the proposed [project autonomy contracts](../project-autonomy.md#contracts-needed-for-autonomous-continuation). The lesson is explicit ownership and reconciliation, not permission to reroute a request to whichever agent is available.
+Keep the implementation experimental. Carry its evidence into [findings](../observations/findings.md#september-23-synthesis-and-disposition) and the proposed [project autonomy contracts](../project-autonomy.md#contracts-needed-for-autonomous-continuation). The lesson is explicit ownership and reconciliation, not permission to reroute a request to whichever agent is available.
