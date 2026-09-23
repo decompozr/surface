@@ -28,7 +28,7 @@ Use this `artifact.json`:
 {"framework":"svelte","components":"routes","routes":"routes"}
 ```
 
-Each `+page.svelte` is an ordinary Svelte component. A page may import existing project-owned components rather than duplicate them. Keep a source-scoped dependency lockfile. See the [dependency contract](../../../experiments/singleton/README.md) for additional packages and supported prebundling. The filename convention does not imply support for SvelteKit layouts, load functions, server actions, SSR or dynamic route parameters.
+Each `+page.svelte` is an ordinary Svelte component. A page may import existing project-owned components rather than duplicate them. Keep a source-scoped dependency lockfile. See the [dependency contract](../../../apps/surface/runtime/README.md) for additional packages and supported prebundling. The filename convention does not imply support for SvelteKit layouts, load functions, server actions, SSR or dynamic route parameters.
 
 From the project worktree, using the selected installed CLI:
 

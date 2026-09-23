@@ -10,7 +10,7 @@ From the checkout:
 
 ```sh
 bun install --frozen-lockfile
-bun install --cwd experiments/singleton --frozen-lockfile --ignore-scripts
+bun install --cwd apps/surface/runtime --frozen-lockfile --ignore-scripts
 bun install --cwd experiments/sveltekit --frozen-lockfile --ignore-scripts
 bun run --cwd experiments/sveltekit check
 bun run --cwd experiments/sveltekit build

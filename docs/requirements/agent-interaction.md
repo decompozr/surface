@@ -82,7 +82,7 @@ bun run surface send \
   --data '{"option":"B","width":120,"comment":"Use this version"}'
 ```
 
-At this baseline, [the public CLI send command](../../src/cli/index.ts) sends response ID and data without a delivery intent. The example therefore uses the compatibility idle-start path; active recipients reject it. Active queue/steer selection is available through the request page/browser client. CLI delivery-intent flags are not implemented.
+At this baseline, [the public CLI send command](../../apps/surface/src/cli/index.ts) sends response ID and data without a delivery intent. The example therefore uses the compatibility idle-start path; active recipients reject it. Active queue/steer selection is available through the request page/browser client. CLI delivery-intent flags are not implemented.
 
 The request resolves to the registered session, so callers do not supply a second destination that could disagree with it. The CLI and page endpoint use the same validation and delivery operations. The implemented Codex adapter calls the native control API; a configured agent CLI remains another possible adapter mechanism.
 
@@ -142,3 +142,37 @@ Recipient discovery and takeover require `recipientSelection: true` at request c
 Takeover uses `POST .../requests/ID/takeover` with `{ threadId }`. The shared service serializes preflight against submit/close/takeover and atomically creates a new request/token and, if needed, a binding while closing the old request. Submitted requests, including unknown outcomes, cannot be taken over. No response or result is copied. A lost takeover response requires inspection of `replacedBy` and administrative reconciliation, not an automatic replay. Default-list visibility does not grant cross-worktree delivery.
 
 Available fixture verifier (not run by this documentation task): `bun apps/surface/scripts/verify-recipients.ts` uses a real mounted browser page and fixture adapter for queue, independent tabs, explicit recipient change, no replay, stale-state rejection, and desktop/mobile layout. It never sends input to a real conversation.
+
+
+## Inspecting uncertain delivery
+
+The shared recipient panel distinguishes delivery in progress, runtime acceptance awaiting a result, failed/unknown delivery and an explicitly published result. “Check submission” reads the same request and never sends another response, changes recipient or invents a retry ID. A missing browser acknowledgement retains the submitted response ID in the current tab's session storage when available, including across reload. A successful durable read resolves that local uncertainty only when a response or result is recorded; absence of a record alone does not prove that an in-flight submission had no effect.
+
+Request history and provider inspection are independent. A provider outage must not hide a durable result. Refresh invalidates delivery choices immediately, and stale recipient/directory controls remain disabled until their reads succeed. Existing server preflight and reservation rules remain authoritative; this UI does not reconcile arbitrary provider journals or guarantee exactly-once external effects.
+
+Browser fixture evidence: `verify-recipients.ts` drops an acknowledgement after one provider acceptance, reads the original record, publishes a fixture result while provider inspection fails, and reloads without a second POST or provider delivery. It also checks stale choices remain disabled until refreshed.
+
+## Contextual comment batches — experimental
+
+The user-selected experiment collects element comments and optional frozen element images into one reviewable draft, then submits the batch in an explicit action. Preserve each comment's target, source revision and capture context; distinguish unsent edits, a transport receipt and an actual agent result. Selection and capture alone do not instruct an agent. A preview requested for another device must use the selected private browser origin, and submission must enforce that same origin.
+
+This is an experimental interaction direction, not an adopted general chat API or a replacement for the exact-session request binding above. The [September 23 experiment](../experiments/2026-09-23-element-comments.md) implements a limited playground and local fixture receiver. Adoption requires observed element capture, draft recovery and batch interaction in the intended browser, plus a separately authorized exact-recipient delivery run. HTTPS reachability or a fixture receipt does not satisfy those gates.
+
+
+### September 23 review correction
+
+User feedback refined the experiment: keep global controls compact and icon-only with accessible names, use a small icon/text connection status, hide the comment drawer until requested, and allow selection of the actual DOM element rather than a manually marked card. Generate a selector from IDs, suitable classes and structural position; a friendly label is presentation metadata, not required instrumentation. Preserve text, revision and an optional image alongside that selector. A selector is not stable identity after arbitrary DOM edits, so unmatched or changed context needs review rather than silent retargeting.
+
+The user explicitly authorized binding manual submissions to the originating conversation. The current experiment uses a private browser capability, a server-owned exact thread/worktree/socket binding, the existing Surface interaction store and Codex adapter, and a separate result callback. Prior fixture records retain their fixture identity and are never automatically forwarded. The [v2 evidence record](../experiments/2026-09-23-element-comments.md#v2-user-review-and-exact-conversation-binding) distinguishes tested delivery logic and read-only live connectivity from an observed user submission. This remains an experimental page, not a general mounted-page or chat API adoption.
+
+The hover/selection identifier in this experiment must show the DOM selector (tag, ID, suitable classes and structural path), not the element's prose. Element text remains separate evidence in the submitted payload. Long paths should wrap rather than hide the selected target behind content-derived labels.
+
+For this minimal review experiment, select elements directly in the workspace; do not show an element dropdown or a persistent step-by-step footer. Draft persistence remains automatic and silent on success. Show storage failures rather than a routine “saved on this browser” status.
+
+### Comment experiment push updates (September 23)
+
+The opt-in comment preview uses authenticated fetch-based SSE for durable batch receipts and complete results. Subscribe before taking the initial snapshot; each committed store update emits a new snapshot. Reconnection reads current state and never resubmits input. Keep the bearer capability in a header, not a stream URL. Heartbeats maintain transport liveness only. Agent availability is checked at connection time and labeled accordingly; it is not continuous agent presence or work progress. Token streaming and execution-event subscriptions remain unimplemented.
+
+The experiment reply shorthand is `bun run reply REQUEST_PREFIX "Message"` from its bound checkout. The prefix must uniquely identify a stored request belonging to the configured conversation and project; there is no latest-request fallback. The CLI wraps text in JSON and retains the legacy callback format.
+
+After integration with main `6dd9083`, identical concurrent comment submissions share the pending bridge operation; a changed payload is rejected. Core preflight remains authoritative. The comment playground currently supplies no explicit delivery intent, so only an idle recipient can accept its submission; an active recipient is rejected with its draft unsent until the page supports an explicit queue/steer choice. Earlier live evidence belongs to the earlier revision. See the [integration evidence](../experiments/2026-09-23-element-comments.md#main-integration-follow-up).

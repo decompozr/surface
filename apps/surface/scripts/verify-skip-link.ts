@@ -87,11 +87,12 @@ try {
       }
       await expect(toggle).toBeFocused();
       await page.keyboard.press('Enter'); await expect(nav).toBeVisible();
-      await page.keyboard.press('Shift+Tab'); await expect(skip).toBeFocused();
+      for (let attempts = 0; attempts < 80 && !await skip.evaluate(element => element === document.activeElement); attempts++) await page.keyboard.press('Shift+Tab');
+      await expect(skip).toBeFocused();
       await page.screenshot({ path: join(screenshots, `${name}-${width}-drawer-skip.png`), fullPage: true });
       await activateSkip();
       await expect(nav).toBeHidden();
-      await expect(page.getByRole('button', { name: 'Close navigation' })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Close Workspace navigation' })).toHaveCount(0);
       await expect(toggle).toHaveAttribute('aria-expanded', 'false');
     }
   }

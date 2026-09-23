@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { projectOperation } from '../../../src/client/management.ts';
-import type { ProjectManifest, ProjectMount } from '../../../src/core/project-contract.ts';
+import { projectOperation } from '../src/client/management.ts';
+import type { ProjectManifest, ProjectMount } from '../src/core/project-contract.ts';
 import { startSurfaceApp } from './host.ts';
 
 /** Development entry point: register this checkout and mount its versioned examples. */

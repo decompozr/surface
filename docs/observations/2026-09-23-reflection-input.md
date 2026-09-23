@@ -47,4 +47,3 @@ The latest lab found a hydration race that browser tests exposed: inputs needed 
 ### Learning must change the next run
 
 Recorded findings have value when the next agent uses them. This review found current-status prose lagging behind implementation and recent experiments absent from this synthesis. The [source workflow](../source-workflow.md) therefore requires a source disposition and an updated progress pointer when closing an experiment. Retain historical observations, but make the current contract discoverable without reconstructing every conversation.
-

@@ -23,7 +23,7 @@ test('built SvelteKit and Vite share one instance and listener, then stop and re
     expect(app.vite.httpServer).toBeNull();
     expect(await listeners()).toEqual([new URL(app.origin).host]);
     const html = await fetch(app.origin).then(r => r.text());
-    expect(html).toContain('A shared interactive environment for people and agents.');
+    expect(html).toContain('aria-label="Workspace navigation"');
     const compiler = await fetch(app.origin + '/@vite/client');
     expect(compiler.status).toBe(200); expect(await compiler.text()).toContain('WebSocket');
     expect((await fetch(app.origin + '/api/mounts')).status).toBe(401);

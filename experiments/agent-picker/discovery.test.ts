@@ -1,6 +1,6 @@
 import {test,expect} from 'bun:test';
 import {discoverAgents} from './discovery';
-import type {Rpc} from '../../src/adapters/rpc';
+import type {Rpc} from '../../apps/surface/src/adapters/rpc';
 test('paginates, excludes foreign cwd and archive, preserves provider state, closes',async()=>{
  let page=0,closed=false;const root=process.cwd();
  const rpc:Rpc={async call<T>(method:string,params:any){expect(method).toBe('thread/list');expect(params.archived).toBe(false);page++;return (page===1?{data:[{id:'a',cwd:root,name:'A',status:{type:'idle'}},{id:'foreign',cwd:'/tmp',status:{type:'active'}}],nextCursor:'next'}:{data:[{id:'b',cwd:root,status:{type:'active'}},{id:'c',cwd:root,status:{type:'notLoaded'}},{id:'archived',cwd:root,archived:true}],nextCursor:null}) as T;},close(){closed=true;}};

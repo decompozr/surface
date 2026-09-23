@@ -68,7 +68,7 @@ try {
   observations.initialInstallAndBuildMs = Math.round(performance.now() - installStart);
   assert.equal(firstRelease.commit, revisionA);
   assert.ok(existsSync(join(home, 'releases', firstRelease.release, 'node_modules')));
-  assert.ok(existsSync(join(home, 'releases', firstRelease.release, 'experiments/singleton/node_modules')));
+  assert.ok(existsSync(join(home, 'releases', firstRelease.release, 'apps/surface/runtime/node_modules')));
   assert.equal(existsSync(join(home, 'releases', firstRelease.release, '.git')), false);
   observations.cleanFrozenGitRefInstallation = true;
   writeFileSync(join(home, 'state/user-retained.json'), '{"keep":true}\n');
@@ -79,9 +79,9 @@ try {
     response: { id: 'historical-response', data: {}, createdAt: new Date().toISOString(), status: 'accepted' },
     result: { message: 'retained-result-fixture' },
   }] }));
-  const assertCompilerLink = (release: string) => assert.equal(realpathSync(join(home, 'state/workspace/node_modules')), realpathSync(join(home, 'releases', release, 'experiments/singleton/node_modules')));
+  const assertCompilerLink = (release: string) => assert.equal(realpathSync(join(home, 'state/workspace/node_modules')), realpathSync(join(home, 'releases', release, 'apps/surface/runtime/node_modules')));
   const first = await startAndMeasure(); assertCompilerLink(firstRelease.release);
-  const installedMcp = join(home, 'releases', firstRelease.release, 'experiments/mcp');
+  const installedMcp = join(home, 'releases', firstRelease.release, 'apps/surface/mcp');
   if (existsSync(join(installedMcp, 'package.json'))) {
     const requireInstalled = createRequire(join(installedMcp, 'package.json'));
     const { Client } = requireInstalled('@modelcontextprotocol/client');
@@ -268,7 +268,7 @@ try {
   assert.equal(realpathSync(dependencyLink), project);
   assert.equal(readFileSync(join(home, 'state/workspace/dependency-link.json'), 'utf8'), dependencyOwner);
   unlinkSync(dependencyLink);
-  symlinkSync(join(home, 'releases', secondRelease.release, 'experiments/singleton/node_modules'), dependencyLink, 'dir');
+  symlinkSync(join(home, 'releases', secondRelease.release, 'apps/surface/runtime/node_modules'), dependencyLink, 'dir');
   await installation.uninstall();
   observations.compilerLinkTracksActiveReleaseAndReinstall = true;
   observations.unownedWorkspaceDependencyPathsPreserved = true;

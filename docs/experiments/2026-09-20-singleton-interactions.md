@@ -41,7 +41,7 @@ Closing and unmounting are not cancellation protocols. Result publication remain
 
 ### Deterministic fixture and browser run
 
-The final run of `bun run verify:singleton-interactions` passed using an explicitly deterministic adapter. It created two namespaces, mounted a nested source under its canonical project root, and exercised the reusable [interaction fixture](../../experiments/singleton/fixtures/InteractionForm.svelte) in Chrome.
+The final run of `bun run verify:singleton-interactions` passed using an explicitly deterministic adapter. It created two namespaces, mounted a nested source under its canonical project root, and exercised the reusable [interaction fixture](../../apps/surface/runtime/fixtures/InteractionForm.svelte) in Chrome.
 
 Observed outcomes:
 
@@ -82,6 +82,6 @@ Graceful draining does not establish crash-safe delivery completion. An abrupt s
 
 ## Reproduce and inspect
 
-The [singleton guide](../../experiments/singleton/README.md#connect-a-mounted-component-to-an-agent) documents mounting, binding, request creation, client imports, administrative inspection/publication, and lifecycle semantics. The [Artifact skill](../../skills/surface/SKILL.md) routes agents to this workflow and keeps the older per-process workflow separately discoverable.
+The [singleton guide](../../apps/surface/runtime/README.md#connect-a-mounted-component-to-an-agent) documents mounting, binding, request creation, client imports, administrative inspection/publication, and lifecycle semantics. The [Artifact skill](../../skills/surface/SKILL.md) routes agents to this workflow and keeps the older per-process workflow separately discoverable.
 
 Keep private interaction links, request capabilities, session receipts, logs, and screenshots in ignored `.artifact/` evidence folders. Version the scripts and summary observations, not private state.

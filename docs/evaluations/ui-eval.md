@@ -8,7 +8,7 @@ For future isolated execution, use the dependencies/build required by the app an
 
 Covers [R-02](../requirements/consumers.md), [D-01/D-02](../design/navigation.md). Pass if home SSR includes registered ready routes, exact worktrees stay distinct, nested route/folder index and breadcrumbs resolve, the current link retains its capability and unrelated links stay clean. Fail if navigation enumerates arbitrary files, leaks credentials to another page or blurs worktree identity.
 
-Available: `bun test tests/navigation.test.ts`; `bun apps/surface/scripts/verify-navigation.ts`; capability retention is exercised by `bun apps/surface/scripts/verify-recipients.ts`. [Tree tests](../../tests/navigation.test.ts) and [navigation browser script](../../apps/surface/scripts/verify-navigation.ts) encode ready-only grouping, nested pages/folders, collapse and overflow. Large/deep trees, duplicate labels, stale mounted URLs and all empty-state distinctions still need cases; no new pass is claimed.
+Available: `bun test tests/navigation.test.ts`; `bun apps/surface/scripts/verify-navigation.ts`; capability retention is exercised by `bun apps/surface/scripts/verify-recipients.ts`. [Tree tests](../../apps/surface/tests/navigation.test.ts) and [navigation browser script](../../apps/surface/scripts/verify-navigation.ts) encode ready-only grouping, nested pages/folders, collapse and overflow. Large/deep trees, duplicate labels, stale mounted URLs and all empty-state distinctions still need cases; no new pass is claimed.
 
 ## E-08: delivery choice
 
@@ -41,3 +41,7 @@ Covers [D-07/D-08](../design/accessibility.md). Existing `bun apps/surface/scrip
 The focused `bun apps/surface/scripts/verify-skip-link.ts` gate requires first-Tab discoverability, Enter focus to the unique named content region, byte-for-byte URL/document retention, content Tab continuation, drawer dismissal and contained wide content on home/nested routes at 1440×1000, 390×844 and 320×844. These checks passed in UI-CONTINUATION-02; rendered screenshots were inspected. The nested route uses a real disposable fixture capability and a rejecting delivery adapter. This closes only the bounded keyboard-bypass increment.
 
 Proposed broader gate: keyboard-only opening/navigation/closing, focus visibility and hidden-link exclusion, screen-reader location and loading/status/error announcements, backdrop/background interaction, long labels, 320px width, 200% zoom, contrast and touch targets. Pass if the intended journey remains perceivable/operable without shell overflow or inaccessible controls. Specify the chosen drawer modality before judging focus trapping. No existing comprehensive verifier establishes these criteria; actual phone access and user acceptance remain separate from emulated viewport tests.
+
+### Comment experiment functional-loop verifier
+
+`bun experiments/comments/full-loop.e2e.ts` now supplies bounded browser evidence for E-11 result persistence and E-12 mobile presentation: real browser/HTTP/store/callback/SSE, with a fixture provider socket. It checks exactly-once delivery, PNG preservation, live result appearance, offline catch-up and reload. It does not close the live-agent or physical-device gates. See the [checkpoint](../experiments/2026-09-23-element-comments.md#controlled-full-loop-e2e) for scope and retained traces.

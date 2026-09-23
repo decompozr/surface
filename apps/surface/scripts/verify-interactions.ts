@@ -3,7 +3,7 @@ import { chromium, expect } from '@playwright/test';
 import { createServer } from 'node:net';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { DeliveryError, type AgentAdapter, type Binding } from '../../../src/adapters/codex.ts';
+import { DeliveryError, type AgentAdapter, type Binding } from '../src/adapters/codex.ts';
 import { startSurfaceApp } from '../server/host.ts';
 import { workspaceFixture } from './workspace-fixture.ts';
 

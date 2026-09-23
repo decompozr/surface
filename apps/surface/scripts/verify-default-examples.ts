@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { cpSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { projectOperation } from '../../../src/client/management.ts';
+import { projectOperation } from '../src/client/management.ts';
 import { startProjectApp } from '../server/project-app.ts';
 import { workspaceFixture } from './workspace-fixture.ts';
 const f = await workspaceFixture();
