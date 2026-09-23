@@ -4,7 +4,7 @@
 
 Surface should let a user submit a choice, form, or parameter set from a page directly into the agent session that created the interaction. The agent introduces itself to Surface, which binds page responses to that existing conversation and delivers them through an adapter.
 
-The preferred design is direct session input: steer an active turn, or continue an idle conversation with a new turn when the agent runtime supports it. Keeping an agent blocked on a waiting tool call is not required.
+The preferred design is explicit delivery to the existing session: let the user queue input after an active turn or steer that turn, and continue an idle conversation with a new turn when the agent runtime supports it. Keeping an agent blocked on a waiting tool call is not required.
 
 This is an agreed product direction with an initial implementation. The prototype registers Codex session bindings, creates one-response interaction requests, accepts page submissions, records delivery outcomes, and lets an agent publish a result back to the page. Live active-turn steering and idle continuation have been observed. The wider contract remains exploratory; see [prototype usage and evidence](prototype.md) for verified behavior and limits.
 
@@ -15,7 +15,7 @@ This is an agreed product direction with an initial implementation. The prototyp
 3. The user opens the page, selects an option or edits parameters, and presses a submit button.
 4. The page sends structured data to Surface's backend using its scoped interaction reference.
 5. The backend validates the request binding and payload, saves the response, and resolves the registered agent adapter.
-6. The adapter delivers the input to the existing conversation using the runtime's supported steering or continuation mechanism.
+6. The adapter delivers the input to the existing conversation using the selected queue, steering, or continuation mechanism supported by the runtime.
 7. Surface records what the runtime acknowledged. The agent interprets the response and can update the page through its normal project tools.
 
 The browser does not need to know which agent CLI or protocol is used. A page remains ordinary frontend code with an explicit submission action.
@@ -31,7 +31,7 @@ The proposed registration records:
 | Provider session or thread ID | Identify the existing conversation; use an exact ID rather than the most-recent session |
 | Project identity | Associate the conversation with its source workspace |
 | Control endpoint and backend credential reference | Reach the runtime that owns the session; keep credentials out of page content |
-| Delivery capabilities | Describe support for active-turn steering, idle continuation, and delivery acknowledgements |
+| Delivery capabilities | Describe support for active-turn queueing and steering, idle continuation, and delivery acknowledgements |
 
 A display name may help the user recognize the agent but is not sufficient for routing. A session ID alone is also insufficient without access to the runtime that can control it.
 
@@ -92,7 +92,7 @@ Source for the App Server behavior: [official Codex App Server documentation](ht
 
 The Codex adapter should connect to the authorized runtime owning the target session. Starting an unrelated App Server does not by itself establish control of an already running conversation. Endpoint discovery and access are part of the experiment.
 
-For an active turn, use its current ID with `turn/steer`. For an idle conversation, start a turn in that same thread. If state changes between inspection and delivery, reconcile current state and the delivery result before deciding whether another attempt is appropriate. Do not silently fork a thread, select the latest conversation, or create a replacement session.
+For an active turn, require the user to select queue or steer. Queue uses `thread/queue/add`; steering uses the observed turn ID with `turn/steer`. For an idle conversation, start a turn in that same thread. If state changes between inspection and delivery, reconcile current state and the delivery result before deciding whether another attempt is appropriate. Do not silently fork a thread, select the latest conversation, or create a replacement session.
 
 These are provider-specific capabilities. Other agents need adapters with their own verified behavior; accepting MCP connections alone does not establish support for steering an existing agent conversation.
 
@@ -117,7 +117,7 @@ The client can read `recipient()` and submit with `{ mode, expectedStatus, expec
 
 Protocol evidence: generated experimental TypeScript from local `codex-cli 0.155.1` on 2026-09-23 (`ThreadQueueAddParams`, `ThreadQueueAddResponse`, `QueuedSubmission`, `TurnSteerParams`, `TurnStartParams`). The official [remote engineering guide](https://developers.openai.com/blog/mastering-codex-remote-for-engineering) describes queue as waiting for the current response and steer as mid-turn guidance. Adapter tests use fixture RPCs only.
 
-The adapter rejects observed status/turn changes before writing input. The current provider schema has no atomic expected-status condition on queue/start or turn/start: an external state change after the final read remains a provider race. Surface cannot claim atomic compare-and-send for those methods. `turn/steer` does have `expectedTurnId`. Legacy submissions without intent may start an idle thread but cannot implicitly steer an active thread. A failed or unknown recorded submission stays reserved for reconciliation.
+The adapter rejects observed status/turn changes before writing input. The current provider schema has no atomic expected-status condition on thread/queue/add or turn/start: an external state change after the final read remains a provider race. Surface cannot claim atomic compare-and-send for those methods. `turn/steer` does have `expectedTurnId`. Legacy submissions without intent may start an idle thread but cannot implicitly steer an active thread. A failed or unknown recorded submission stays reserved for reconciliation.
 
 
 ## Shared recipient lifecycle
