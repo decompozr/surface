@@ -45,7 +45,7 @@ try {
   assert.equal((await fetch(mounted.data.previewUrl)).status,200);
   assert(mounted.data.previewUrl.includes('/workspace/release-user/main/ui/'));
   assert(!existsSync(join(home,'project-data')));
-  const requireInstalled=createRequire(join(payload,'experiments/mcp/package.json'));
+  const requireInstalled=createRequire(join(payload,'apps/surface/mcp/package.json'));
   const {Client}=requireInstalled('@modelcontextprotocol/client');
   const {StdioClientTransport}=requireInstalled('@modelcontextprotocol/client/stdio');
   const client=new Client({name:'release-user-fixture',version:'1.0'});

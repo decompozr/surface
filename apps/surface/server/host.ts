@@ -1,11 +1,11 @@
-import { navigationTree, type NavigationNode } from '../../../src/server/navigation';
+import { navigationTree, type NavigationNode } from '../src/server/navigation';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { startSingleton } from '../../../experiments/singleton/server.ts';
-import { workspaceDirectory } from '../../../src/workspaces/identity.ts';
-import type { AgentAdapter } from '../../../src/adapters/codex.ts';
+import { startSingleton } from '../runtime/server.ts';
+import { workspaceDirectory } from '../src/workspaces/identity.ts';
+import type { AgentAdapter } from '../src/adapters/codex.ts';
 import type { RuntimeStatus } from '../src/lib/runtime-status.ts';
 
 import { readableMountPath } from './mount-path.ts';

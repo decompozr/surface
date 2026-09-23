@@ -36,19 +36,22 @@ try {
       await page.goto(app.origin + '/workspace/app-fixture/main/ui/long-menu-00');
       const toggle = page.getByRole('button', { name: 'Toggle navigation', exact: true });
       const nav = page.getByRole('complementary', { name: 'Workspace navigation' });
+      const main = page.getByRole('main');
       await expect(toggle).toHaveAttribute('aria-expanded', 'false');
       // Verify restoration of preexisting inline values as well as a nonzero offset.
-      await page.evaluate(() => { document.body.style.setProperty('overflow', 'visible'); document.documentElement.style.scrollBehavior = 'smooth'; window.scrollTo({ top: 350, behavior: 'instant' }); });
-      await expect.poll(() => page.evaluate(() => scrollY)).toBe(350);
+      await page.evaluate(() => { document.body.style.setProperty('overflow', 'visible'); document.documentElement.style.scrollBehavior = 'smooth'; document.querySelector('main')!.scrollTop = 350; });
+      await expect.poll(() => main.evaluate(element => element.scrollTop)).toBe(350);
       const originalTop = await page.locator('h1').evaluate(element => element.getBoundingClientRect().top);
-      // The toggle is above the viewport at this offset; avoid Playwright's
-      // automatic scroll-into-view so this specifically tests offset preservation.
+      // Open without forcing another scroll position; AppShell owns main scrolling.
       await toggle.evaluate(element => (element as HTMLButtonElement).click());
       await expect(nav).toBeVisible();
+      await expect.poll(() => nav.evaluate(element => Math.round(element.getBoundingClientRect().x))).toBe(0);
       await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).position)).toBe('fixed');
       const assertFrozen = async () => {
         expect(await page.locator('h1').evaluate(element => element.getBoundingClientRect().top)).toBe(originalTop);
-        expect(await page.evaluate(() => getComputedStyle(document.body).top)).toBe('-350px');
+        expect(await page.evaluate(() => getComputedStyle(document.body).top)).toBe('0px');
+        expect(await main.evaluate(element => element.scrollTop)).toBe(350);
+        expect(await main.evaluate(element => getComputedStyle(element).overflowY)).toBe('hidden');
       };
       await page.mouse.move(365, 450);
       await page.mouse.wheel(0, 650);
@@ -76,19 +79,19 @@ try {
       await page.screenshot({ path: join(evidence, `${engine}-open.png`) });
       await page.keyboard.press('Escape');
       await expect(nav).toBeHidden();
-      await expect.poll(() => page.evaluate(() => scrollY)).toBe(350);
+      await expect.poll(() => main.evaluate(element => element.scrollTop)).toBe(350);
       expect(await page.evaluate(() => [document.body.style.position, document.body.style.overflow, document.documentElement.style.scrollBehavior])).toEqual(['', 'visible', 'smooth']);
       await toggle.evaluate(element => (element as HTMLButtonElement).click());
       await expect(nav).toBeVisible();
-      await page.getByRole('button', { name: 'Close navigation', exact: true }).click({ position: { x: 360, y: 200 } });
+      await page.getByRole('button', { name: 'Close Workspace navigation', exact: true }).click({ position: { x: 360, y: 200 } });
       await expect(nav).toBeHidden();
-      await expect.poll(() => page.evaluate(() => scrollY)).toBe(350);
+      await expect.poll(() => main.evaluate(element => element.scrollTop)).toBe(350);
       await toggle.evaluate(element => (element as HTMLButtonElement).click());
       await expect(nav).toBeVisible();
       await page.setViewportSize({ width: 1440, height: 1000 });
       await expect.poll(() => page.evaluate(() => document.body.style.position)).toBe('');
       await page.mouse.move(1100, 700); await page.mouse.wheel(0, 400);
-      await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(350);
+      await expect.poll(() => main.evaluate(element => element.scrollTop)).toBeGreaterThan(350);
       assert.deepEqual(errors, []);
       console.log(`PASS ${engine}: background frozen, long navigation scrolls without chaining, Escape/backdrop restore offset/styles, desktop resize releases lock.`);
     } finally { await browser.close(); }

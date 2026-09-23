@@ -16,6 +16,8 @@ Run `./bin/setup` again after updating the checkout or stopping the service. It 
 
 ## Private access with Tailscale (source setup)
 
+The current source UI depends on the private design-system package. Before source setup, build and link the provider revision recorded in `apps/surface/design-system.lock.json`; see [agent setup prerequisites](skills/surface/references/setup.md). Installation checks and freezes the package contents into each release. Downloaded bundles already include the package.
+
 On first interactive setup, Surface detects Tailscale and preselects private HTTPS access when it is connected. Confirm the selection, or choose local access. The help option explains installation/sign-in and continues locally. If Tailscale is disconnected, open it and connect before selecting remote access. Surface does not install Tailscale or change its account/network settings.
 
 Setup remembers the selection per installation home. Use `./bin/setup --tailscale on` or `--tailscale off` to change it. Noninteractive first runs default to local access unless explicitly enabled; subsequent setup runs reuse the saved choice. Completion shows both local and Tailscale URLs. `./bin/test` verifies the saved mapping without changing it; reachability from another device must be checked separately.

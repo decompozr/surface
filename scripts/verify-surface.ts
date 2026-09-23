@@ -12,7 +12,7 @@ const root=resolve(import.meta.dir,'..'),base=realpathSync(mkdtempSync('/tmp/sur
 let repo=join(base,'release-source');mkdirSync(repo);
 const evidence=join(root,'.decompozr/surface/public-entry-proof');mkdirSync(evidence,{recursive:true});
 const f=await fixture(),observations:string[]=[],pids:number[]=[],hashes:Record<string,string>={};
-let launcher=join(root,'src/cli/index.ts'),running=false,passed=false,revision='',errorText='';
+let launcher=join(root,'apps/surface/src/cli/index.ts'),running=false,passed=false,revision='',errorText='';
 let browser:Awaited<ReturnType<typeof chromium.launch>>|undefined,mcp:any;
 let connection!:{origin:string;token:string};
 const observed=(text:string)=>{observations.push(text);console.log(text);};
@@ -65,7 +65,7 @@ try {
   const mainWorkspace=workspaces.projects[0].workspaces.find((w:any)=>w.id===main.workspaceId),bWorkspace=workspaces.projects[0].workspaces.find((w:any)=>w.id===b.workspaceId);
   assert(!existsSync(mainWorkspace.dataDirectory)&&!existsSync(bWorkspace.dataDirectory),'Neighbor data allocated.');
   observed('The installed public project/workspace commands resolve cwd, register and mount main plus two worktrees on one service. Browser save acquires only A storage; local drafts and unused neighbors stay database-free.');
-  const requireInstalled=createRequire(join(home,'releases',installed.release,'experiments/mcp/package.json'));
+  const requireInstalled=createRequire(join(home,'releases',installed.release,'apps/surface/mcp/package.json'));
   const {Client}=requireInstalled('@modelcontextprotocol/client'),{StdioClientTransport}=requireInstalled('@modelcontextprotocol/client/stdio');
   mcp=new Client({name:'public-surface-fixture',version:'1.0'});
   const transport=new StdioClientTransport({command:process.execPath,args:[launcher,'mcp','--home',home],stderr:'pipe'});await mcp.connect(transport);

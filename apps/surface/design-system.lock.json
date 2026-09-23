@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "name": "@decompozr/design-system",
+  "packageVersion": "0.0.0",
+  "fileCount": 110,
+  "sha256": "8cff8a8f19bac975fc1f4db42d023130ad3aa55cdb0b2e4d38728dd6ec42b4c6",
+  "providerRepository": "https://github.com/decompozr/design-system",
+  "providerCommit": "2db31b8dba789eaf3b88b43cd08f8c8f6bb76cc2"
+}

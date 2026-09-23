@@ -134,7 +134,7 @@ for (const scenario of cases) {
     assert.equal(reconciled.replayAllowed, false);
     assert.equal(reconciled.disposition, scenario === 'before-acceptance' ? 'unresolved-no-provider-evidence' : scenario === 'accepted-no-ack' ? 'unresolved-accepted-without-completion' : 'completed-with-matching-output');
     if (reconciled.resultPublicationSupported) {
-      await command([join(import.meta.dir, '../singleton/cli.ts'), 'result', '--state-dir', stateDir, '--request', request.id,
+      await command([join(import.meta.dir, '../../apps/surface/runtime/cli.ts'), 'result', '--state-dir', stateDir, '--request', request.id,
         '--data', JSON.stringify({ message: 'Fixture output reconciled after interruption', responseId: submission.responseId, outputHash: hash(readFileSync(join(projectRoot, 'applied.json'))) })]);
     }
     const final = await api(`/api/requests/${request.id}`);

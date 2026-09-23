@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
-import { inspectGit } from '../../../src/workspaces/identity.ts';
+import { inspectGit } from '../src/workspaces/identity.ts';
 
 function segment(value: string) {
   const slug = value.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');

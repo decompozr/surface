@@ -6,7 +6,7 @@ Status: proposed project-operation contracts, with completed bounded documentati
 
 Shared project/workspace identity, installed lifecycle and exact-session request records provide mechanisms for continuation. Shared navigation and recipient controls are now implemented; the earlier reflection's blanket “experimental picker only” assessment is stale. Current queue and takeover fixture sources do not establish a user-driven live takeover. The separate recipient lab remains experimental.
 
-The earlier reflection refers to comments WIP and two September 23 source records absent from this checkout. Their [retained input](../observations/2026-09-23-reflection-input.md) is evidence of a prior interpretation, not current implementation or verified browser behavior. No comments feature is adopted by this task.
+The comments worktree reconciliation preserved the [comment prototype and its evidence](../experiments/2026-09-23-element-comments.md) and [recipient experiment record](../experiments/2026-09-23-agent-recipient.md). Their presence does not adopt a comments feature into the public runtime or establish browser acceptance. The [retained reflection input](../observations/2026-09-23-reflection-input.md) remains historical.
 
 The [completed trial](../experiments/2026-09-23-docs-takeover.md) observed a fresh successor completing the documentation task from durable records without additional briefing; independent review passed. This supports one cooperative handoff with a prepared checkpoint and single writer. Crash recovery, automatic replay, long-running scheduling and full autonomy remain untested.
 
@@ -28,6 +28,7 @@ The authorized [UI-CONTINUATION-02](../experiments/ui-continuation/task.md) adds
 ## Next permitted work and open questions
 
 DOCS-TAKEOVER-01 completed its documentation scope and gate 8 independent review. UI-CONTINUATION-02 and independent review are complete; local baseline `4b629b8` includes its PR #45 merge. Do not repeat the completed task or infer deployment or general autonomy from it. The trial records the actual preparation, interventions and limits.
+
 
 [INTEGRATED-LOOP-03](../experiments/2026-09-23-integrated-loop.md) subsequently recorded intentional user input, exact queued delivery, source change, checks and rendered result on one identified installed runtime/page snapshot. Human acceptance remains unrecorded. Existing comments/SSE coverage must be considered before proposing another loop test.
 

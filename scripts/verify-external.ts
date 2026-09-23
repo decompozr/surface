@@ -5,12 +5,12 @@ import { chromium } from '@playwright/test';
 import { mkdtempSync, realpathSync, readFileSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { startServer } from '../src/server/index.ts';
+import { startServer } from '../apps/surface/src/server/index.ts';
 const root = resolve(import.meta.dir, '..');
 const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-external-proof-')));
 const stateDir = join(directory, 'state');
 const delivered: string[] = [];
-const app = startServer({ stateDir, cliPath: join(root, 'src/cli/index.ts'), uiDir: join(root, 'examples/svelte-feedback/dist'), port: 0,
+const app = startServer({ stateDir, cliPath: join(root, 'apps/surface/src/cli/index.ts'), uiDir: join(root, 'examples/svelte-feedback/dist'), port: 0,
   adapter: { inspect: async () => ({ status: 'idle' }), deliver: async (_binding, message) => { delivered.push(message); return { mode: 'start', turnId: 'explicit-test-fixture' }; } },
 });
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
@@ -21,7 +21,7 @@ async function command(args: string[], cwd = root) {
   if (code) throw new Error(`${args.join(' ')} failed (${code})\n${out}\n${error}`);
   return out;
 }
-async function cli(...args: string[]) { return JSON.parse(await command([process.execPath, join(root, 'src/cli/index.ts'), ...args, '--state-dir', stateDir], directory)); }
+async function cli(...args: string[]) { return JSON.parse(await command([process.execPath, join(root, 'apps/surface/src/cli/index.ts'), ...args, '--state-dir', stateDir], directory)); }
 const evidence: Record<string, unknown>[] = [];
 try {
   for (const framework of ['svelte', 'vanilla']) {

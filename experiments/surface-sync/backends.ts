@@ -3,7 +3,7 @@ import { join, relative, isAbsolute, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import type { MountResourceContext } from '../singleton/server.ts';
+import type { MountResourceContext } from '../../apps/surface/runtime/server.ts';
 
 type Outcome = { ok: true; data: unknown; invalidates?: boolean } | { ok: false; code: string; message?: string };
 type Backend = { invoke(operation: string, input: unknown): Outcome; close(): void | Promise<void>; inspect?(): unknown };

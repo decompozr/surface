@@ -18,7 +18,7 @@ The next installation/lifecycle milestone should package the bounded Web loop wh
 
 The user clarified that the intended product should have one long-running server, namespaces, and symlink-mounted component folders. Mounting should prepare declared dependencies automatically, discover components, and compile/render them through a shared Vite instance. The per-project development-process implementation below is an earlier experiment, not the adopted target topology.
 
-The [singleton pilot](../../experiments/singleton/README.md) tests this direction separately. It currently shares one pinned Svelte compiler/runtime, uses each source's ordinary ESM dependency tree, and returns namespace-based component hosts. The host now reuses the existing interaction core and Codex adapter through mount-scoped page routes, with a separate singleton CLI entry point. [Integration evidence](2026-09-20-singleton-interactions.md) records fixture and live-session outcomes. A follow-up adds mount-scoped error UI, live catalog updates, and explicit preview-state stores; compiler/transport isolation and transparent preservation of arbitrary component locals are not established.
+The [singleton pilot](../../apps/surface/runtime/README.md) tests this direction separately. It currently shares one pinned Svelte compiler/runtime, uses each source's ordinary ESM dependency tree, and returns namespace-based component hosts. The host now reuses the existing interaction core and Codex adapter through mount-scoped page routes, with a separate singleton CLI entry point. [Integration evidence](2026-09-20-singleton-interactions.md) records fixture and live-session outcomes. A follow-up adds mount-scoped error UI, live catalog updates, and explicit preview-state stores; compiler/transport isolation and transparent preservation of arbitrary component locals are not established.
 
 ## SvelteKit foundation candidate (September 21)
 
@@ -58,7 +58,7 @@ The first experiment can return each project's loopback URL directly. A shared d
 
 ## Historical hypotheses below
 
-The following sections preserve the initial cross-framework/process-oriented questions. They are not current setup instructions or the recommended first-server contract. For implemented singleton behavior, use the [singleton guide](../../experiments/singleton/README.md); for the bounded implementation scope and ownership/lifecycle decisions, use the [readiness review](first-server-readiness.md). Existing session routing, scoped access checks, MCP, and project management are recorded there and in the linked experiments. General package-manager, framework-adapter, and application-configuration ideas below remain unadopted.
+The following sections preserve the initial cross-framework/process-oriented questions. They are not current setup instructions or the recommended first-server contract. For implemented singleton behavior, use the [singleton guide](../../apps/surface/runtime/README.md); for the bounded implementation scope and ownership/lifecycle decisions, use the [readiness review](first-server-readiness.md). Existing session routing, scoped access checks, MCP, and project management are recorded there and in the linked experiments. General package-manager, framework-adapter, and application-configuration ideas below remain unadopted.
 
 ## Source files and workspaces
 

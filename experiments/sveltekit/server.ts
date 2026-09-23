@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { startSingleton } from '../singleton/server.ts';
+import { startSingleton } from '../../apps/surface/runtime/server.ts';
 
 type Handler = (req: IncomingMessage, res: ServerResponse, next?: () => void) => void;
 /** Built Kit application handler + one live Vite component compiler, sharing one listener. */

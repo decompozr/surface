@@ -13,7 +13,7 @@ For installation or updates, read [agent setup](references/setup.md). Use the ex
 
 ## Select the existing service
 
-Use the public `surface` CLI. If it is not on PATH, resolve this skill's real directory and run `bun <checkout>/src/cli/index.ts`. `--home` or `SURFACE_HOME` selects the shared installation. Its default is `~/.decompozr/surface` on macOS and Linux; it does not depend on cwd. Explicit client `--state-dir` or `SURFACE_STATE_DIR` selects another existing service. Keep that selection consistent across CLI and MCP.
+Use the public `surface` CLI. If it is not on PATH, resolve this skill's real directory and run `bun <checkout>/apps/surface/src/cli/index.ts`. `--home` or `SURFACE_HOME` selects the shared installation. Its default is `~/.decompozr/surface` on macOS and Linux; it does not depend on cwd. Explicit client `--state-dir` or `SURFACE_STATE_DIR` selects another existing service. Keep that selection consistent across CLI and MCP.
 
 Read [service and project operations](references/operations.md) when installing, migrating, retiring a workspace or configuring MCP. Existing older services remain usable through their exact recorded entry points. Do not silently migrate them, regenerate IDs, change global configuration or switch a task to another service just to create a preview.
 
@@ -21,7 +21,7 @@ Check `surface status` and `surface doctor` for the selected installation. Start
 
 ## Create, mount and bind
 
-1. Route-based pages are the only supported authoring workflow for new or updated previews: read [project pages and readable URLs](references/pages.md), create `routes/+page.svelte` and optional nested pages, and declare `routes` in the source `artifact.json`. Read the [source/dependency contract](../../experiments/singleton/README.md) for pinned Svelte, discovery, props and optional source-scoped prebundling. Preserve existing framework/package-manager choices and report unsupported cases rather than converting a project implicitly.
+1. Route-based pages are the only supported authoring workflow for new or updated previews: read [project pages and readable URLs](references/pages.md), create `routes/+page.svelte` and optional nested pages, and declare `routes` in the source `artifact.json`. Read the [source/dependency contract](../../apps/surface/runtime/README.md) for pinned Svelte, discovery, props and optional source-scoped prebundling. Preserve existing framework/package-manager choices and report unsupported cases rather than converting a project implicitly.
 2. Use the project commands from the worktree. They also infer the containing Git root from a subdirectory. Initialize only when the versioned manifest is absent; registration gives a linked worktree its own namespace without copying service state:
    ```sh
    surface project init --name "Project name"
