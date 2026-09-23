@@ -1,4 +1,4 @@
-import type { NavigationNode } from '../../../src/server/navigation';
+import type { NavigationNode } from './server/navigation';
 import type { IncomingMessage } from 'node:http';
 import type { RuntimeStatus } from './lib/runtime-status';
 

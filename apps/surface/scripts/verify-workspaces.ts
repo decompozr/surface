@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { startSurfaceApp } from '../server/host.ts';
-import { workspaceDirectory } from '../../../src/workspaces/identity.ts';
+import { workspaceDirectory } from '../src/workspaces/identity.ts';
 import { git, workspaceFixture } from './workspace-fixture.ts';
 
 const f = await workspaceFixture();

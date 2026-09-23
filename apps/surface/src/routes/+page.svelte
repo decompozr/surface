@@ -1,13 +1,13 @@
+<script lang="ts">
+  import { Text, NavigationLinks } from '@decompozr/design-system';
+</script>
 <svelte:head><title>Surface · Workspaces</title></svelte:head>
-<main>
-  <p class="eyebrow">Your workspace</p>
-  <h1>Pick up where you left off.</h1>
-  <p>Open a mounted page from the project and worktree navigation.</p>
-  <a href="/health" data-sveltekit-reload>Server health</a>
-</main>
+<section class="home">
+  <Text size="eyebrow" tone="muted">Your workspace</Text>
+  <Text as="h1" size="title">Pick up where you left off.</Text>
+  <Text tone="muted">Open a mounted page from the project and worktree navigation.</Text>
+  <NavigationLinks label="Service" items={[{ id: 'health', label: 'Server health', href: '/health', attributes: { 'data-sveltekit-reload': true } }]} />
+</section>
 <style>
-  main { max-width: 760px; margin: 8vh auto; padding: 32px; }
-  .eyebrow { color: #64748b; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
-  h1 { color: #334155; font-size: clamp(28px, 5vw, 48px); letter-spacing: -.04em; line-height: 1.15; }
-  p { color: #64748b; line-height: 1.6; } a { display: inline-block; margin-top: 24px; color: #625576; }
+  .home { max-width:760px; margin:8vh auto; padding:32px; display:grid; gap:24px; }
 </style>

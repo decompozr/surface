@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
-  import SurfaceLogo from '$lib/comment-experiment/SurfaceLogo.svelte';
-  import { fly } from 'svelte/transition';
-  import { MessageSquare, MousePointer2, X, Camera, ArrowUp, Pencil, Trash2, Download, ChevronUp, CircleDot, Unplug } from 'lucide-svelte';
+  import { Badge, Button, Toolbar, ToggleButton, Tag, IconButton, TextArea, Slider, Icon, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
+  import Toast from '$lib/components/Toast.svelte';
+  import SurfaceShell from '$lib/components/SurfaceShell.svelte';
+  import { composerPlacement, readViewport } from '$lib/comment-experiment/viewport';
   import { describeTarget, resolveTarget } from '$lib/comment-experiment/selection';
   import { captureElement } from '$lib/comment-experiment/capture';
   import { emptyState, readState, writeState, REVISION, type Target, type Comment, type Batch } from '$lib/comment-experiment/model';
@@ -10,6 +11,14 @@
   let review = $state(emptyState());
   let connectionKey = $state(''), agentAvailable = $state(false), agentStatus = $state('Checking…');
   let streamConnected = $state(false);
+  let toast = $state<{ message: string; tone: 'info' | 'success' | 'warning' } | null>(null);
+  let toastTimer: ReturnType<typeof setTimeout> | undefined;
+  let liveAbort: AbortController | undefined;
+  let connectionPhase: 'initial' | 'connected' | 'disconnected' = 'initial';
+  function notify(message: string, tone: 'info' | 'success' | 'warning') {
+    clearTimeout(toastTimer); toast = { message, tone };
+    toastTimer = setTimeout(() => { toast = null; }, 5000);
+  }
   let ready = $state(false), mode = $state(true), panel = $state(false), busy = $state(false), sending = $state(false);
   let notice = $state(''), storageError = $state('');
   let selected = $state<HTMLElement | null>(null), hovered = $state<HTMLElement | null>(null);
@@ -20,9 +29,40 @@
   let persistQueue: Promise<void> = Promise.resolve();
   const pending = $derived(review.batches.some(b => b.status === 'pending' || b.status === 'unknown'));
   const locked = $derived(busy || sending || !ready);
+  let selectionToolsWidth = $state(180), selectionToolsHeight = $state(60);
   let editorOpen = $state(false);
-  let editorPosition = $state({ x: 16, y: 100 });
-  let reducedMotion = $state(false);
+  let editorPosition = $state({ x: 16, y: 100, width: 310, maxHeight: 400 });
+  let visibleViewport = $state({ x: 0, y: 0, width: 390, height: 844 });
+  let editorElement: HTMLElement | undefined;
+  let measuredEditorHeight = 280;
+  let positionFrame = 0;
+  const compactEditor = $derived(visibleViewport.height < 460);
+  function schedulePosition() {
+    if (positionFrame) return;
+    positionFrame = requestAnimationFrame(() => { positionFrame = 0; updateBox(); });
+  }
+  function measureEditor(host: HTMLElement) {
+    // The application wrapper observes the rendered component without overriding
+    // any package-owned styles or depending on private component class names.
+    editorElement = host.firstElementChild as HTMLElement;
+    const observer = new ResizeObserver(() => {
+      measuredEditorHeight = editorElement?.getBoundingClientRect().height || 280;
+      schedulePosition();
+    });
+    observer.observe(editorElement);
+    schedulePosition();
+    return { destroy() { observer.disconnect(); editorElement = undefined; measuredEditorHeight = 280; } };
+  }
+  function revealFocusedInput() {
+    if (!composer || document.activeElement !== composer || !editorElement) return;
+    for (let parent = composer.parentElement; parent && parent !== editorElement; parent = parent.parentElement) {
+      if (parent.scrollHeight <= parent.clientHeight || !/auto|scroll/.test(getComputedStyle(parent).overflowY)) continue;
+      const field = composer.getBoundingClientRect(), area = parent.getBoundingClientRect();
+      if (field.bottom > area.bottom) parent.scrollTop += field.bottom - area.bottom + 4;
+      else if (field.top < area.top) parent.scrollTop -= area.top - field.top + 4;
+      break;
+    }
+  }
   function metadata(el: HTMLElement): Target { return describeTarget(el, workspace); }
   function closeEditor() { editorOpen = false; hovered = null; updateBox(); }
   async function togglePanel() {
@@ -31,21 +71,18 @@
     await tick();
   }
   function updateEditor() {
-    if (!selected || !editorOpen) return;
-    const r = selected.getBoundingClientRect();
-    const width = Math.min(310, innerWidth - 24);
-    editorPosition = {
-      x: Math.max(12, Math.min(r.left, innerWidth - width - 12)),
-      y: Math.max(56, Math.min(r.bottom + 10, innerHeight - 330)),
-    };
+    if (!editorOpen) return;
+    const anchor = selected?.getBoundingClientRect() ?? { left: editorPosition.x, bottom: editorPosition.y - 10 };
+    editorPosition = composerPlacement(visibleViewport, anchor, measuredEditorHeight, workspace?.getBoundingClientRect().top ?? 60);
   }
   function updateBox() {
+    visibleViewport = readViewport(window);
     updateEditor();
     const el = hovered ?? selected;
     if (!mode || !el?.isConnected || !workspace) { box = null; return; }
     const r = el.getBoundingClientRect(), w = workspace.getBoundingClientRect();
-    const x = Math.max(r.left, w.left, 0), y = Math.max(r.top, w.top, 0);
-    const right = Math.min(r.right, w.right, innerWidth), bottom = Math.min(r.bottom, w.bottom, innerHeight);
+    const x = Math.max(r.left, w.left, visibleViewport.x), y = Math.max(r.top, w.top, visibleViewport.y);
+    const right = Math.min(r.right, w.right, visibleViewport.x + visibleViewport.width), bottom = Math.min(r.bottom, w.bottom, visibleViewport.y + visibleViewport.height);
     box = right > x && bottom > y ? { x, y, width: right - x, height: bottom - y } : null;
   }
   function targetFrom(event: Event) {
@@ -58,9 +95,9 @@
     const target = metadata(el);
     if (review.draft.target?.id !== target.id && (review.draft.text.trim() || review.draft.capture) && !addComment(false)) return;
     if (review.draft.target?.id !== target.id) review.draft = { target, text: '' };
-    selected = el; hovered = null; editorOpen = true; panel = false; notice = ''; updateBox();
-    await tick(); composer?.focus({ preventScroll: true });
+    selected = el; hovered = null; editorOpen = false; notice = ''; updateBox();
   }
+  async function openComment() { editorOpen = true; updateBox(); await tick(); composer?.focus({ preventScroll: true }); }
   function addComment(clearNotice = true) {
     const d = review.draft;
     if (!d.target || (!d.text.trim() && !d.capture)) return false;
@@ -114,15 +151,20 @@
   async function watchUpdates(signal: AbortSignal) {
     if (!data.live || !connectionKey) return;
     while (!signal.aborted) {
+      liveAbort = new AbortController();
+      const transportSignal = AbortSignal.any([signal, liveAbort.signal]);
       try {
-        const check = await fetch('/experiments/comments/batch', { headers: { authorization: `Bearer ${connectionKey}` }, signal });
+        const check = await fetch('/experiments/comments/batch', { headers: { authorization: `Bearer ${connectionKey}` }, signal: transportSignal });
         if (!check.ok) throw new Error('Connection unavailable');
         const status = await check.json();
         agentAvailable = status.available && status.recipient === data.recipient;
         agentStatus = agentAvailable ? 'Agent verified at connection' : 'Agent unavailable';
-        const response = await fetch('/experiments/comments/events', { headers: { authorization: `Bearer ${connectionKey}` }, signal });
+        const response = await fetch('/experiments/comments/events', { headers: { authorization: `Bearer ${connectionKey}` }, signal: transportSignal });
         if (!response.ok || !response.body) throw new Error('Stream unavailable');
         streamConnected = true;
+        if (connectionPhase === 'disconnected') notify('Live updates reconnected.', 'success');
+        if (!agentAvailable && connectionPhase !== 'connected') notify('Live updates connected. Agent is unavailable.', 'warning');
+        connectionPhase = 'connected';
         const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
         let buffer = '';
         try {
@@ -148,6 +190,7 @@
         } finally { await reader.cancel().catch(() => {}); }
       } catch { /* Reconnect reads a fresh durable snapshot; never resubmit. */ }
       streamConnected = false; agentAvailable = false; agentStatus = 'Agent not verified';
+      if (!signal.aborted && connectionPhase !== 'disconnected') { notify('Connection lost. Reconnecting…', 'warning'); connectionPhase = 'disconnected'; }
       if (!signal.aborted) await new Promise<void>(resolve => {
         const finish = () => { clearTimeout(timer); signal.removeEventListener('abort', finish); resolve(); };
         const timer = setTimeout(finish, 2000); signal.addEventListener('abort', finish, { once: true });
@@ -166,235 +209,206 @@
   onMount(() => {
     let active = true;
     const updates = new AbortController();
+    const viewport = window.visualViewport;
+    let revealFrame = 0;
+    const viewportChange = () => {
+      schedulePosition();
+      cancelAnimationFrame(revealFrame);
+      revealFrame = requestAnimationFrame(() => { void tick().then(revealFocusedInput); });
+    };
+    viewport?.addEventListener('resize', viewportChange);
+    viewport?.addEventListener('scroll', viewportChange);
+    window.addEventListener('focusin', viewportChange);
+    updateBox();
+    const offline = () => { liveAbort?.abort(); };
+    window.addEventListener('offline', offline);
     try {
       connectionKey = new URLSearchParams(location.hash.slice(1)).get('connect') ?? sessionStorage.getItem('surface-comments-connection') ?? '';
       if (connectionKey) sessionStorage.setItem('surface-comments-connection', connectionKey);
     } catch { /* The private link still works when session storage is unavailable. */ }
     agentStatus = data.live ? (connectionKey ? 'Checking…' : 'Open connection link') : 'Local test';
-    reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const workspaceSize = new ResizeObserver(updateBox);
+    workspaceSize.observe(workspace);
     readState().then(saved => { if (!active) return; review = saved; ready = true; if (saved.draft.target) selected = resolveTarget(saved.draft.target, workspace); updateBox(); void watchUpdates(updates.signal); })
       .catch(() => { if (active) { ready = true; notice = 'Browser storage could not be opened. Export your work before leaving.'; void watchUpdates(updates.signal); } });
-    const press = (event: PointerEvent) => { if (mode && event.target instanceof HTMLInputElement && workspace.contains(event.target)) { event.preventDefault(); event.stopPropagation(); void select(event.target); } };
-    const click = (event: MouseEvent) => { if (!mode) return; const el = targetFrom(event); if (!el) return; event.preventDefault(); event.stopPropagation(); void select(el); };
-    const move = (event: PointerEvent) => { hovered = mode && !busy ? targetFrom(event) : null; updateBox(); };
+    let gesture: { x: number; y: number; moved: boolean } | null = null;
+    let suppressClick = false;
+    const press = (event: PointerEvent) => {
+      gesture = targetFrom(event) ? { x: event.clientX, y: event.clientY, moved: false } : null;
+      suppressClick = false;
+    };
+    const cancel = () => { if (gesture) gesture.moved = true; suppressClick = true; hovered = null; updateBox(); };
+    const scroll = () => { if (gesture) gesture.moved = true; hovered = null; schedulePosition(); };
+    const release = () => { suppressClick = !!gesture?.moved; };
+    const click = (event: MouseEvent) => {
+      if (!mode) return;
+      const el = targetFrom(event); if (!el) return;
+      event.preventDefault(); event.stopPropagation();
+      if (suppressClick || gesture?.moved) { gesture = null; return; }
+      gesture = null; void select(el);
+    };
+    const move = (event: PointerEvent) => {
+      if (gesture && Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 8) gesture.moved = true;
+      hovered = event.pointerType === 'mouse' && !event.buttons && mode && !busy ? targetFrom(event) : null;
+      updateBox();
+    };
     const key = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { if (editorOpen) closeEditor(); else if (panel) panel = false; else mode = false; hovered = null; updateBox(); }
+      if (event.isComposing || event.repeat) return;
+      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter' && editorOpen) {
+        event.preventDefault(); if (!locked) addComment(); return;
+      }
+      const target = event.target;
+      const typing = target instanceof HTMLElement && (target.isContentEditable || !!target.closest('input, textarea, select, [role="textbox"]'));
+      if (!typing && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        if (event.key.toLowerCase() === 's' && !locked) { event.preventDefault(); mode = !mode; hovered = null; if (!mode) editorOpen = false; updateBox(); return; }
+        if (event.key.toLowerCase() === 'i') { event.preventDefault(); void togglePanel(); return; }
+      }
+      if (event.key === 'Escape') {
+        if (editorOpen) { event.preventDefault(); closeEditor(); }
+        else if (panel || document.querySelector('[aria-controls="surface-navigation"]')?.getAttribute('aria-expanded') === 'true') return;
+        else mode = false;
+        hovered = null; updateBox();
+      }
       if (mode && (event.key === 'Enter' || event.key === ' ') && targetFrom(event)) { event.preventDefault(); event.stopPropagation(); void select(targetFrom(event)!); }
     };
-    window.addEventListener('pointerdown', press, true); window.addEventListener('click', click, true); window.addEventListener('pointermove', move); window.addEventListener('keydown', key, true); window.addEventListener('resize', updateBox); window.addEventListener('scroll', updateBox, true);
-    return () => { active = false; updates.abort(); window.removeEventListener('pointerdown', press, true); window.removeEventListener('click', click, true); window.removeEventListener('pointermove', move); window.removeEventListener('keydown', key, true); window.removeEventListener('resize', updateBox); window.removeEventListener('scroll', updateBox, true); };
+    window.addEventListener('pointerdown', press, true); window.addEventListener('click', click, true); window.addEventListener('pointermove', move); window.addEventListener('keydown', key, true); window.addEventListener('resize', viewportChange); window.addEventListener('scroll', scroll, true); window.addEventListener('pointerup', release, true); window.addEventListener('pointercancel', cancel, true);
+    return () => { active = false; cancelAnimationFrame(positionFrame); cancelAnimationFrame(revealFrame); viewport?.removeEventListener('resize', viewportChange); viewport?.removeEventListener('scroll', viewportChange); window.removeEventListener('focusin', viewportChange); clearTimeout(toastTimer); updates.abort(); window.removeEventListener('offline', offline); workspaceSize.disconnect(); window.removeEventListener('pointerdown', press, true); window.removeEventListener('click', click, true); window.removeEventListener('pointermove', move); window.removeEventListener('keydown', key, true); window.removeEventListener('resize', viewportChange); window.removeEventListener('scroll', scroll, true); window.removeEventListener('pointerup', release, true); window.removeEventListener('pointercancel', cancel, true); };
   });
 </script>
 <svelte:head><title>Surface · Comment experiment</title></svelte:head>
-<div class="shell" class:panel-open={panel}>
-  <header>
-    <div class="identity"><SurfaceLogo /><span class="breadcrumb">Layout study</span></div>
-    <nav aria-label="Review tools">
-      <span class="connection-status" title={data.live ? `${data.label} · ${data.recipient.replace("codex:", "")}` : "Local fixture only"}>{#if agentAvailable}<CircleDot size={12} strokeWidth={1.5} />{:else}<Unplug size={12} strokeWidth={1.5} />{/if}{streamConnected ? `Live · ${agentStatus}` : data.live && connectionKey ? `Reconnecting · ${agentStatus}` : agentStatus}</span>
-      <button class="icon-button" class:active={mode} aria-label={mode ? 'Leave comment mode' : 'Select and comment'} title={mode ? 'Leave comment mode (Esc)' : 'Select and comment'} aria-pressed={mode} disabled={locked} onclick={() => { mode = !mode; hovered = null; if (!mode) editorOpen = false; updateBox(); }}><MousePointer2 size={16} strokeWidth={1.6} /></button>
-      <button class="icon-button comments-toggle" aria-label={`Open comments (${review.comments.length} drafts)`} title="Comments" aria-expanded={panel} onclick={togglePanel}><MessageSquare size={16} strokeWidth={1.6} />{#if review.comments.length}<b class="badge">{review.comments.length}</b>{/if}</button>
-    </nav>
-  </header>
-  <main id="comment-workspace" class:selecting={mode} bind:this={workspace} aria-label="Shared workspace">
-    <div class="workspace-meta"><span>SHARED WORKSPACE</span><span>Study 01 / Global layout</span></div>
-    <p class="instruction">{mode ? 'Select an element to leave a comment. Press Esc to interact with the page.' : 'Explore the page. Turn on comment mode whenever something needs feedback.'}</p>
-    <article class="study" class:compact>
-      <p class="eyebrow">A little room to think</p>
-      <h1 id="headline" style:font-size={`${fontSize}px`}>Make space for<br />the work that matters.</h1>
-      <p id="description" class="intro">A shared space to explore an idea, see it take shape, and leave precise feedback for your agent.</p>
-      <div id="controls" class="controls"><label>Heading size <input aria-label="Heading size" type="range" min="28" max="54" bind:value={fontSize} /><span>{fontSize}px</span></label><button aria-pressed={compact} onclick={() => compact = !compact}>{compact ? 'Comfortable spacing' : 'Compact spacing'}</button></div>
-      <div class="options">
-        <section id="option-a" class="option recommended"><div class="option-top"><span>01</span><span class="tag">Current direction</span></div><h2>Workspace first</h2><p>Keep the idea in view. Collect comments beside it, then send them together when you are ready.</p><div class="option-footer">Content takes the lead</div></section>
-        <section id="option-b" class="option"><div class="option-top"><span>02</span><span class="tag neutral">Alternative</span></div><h2>Conversation first</h2><p>Start with the exchange. Open a shared workspace when there is something worth exploring together.</p><div class="option-footer">Dialogue takes the lead</div></section>
-      </div>
-      <div id="decision" class="decision"><strong>What would you simplify?</strong><p>Select a heading, card, or control and show your agent.</p></div>
-    </article>
-  </main>
-  {#if panel}<aside aria-label="Comments and conversation" transition:fly={{ x: 32, duration: reducedMotion ? 0 : 180 }}>
-    <div class="panel-heading"><h2>Comments <span class="count">{review.comments.length}</span></h2><button class="icon-button" aria-label="Close comments" title="Close comments" onclick={() => panel = false}><X size={16} /></button></div>
-    <div class="recipient">{#if agentAvailable}<CircleDot size={12} />{:else}<Unplug size={12} />{/if}<span>{data.live ? data.label : "Local test only"}</span></div>
+{#snippet headerTools()}
+    <Toolbar label="Review tools">
+
+      <ToggleButton size="compact" icon="mouse-pointer-2" label={mode ? 'Leave comment mode' : 'Select and comment'} aria-keyshortcuts="S" title={mode ? 'Leave comment mode (S / Esc)' : 'Select and comment (S)'} pressed={mode} disabled={locked} onPressedChange={(value) => { mode = value; hovered = null; if (!mode) editorOpen = false; updateBox(); }} />
+      <IconButton size="compact" icon="message-square" label={`Open comments (${review.comments.length} drafts)`} title="Comments (I)" aria-keyshortcuts="I" aria-expanded={panel} aria-controls="surface-comments" onclick={togglePanel}>{#snippet badge()}{#if review.comments.length}<Badge tone="sage">{review.comments.length}</Badge>{/if}{/snippet}</IconButton>
+    </Toolbar>
+{/snippet}
+{#snippet commentPanel()}
+<SidePanel label="Comment review">
+{#snippet header()}
+    <div class="panel-heading"><Text as="h2" size="body">Comments <Badge>{review.comments.length}</Badge></Text><IconButton size="compact" icon="close" label="Close comments" title="Close comments" onclick={() => panel = false} /></div>
+    <div class="recipient">{#if agentAvailable}<Icon name="circle-dot" />{:else}<Icon name="unplug" />{/if}<Text as="span" size="small" tone="muted">{data.live ? data.label : "Local test only"}</Text></div>
+{/snippet}
     <div class="conversation">
-      {#if !review.comments.length && !review.batches.length}<div class="empty"><p>No comments yet. Select an element to start.</p></div>{/if}
-      {#each review.batches as batch (batch.id)}<section class="batch" aria-label="Submitted batch"><div class="batch-label"><strong>You · {batch.comments.length} comments</strong><span>{batch.recipient === 'local-fixture' ? 'Local test' : batch.result ? 'Agent replied' : batch.status === 'accepted' ? 'Delivered' : batch.status === 'failed' ? 'Not delivered' : 'Unconfirmed'}</span></div>
-        {#each batch.comments as comment}<div class="sent-comment"><strong>{comment.target.label}</strong>{#if comment.capture}<a href={comment.capture.png} download={`${comment.target.id}.png`} aria-label={`Download screenshot of ${comment.target.label}`}><img src={comment.capture.png} alt={`Captured ${comment.target.label}`} /></a>{/if}<p>{comment.text}</p></div>{/each}
-        {#if batch.recipient === 'local-fixture' && batch.status === 'accepted'}<p class="fixture-reply">Local test only. This was not sent to an agent.</p>{:else if batch.result}<p class="agent-reply">{batch.result.message}</p>{:else if batch.status === 'pending'}<button disabled={sending} onclick={() => deliver(batch.id)}>Check / retry same batch</button>{:else if batch.status === 'unknown' || batch.status === 'failed'}<p class="notice">{batch.error ?? 'Delivery needs reconciliation. Nothing is resent automatically.'}</p>{/if}
-      </section>{/each}
-      {#if review.comments.length}<div class="draft-label">DRAFT · NOT SENT</div>{/if}
-      {#each review.comments as comment, i (comment.id)}<article class="comment-card"><div class="comment-heading"><span class="number">{i + 1}</span><strong>{comment.target.label}</strong></div>{#if comment.capture}<a href={comment.capture.png} download={`${comment.target.id}.png`} aria-label={`Download screenshot of ${comment.target.label}`}><img src={comment.capture.png} alt={`Captured ${comment.target.label}`} /></a><small class="image-meta">{comment.capture.width} × {comment.capture.height} · frozen capture</small>{/if}<p>{comment.text}</p><div class="card-actions"><button class="icon-button" aria-label={`Edit comment ${i + 1}`} title="Edit comment" disabled={locked || review.draft.editing === comment.id} onclick={() => edit(comment)}><Pencil size={13} /></button><button class="icon-button" aria-label={`Remove comment ${i + 1}`} title="Remove comment" disabled={locked || review.draft.editing === comment.id} onclick={() => review.comments = review.comments.filter(c => c.id !== comment.id)}><Trash2 size={13} /></button></div></article>{/each}
+      {#if !review.comments.length && !review.batches.length}<div class="empty"><Text size="small">No comments yet. Select an element to start.</Text></div>{/if}
+      {#each review.batches as batch (batch.id)}<SurfaceCard as="section" class="batch" tone="subtle" aria-label="Submitted batch"><div class="batch-label"><strong>You · {batch.comments.length} comments</strong><span>{batch.recipient === 'local-fixture' ? 'Local test' : batch.result ? 'Agent replied' : batch.status === 'accepted' ? 'Delivered' : batch.status === 'failed' ? 'Not delivered' : 'Unconfirmed'}</span></div>
+        {#each batch.comments as comment}<div class="sent-comment"><strong>{comment.target.label}</strong>{#if comment.capture}<a href={comment.capture.png} download={`${comment.target.id}.png`} aria-label={`Download screenshot of ${comment.target.label}`}><img src={comment.capture.png} alt={`Captured ${comment.target.label}`} /></a>{/if}<Text size="small">{comment.text}</Text></div>{/each}
+        {#if batch.recipient === 'local-fixture' && batch.status === 'accepted'}<Divider /><Text size="small" class="fixture-reply">Local test only. This was not sent to an agent.</Text>{:else if batch.result}<Divider /><Text size="small" class="agent-reply">{batch.result.message}</Text>{:else if batch.status === 'pending'}<Button size="compact" disabled={sending} onclick={() => deliver(batch.id)}>Check / retry same batch</Button>{:else if batch.status === 'unknown' || batch.status === 'failed'}<Text size="small" class="notice">{batch.error ?? 'Delivery needs reconciliation. Nothing is resent automatically.'}</Text>{/if}
+      </SurfaceCard>{/each}
+      {#if review.comments.length}<Text size="eyebrow" tone="muted">Draft · not sent</Text>{/if}
+      {#each review.comments as comment, i (comment.id)}<SurfaceCard as="article" class="comment-card"><div class="comment-heading"><Badge>{i + 1}</Badge><strong>{comment.target.label}</strong></div>{#if comment.capture}<a href={comment.capture.png} download={`${comment.target.id}.png`} aria-label={`Download screenshot of ${comment.target.label}`}><img src={comment.capture.png} alt={`Captured ${comment.target.label}`} /></a><Text as="span" size="small" tone="muted" class="image-meta">{comment.capture.width} × {comment.capture.height} · frozen capture</Text>{/if}<Text size="small">{comment.text}</Text><div class="card-actions"><IconButton size="compact" icon="pencil" label={`Edit comment ${i + 1}`} title="Edit comment" disabled={locked || review.draft.editing === comment.id} onclick={() => edit(comment)} /><IconButton size="compact" icon="trash-2" label={`Remove comment ${i + 1}`} title="Remove comment" disabled={locked || review.draft.editing === comment.id} onclick={() => review.comments = review.comments.filter(c => c.id !== comment.id)} /></div></SurfaceCard>{/each}
     </div>
+{#snippet footer()}
     <div class="composer">
-      {#if review.draft.target}<button class="resume-draft" onclick={() => { panel = false; editorOpen = true; selected = resolveTarget(review.draft.target, workspace); selected?.scrollIntoView({ block: 'nearest' }); updateBox(); tick().then(() => composer?.focus()); }}>Continue draft: {review.draft.target.label}</button>{/if}
-      <p class="notice" role="status">{notice}</p>
-      {#if data.live && !connectionKey}<p class="hint">Open the private connection link to enable sending.</p>{/if}
-      {#if review.draft.text.trim() || review.draft.capture}<p class="hint">Add this comment to the draft before sending the batch.</p>{/if}
-      <button class="send-button icon-button" aria-label={`Send ${review.comments.length} comments together`} title={`Send ${review.comments.length} comments together`} disabled={locked || (data.live && !agentAvailable) || pending || !review.comments.length || !!review.draft.text.trim() || !!review.draft.capture} onclick={send}><ArrowUp size={16} /></button>
-      <div class="export-actions">{#if storageError}<span role="alert">{storageError}</span>{/if}<button class="icon-button" aria-label="Export conversation JSON" title="Export conversation" disabled={!ready} onclick={download}><Download size={14} /></button></div>
+      {#if review.draft.target}<Button size="compact" onclick={() => { panel = false; editorOpen = true; selected = resolveTarget(review.draft.target, workspace); selected?.scrollIntoView({ block: 'nearest' }); updateBox(); tick().then(() => composer?.focus()); }}>Continue draft: {review.draft.target.label}</Button>{/if}
+      <Text size="small" class="notice" role="status">{notice}</Text>
+      {#if data.live && !connectionKey}<Text size="small" class="hint">Open the private connection link to enable sending.</Text>{/if}
+      {#if review.draft.text.trim() || review.draft.capture}<Text size="small" class="hint">Add this comment to the draft before sending the batch.</Text>{/if}
+      <div class="send-action"><IconButton size="compact" icon="arrow-up" variant="primary" appearance="default" label={`Send ${review.comments.length} comments together`} title={`Send ${review.comments.length} comments together`} disabled={locked || (data.live && !agentAvailable) || pending || !review.comments.length || !!review.draft.text.trim() || !!review.draft.capture} onclick={send} /></div>
+      <div class="export-actions">{#if storageError}<span role="alert">{storageError}</span>{/if}<IconButton size="compact" icon="download" label="Export conversation JSON" title="Export conversation" disabled={!ready} onclick={download} /></div>
     </div>
-  </aside>{/if}
-</div>
-{#if editorOpen && review.draft.target}
-  <section class="floating-composer" aria-label="Comment on selected element" style:left={`${editorPosition.x}px`} style:top={`${editorPosition.y}px`}>
-    <div class="selected-title"><strong title={review.draft.target.selector}>{review.draft.target.selector}</strong><button class="icon-button" aria-label="Close comment editor" title="Close (draft retained)" disabled={locked} onclick={closeEditor}><X size={14} /></button></div>
-    {#if review.draft.capture}<img class="capture-preview" src={review.draft.capture.png} alt="Selected element screenshot preview" />{/if}
-    <label class="sr-only" for="comment">Comment on selected element</label><textarea bind:this={composer} id="comment" bind:value={review.draft.text} maxlength="4000" disabled={locked} placeholder="Leave a comment…"></textarea>
-    <div class="editor-actions">
-      <button class="icon-button" aria-label={review.draft.capture ? 'Retake element screenshot' : 'Capture element screenshot'} title={busy ? 'Capturing…' : 'Capture selected element'} disabled={locked || !selected} onclick={capture}><Camera size={16} /></button>
-      {#if selected?.parentElement && selected.parentElement !== workspace}<button class="icon-button" aria-label="Select parent element" title="Select parent element" disabled={locked} onclick={() => { const parent = selected?.parentElement; if (parent && workspace.contains(parent) && parent !== workspace) { selected = parent; review.draft = { ...review.draft, target: metadata(parent), capture: undefined }; hovered = null; updateBox(); } }}><ChevronUp size={16} /></button>{/if}
-      {#if review.draft.capture}<button class="icon-button" aria-label="Remove screenshot" title="Remove screenshot" disabled={locked} onclick={() => review.draft.capture = undefined}><Trash2 size={14} /></button>{/if}
-      <span class="editor-status">{busy ? 'Capturing…' : 'Draft'}</span>
-      <button class="icon-button primary" aria-label={review.draft.editing ? 'Save comment' : 'Add comment to draft'} title={review.draft.editing ? 'Save comment' : 'Add to draft'} disabled={locked || (!review.draft.text.trim() && !review.draft.capture)} onclick={() => addComment()}><ArrowUp size={16} /></button>
-    </div>
-    {#if notice}<p class="notice" role="status">{notice}</p>{/if}
+{/snippet}
+</SidePanel>
+{/snippet}
+{#snippet connectionStatus()}
+<StatusBar label="Connection status">
+  <span class="live-indicator"><IconButton size="compact" icon="radio" label={streamConnected ? 'Live updates connected' : 'Live updates disconnected'} title={streamConnected ? 'Live updates connected' : connectionKey ? 'Reconnecting' : 'Open the private connection link'} onclick={() => notify(streamConnected ? `Live updates connected. ${agentStatus}.` : connectionKey ? 'Disconnected. Reconnecting automatically.' : 'Open the private connection link to connect.', streamConnected ? 'info' : 'warning')} /></span>
+</StatusBar>
+{/snippet}
+<SurfaceShell panelContent={commentPanel} bind:panelOpen={panel} status={connectionStatus} navigation={data.navigation} currentPath="/experiments/comments" {headerTools} surfaceIdentity overlayNavigation showBreadcrumbs={false}>
+  <section id="comment-workspace" class:selecting={mode} bind:this={workspace} aria-label="Shared workspace">
+    <div class="workspace-meta"><Text as="span" size="eyebrow" tone="muted">Shared workspace</Text><Text as="span" size="small" tone="muted">Study 01 / Global layout</Text></div>
+    <Text size="small" class="instruction">{mode ? 'Select an element to leave a comment. Press Esc to interact with the page.' : 'Explore the page. Turn on comment mode whenever something needs feedback.'}</Text>
+    <article class="study" class:compact>
+      <Text size="eyebrow" class="eyebrow">A little room to think</Text>
+      <Text as="h1" size="title" id="headline" style={`font-size:${fontSize}px`}>Make space for<br />the work that matters.</Text>
+      <Text size="small" id="description" class="intro">A shared space to explore an idea, see it take shape, and leave precise feedback for your agent.</Text>
+      <div id="controls" class="controls"><Slider label="Heading size" min={28} max={54} step={1} bind:value={fontSize} valueSuffix="px" /><ToggleButton size="compact" bind:pressed={compact}>{compact ? 'Comfortable spacing' : 'Compact spacing'}</ToggleButton></div>
+      <div class="options">
+        <SurfaceCard as="section" id="option-a" class="option" selected padding={compact ? "1rem" : "1.5rem"}><div class="option-top"><span>01</span><Tag label="Current direction" tone="sage" /></div><Text as="h2" size="heading">Workspace first</Text><Text size="small">Keep the idea in view. Collect comments beside it, then send them together when you are ready.</Text><div class="option-footer"><Text size="small" tone="muted">Content takes the lead</Text></div></SurfaceCard>
+        <SurfaceCard as="section" id="option-b" class="option" padding={compact ? "1rem" : "1.5rem"}><div class="option-top"><span>02</span><Tag label="Alternative" /></div><Text as="h2" size="heading">Conversation first</Text><Text size="small">Start with the exchange. Open a shared workspace when there is something worth exploring together.</Text><div class="option-footer"><Text size="small" tone="muted">Dialogue takes the lead</Text></div></SurfaceCard>
+      </div>
+      <div id="decision" class="decision"><strong>What would you simplify?</strong><Text size="small">Select a heading, card, or control and show your agent.</Text></div>
+    </article>
   </section>
+{#if mode && selected && box && !editorOpen}
+  <div class="selection-tools" bind:clientWidth={selectionToolsWidth} bind:clientHeight={selectionToolsHeight} style:left={`${Math.max(12, Math.min(box.x, innerWidth - selectionToolsWidth - 12))}px`} style:top={`${Math.max(64, Math.min(box.y + box.height + 8, innerHeight - selectionToolsHeight - 32))}px`}>
+    <SurfaceCard padding="0"><Toolbar label="Selected element actions">
+    <IconButton size="compact" icon="camera" label="Capture selected element" title="Screenshot" disabled={locked} onclick={async () => { await capture(); editorOpen = true; updateBox(); }} />
+    <IconButton size="compact" icon="message-square" label="Comment on selected element" title="Comment" disabled={locked} onclick={openComment} />
+    <IconButton size="compact" icon="close" label="Clear selection" title="Clear selection" disabled={locked} onclick={() => { selected = null; hovered = null; updateBox(); }} />
+    </Toolbar></SurfaceCard>
+  </div>
 {/if}
-{#if box}<div class="selection-outline" class:hovering={!!hovered && hovered !== selected} style:left={`${box.x}px`} style:top={`${box.y}px`} style:width={`${box.width}px`} style:height={`${box.height}px`}><span style:max-width={`${Math.max(120, Math.min(640, innerWidth - box.x - 12))}px`}>{(hovered ?? selected) ? metadata((hovered ?? selected)!).selector : ""}</span></div>{/if}
+{#if editorOpen && review.draft.target}
+  <div class="editor-anchor" use:measureEditor>
+  <FloatingComposer label="Comment on selected element" x={editorPosition.x} y={editorPosition.y} width={`${editorPosition.width}px`} maxHeight={`${editorPosition.maxHeight}px`}>
+{#snippet header()}
+    <div class="selected-title"><strong title={review.draft.target?.selector}>{review.draft.target?.selector}</strong><IconButton size="compact" icon="close" label="Close comment editor" title="Close (draft retained)" disabled={locked} onclick={closeEditor} /></div>
+{/snippet}
+    <div class="editor-body">
+    {#if review.draft.capture}<img class="capture-preview" src={review.draft.capture.png} alt="Selected element screenshot preview" />{/if}
+    <TextArea label="Comment on selected element" labelHidden bind:element={composer} id="comment" bind:value={review.draft.text} maxlength={4000} rows={compactEditor ? 2 : 3} maxHeight={compactEditor ? "90px" : "170px"} disabled={locked} placeholder="Leave a comment…" />
+    </div>
+{#snippet actions()}
+    <div class="editor-actions">
+      <IconButton size="compact" icon="camera" label={review.draft.capture ? 'Retake element screenshot' : 'Capture element screenshot'} title={busy ? 'Capturing…' : 'Capture selected element'} disabled={locked || !selected} onclick={capture} />
+      {#if selected?.parentElement && selected.parentElement !== workspace}<IconButton size="compact" icon="chevron-up" label="Select parent element" title="Select parent element" disabled={locked} onclick={() => { const parent = selected?.parentElement; if (parent && workspace.contains(parent) && parent !== workspace) { selected = parent; review.draft = { ...review.draft, target: metadata(parent), capture: undefined }; hovered = null; updateBox(); } }} />{/if}
+      {#if review.draft.capture}<IconButton size="compact" icon="trash-2" label="Remove screenshot" title="Remove screenshot" disabled={locked} onclick={() => review.draft.capture = undefined} />{/if}
+      <span class="editor-status">{busy ? 'Capturing…' : ''}</span>
+      <IconButton size="compact" icon="check" variant="primary" appearance="default" label={review.draft.editing ? 'Save comment' : 'Add comment to draft'} aria-keyshortcuts="Meta+Enter Control+Enter" title={review.draft.editing ? 'Save comment (⌘/Ctrl + Enter)' : 'Add comment (⌘/Ctrl + Enter)'} disabled={locked || (!review.draft.text.trim() && !review.draft.capture)} onclick={() => addComment()} />
+    </div>
+{/snippet}
+{#snippet footer()}{#if notice && !compactEditor}<Text size="small" role="status">{notice}</Text>{/if}{/snippet}
+  </FloatingComposer>
+  </div>
+{/if}
+{#if box}<div class="selection-outline"><SelectionOutline {...box} state={hovered && hovered !== selected ? 'hover' : 'selected'} label={(hovered ?? selected) ? metadata((hovered ?? selected)!).selector : ''} /></div>{/if}
+
+{#if toast}<Toast message={toast.message} tone={toast.tone} dismiss={() => { toast = null; clearTimeout(toastTimer); }} />{/if}
+</SurfaceShell>
 <style>
-:global(*){box-sizing:border-box}
-:global(body){margin:0;background:#f7f8f6;color:#25382f;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}
-:global(button),:global(textarea),:global(select),:global(input){font:inherit}
-:global(button){cursor:pointer}
-:global(button:disabled){opacity:.45;cursor:default}
-:global(:focus-visible){outline:3px solid #3f8067;outline-offset:4px}
-button{border:1px solid #d6ded7;background:white;color:#30483b;padding:9px 12px;border-radius:7px}
-button:hover:enabled{background:#eff4ef}
-p{line-height:1.65}
-.shell{height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:68px minmax(0,1fr)}
-.shell.panel-open{grid-template-columns:minmax(0,1fr) 370px}
-header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 28px;border-bottom:1px solid #dfe5df;background:#fff}
-.identity,nav{display:flex;align-items:center;gap:12px}
-.identity>span:first-of-type{color:#c4cec6;margin:0 5px}
-nav .active{background:#e7f0e8;border-color:#bdd1c1}
-.count{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:50%;background:#eaf0e9;font-size:12px;font-weight:500}
-
-main{position:relative;min-width:0;overflow:auto;padding:26px 38px 18px}
-.workspace-meta{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.1em;color:#7b877e}
-.workspace-meta span:last-child{letter-spacing:0}
-.instruction{font-size:12px;color:#637768;margin:22px 0 30px}
-.study{max-width:820px;margin:0 auto}
-.eyebrow{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#728373;margin:0 0 12px}
-h1{line-height:1.1;letter-spacing:-.045em;font-weight:550;margin:0 0 20px;max-width:650px}
-.intro{font-size:15px;color:#6d7d71;max-width:530px;margin:0 0 26px}
-.controls{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 0;margin-bottom:22px;border-top:1px solid #e1e7df;border-bottom:1px solid #e1e7df}
-.controls label{display:flex;align-items:center;gap:12px;font-size:12px}
-.controls input{width:100px;accent-color:#4c7759}
-.controls label span{color:#6a796c}
-.controls button{font-size:11px;padding:7px 9px;background:transparent}
-.options{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-.option{padding:25px;background:#fff;border:1px solid #dce3d9;border-radius:10px}
-.recommended{background:#edf2e9;border-color:#d1ddc9}
-.option-top{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#6b7f62}
-.tag{font-size:9px;background:#dce7d5;padding:5px 7px;border-radius:4px}
-.tag.neutral{background:#f0f2ed;color:#7c8577}
-.option h2{font-size:21px;letter-spacing:-.5px;font-weight:550;margin:29px 0 12px}
-.option p{color:#72816d;font-size:13px;margin:0 0 28px}
-.option-footer{font-size:11px;color:#53674b;border-top:1px solid #dce4d7;padding-top:15px}
-.decision{margin-top:25px;padding:20px 0}
-.decision strong{font-weight:550}
-.decision p{font-size:12px;color:#7a867a;margin:6px 0 0}
-.compact .option{padding:16px}
-.compact .option h2{margin-top:15px}
-.compact .option p{margin-bottom:16px}
-
-aside{border-left:1px solid #dfe5df;background:#fff;min-height:0;display:flex;flex-direction:column}
-.panel-heading{display:flex;justify-content:space-between;align-items:center;padding:25px 23px 17px}
-.panel-heading h2{font-size:23px;letter-spacing:-.7px;font-weight:550;margin:0}
-.recipient{display:flex;gap:10px;align-items:center;padding:12px 15px;background:#f6f8f4;margin:0 20px 16px;border:1px solid #e5eadd;border-radius:7px}
-.conversation{flex:1;min-height:80px;overflow:auto;padding:0 20px 18px;overscroll-behavior:contain}
-.empty{padding:32px 13px 20px}
-.empty p{font-size:12px;color:#738066;margin:0}
-.draft-label{font-size:9px;letter-spacing:.12em;color:#718060;margin:12px 0}
-.comment-card{padding:13px;border:1px solid #dfe5da;border-radius:8px;margin-bottom:12px}
-.comment-heading{display:flex;gap:8px;align-items:center;font-size:11px}
-.number{font-size:10px;color:#6b8160;background:#eef3e8;width:19px;height:19px;border-radius:50%;display:grid;place-items:center}
-.comment-heading strong{font-weight:550}
-.comment-card img,.sent-comment img{display:block;max-width:100%;max-height:150px;object-fit:contain;object-position:left top;border:1px solid #e4e8df;border-radius:4px;margin-top:12px}
-.image-meta{display:block;color:#758269;font-size:9px;margin:5px 0}
-.comment-card p,.sent-comment p{font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0}
-.card-actions{display:flex;gap:12px}
-.composer{border-top:1px solid #e3e8df;padding:16px 20px 12px;background:#fff;max-height:65%;overflow:auto}
-.selected-title{display:flex;gap:8px;align-items:center;font-size:11px;margin-bottom:13px}
-.selected-title strong{font-weight:500;flex:1}
-.capture-preview{display:block;max-width:100%;max-height:130px;object-fit:contain;object-position:left top;margin:12px 0;border:1px solid #dce4d6;border-radius:4px}
-textarea{width:100%;min-height:84px;resize:vertical;border:1px solid #dbe3d5;border-radius:7px;padding:12px;font-size:12px;line-height:1.5;color:#35472f;background:#fafbf8;margin-top:12px}
-.send-button{display:block;width:100%;background:#344e3d;color:#fff;border-color:#344e3d;font-size:12px;padding:12px}
-.send-button:hover:enabled{background:#233e2d}
-.notice{font-size:11px;color:#526a45;margin:10px 0}
-.notice:empty{margin:14px 0}
-.hint{font-size:10px;color:#677958}
-.export-actions{display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-top:10px;color:#718263;font-size:9px}
-.batch{padding:13px;background:#f3f6ef;border-radius:8px;margin:12px 0 20px}
-.batch-label{display:flex;justify-content:space-between;gap:10px;font-size:10px}
-.batch-label span{color:#738568}
-.sent-comment{margin-top:15px;font-size:11px}
-.fixture-reply{font-size:10px;color:#637853;border-top:1px solid #dce4d4;margin:16px 0 0;padding-top:10px}
-.selection-outline{position:fixed;pointer-events:none;z-index:20;border:2px solid #598467;border-radius:3px}
-.selection-outline.hovering{border-style:dashed}
-.selection-outline>span{position:absolute;left:-2px;top:-22px;background:#598467;color:#fff;font-size:10px;line-height:20px;padding:0 7px;border-radius:3px 3px 0 0;white-space:nowrap}
-.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
-
-
-.shell,.shell.panel-open{grid-template-columns:minmax(0,1fr);grid-template-rows:44px minmax(0,1fr);height:100dvh;overflow:hidden}
-
-header{padding:0 16px;gap:10px}
-.identity{gap:12px}
-.identity .breadcrumb{font-size:11px;color:#7a847c;margin:0}
-.identity>span:first-of-type{margin:0;color:#7a847c}
-nav{gap:6px}
-.connection-status{display:flex;align-items:center;gap:5px;font-size:10px;color:#7e867c;margin-right:7px}
-.icon-button{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:0;background:transparent;border-radius:5px;flex-shrink:0}
-.icon-button :global(svg){pointer-events:none}
-.comments-toggle{position:relative}
-.badge{position:absolute;top:-2px;right:-3px;display:grid;place-items:center;font-size:8px;font-weight:500;min-width:13px;height:13px;border-radius:7px;background:#344e3d;color:white}
-.study{max-width:820px}
-.workspace-meta{font-size:9px}
-.instruction{font-size:11px;margin:18px 0 26px}
-main{padding:24px 38px}
-.selecting :global(*){cursor:crosshair}
-
-aside{position:fixed;z-index:40;top:44px;right:0;bottom:0;width:min(350px,100vw);box-shadow:-12px 0 36px #24372d12;border-left:1px solid #e1e7de}
-.panel-heading{padding:12px 16px}
-.panel-heading h2{font-size:15px;letter-spacing:-.3px}
-.panel-heading .count{margin-left:6px;font-size:10px;width:18px;min-width:18px;height:18px}
-.recipient{margin:0 16px 12px;padding:0;border:0;background:none;gap:5px;font-size:10px;color:#7a8473}
-.conversation{padding:0 16px 12px}
-.composer{padding:12px 16px;max-height:45%}
-.empty{padding:16px 0}
-.empty p{font-size:12px}
-.send-button{width:32px;height:32px;margin:8px 0 0 auto;background:#344e3d}
-.export-actions{margin-top:5px}
-.card-actions{justify-content:flex-end;gap:4px}
-.card-actions .icon-button{padding:0}
-.resume-draft{font-size:11px;margin-bottom:10px;width:100%;text-align:left}
-.floating-composer{position:fixed;z-index:30;width:min(310px,calc(100vw - 24px));max-height:calc(100dvh - 68px);overflow:auto;border:1px solid #d5dfd1;border-radius:9px;padding:12px;background:white;box-shadow:0 10px 36px #203a2520}
-.floating-composer .selected-title{margin-bottom:3px;font-size:10px}
-.floating-composer .selected-title strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.floating-composer textarea{margin-top:4px;min-height:72px;max-height:170px;border:0;background:white;padding:5px 0;resize:vertical}
-.floating-composer textarea:focus-visible{outline:0}
-.floating-composer:focus-within{border-color:#6b8c70}
-.editor-actions{display:flex;align-items:center;gap:3px;border-top:1px solid #edf0e8;padding-top:7px}
-.editor-status{flex:1;text-align:right;font-size:10px;color:#85917d;margin-right:8px}
-.primary{background:#344e3d;color:white}
-.primary:hover:enabled{background:#284332}
-.floating-composer .capture-preview{max-height:110px;margin:5px 0}
-.selection-outline{z-index:20}
-.selection-outline>span{max-width:250px;overflow:hidden;text-overflow:ellipsis;font-size:9px}
-.notice{font-size:10px}
-
-@media(max-width:680px){header{padding:0 10px}
-.identity .breadcrumb{display:none}
-.connection-status{font-size:9px;margin-right:2px}
-.icon-button{width:32px;height:32px}
-main{padding:20px}
-.workspace-meta span:last-child{display:none}
-.options{grid-template-columns:1fr}
-.controls{align-items:flex-start;flex-direction:column}
-.option{padding:20px}
-.instruction{margin:14px 0 22px}
-.selection-outline>span{top:0;left:0}
-aside{width:min(350px,100vw)}
+:global(body) { margin:0; }
+#comment-workspace { box-sizing:border-box; height:100%; min-width:0; overflow:auto; padding:24px 38px; }
+#comment-workspace :global(*) { box-sizing:border-box; }
+.workspace-meta, .option-top, .controls, .panel-heading, .recipient, .comment-heading, .batch-label, .card-actions, .send-action, .export-actions, .selected-title, .editor-actions { display:flex; align-items:center; gap:.5rem; }
+.workspace-meta, .option-top, .panel-heading, .batch-label { justify-content:space-between; }
+#comment-workspace :global(.instruction) { margin:18px 0 26px; }
+.study { max-width:820px; margin:0 auto; }
+.study :global(h1) { max-width:650px; margin:12px 0 20px; }
+.study :global(.intro) { max-width:530px; margin-bottom:26px; }
+.controls { justify-content:space-between; gap:16px; margin:22px 0; }
+.options { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+.option-top { margin-bottom:24px; }
+.options :global(h2) { margin-bottom:12px; }
+.option-footer { margin-top:24px; }
+.decision { margin-top:25px; padding:20px 0; }
+.selecting :global(*) { cursor:crosshair; }
+#comment-workspace.selecting { touch-action:pan-x pan-y pinch-zoom; }
+.recipient { margin-top:.75rem; overflow-wrap:anywhere; }
+.conversation { display:grid; gap:.75rem; }
+.comment-heading { overflow-wrap:anywhere; }
+.comment-heading strong { min-width:0; }
+.conversation :global(p) { white-space:pre-wrap; overflow-wrap:anywhere; margin:.75rem 0; }
+.conversation img, .capture-preview { display:block; max-width:100%; max-height:150px; object-fit:contain; object-position:left top; margin-top:.75rem; }
+.conversation :global(.image-meta) { display:block; margin:.25rem 0; }
+.card-actions, .send-action, .export-actions { justify-content:flex-end; }
+.send-action, .export-actions { margin-top:.5rem; }
+.composer :global(p) { margin:.5rem 0; overflow-wrap:anywhere; }
+.batch-label { flex-wrap:wrap; }
+.sent-comment { margin-top:1rem; overflow-wrap:anywhere; }
+.selected-title { width:100%; }
+.selected-title strong { flex:1; min-width:0; max-height:48px; overflow:auto; overflow-wrap:anywhere; }
+.editor-anchor { display:contents; }
+.editor-body { display:grid; gap:.5rem; }
+.capture-preview { max-height:110px; }
+.editor-actions { width:100%; }
+.editor-status { flex:1; text-align:right; }
+.selection-tools { position:fixed; z-index:60; }
+@media(max-width:680px) {
+  #comment-workspace { padding:20px; }
+  .workspace-meta :global(:last-child) { display:none; }
+  .options { grid-template-columns:1fr; }
+  .controls { align-items:flex-start; flex-direction:column; }
 }
-
-.agent-reply{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;border-top:1px solid #dce4d4;padding-top:12px}
-.selection-outline>span{top:auto;bottom:100%;width:max-content;white-space:normal;overflow-wrap:anywhere;overflow:visible;text-overflow:clip;font-family:ui-monospace,monospace;line-height:1.5;padding:3px 7px}
-.floating-composer .selected-title strong{white-space:normal;overflow-wrap:anywhere;max-height:72px;overflow:auto;font-family:ui-monospace,monospace;font-weight:400}
 </style>

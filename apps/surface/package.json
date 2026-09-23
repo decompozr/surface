@@ -7,26 +7,42 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc --noEmit -p tsconfig.server.json",
     "build": "bun --bun vite build",
     "start": "bun server/index.ts",
-    "test": "bun run build && bun test server/host.test.ts",
+    "test": "bun run build && bun run test:core && bun test server/host.test.ts runtime/interactions.test.ts comments/*.test.ts",
     "verify:fixture": "bun run build && bun scripts/verify-fixture.ts",
     "verify:workspaces": "bun run build && bun scripts/verify-workspaces.ts",
     "verify:interactions": "bun run build && bun scripts/verify-interactions.ts",
-    "verify:examples": "bun run build && bun scripts/verify-default-examples.ts"
+    "verify:examples": "bun run build && bun scripts/verify-default-examples.ts",
+    "test:core": "cd ../.. && bun test apps/surface/tests",
+    "cli": "bun src/cli/index.ts",
+    "reply": "bun comments/result.ts",
+    "check:core": "tsc --noEmit -p tsconfig.core.json"
   },
   "dependencies": {
+    "@decompozr/design-system": "link:@decompozr/design-system",
     "@sveltejs/adapter-node": "5.5.7",
     "@sveltejs/kit": "2.70.3",
     "@sveltejs/vite-plugin-svelte": "7.3.0",
     "html-to-image": "1.11.13",
     "lucide-svelte": "1.0.1",
-    "svelte": "5.57.1",
-    "vite": "8.3.0"
+    "svelte": "5.57.0",
+    "vite": "8.3.0",
+    "@clack/prompts": "1.8.1",
+    "ajv": "8.20.0",
+    "ws": "8.21.3"
   },
   "devDependencies": {
     "@types/bun": "1.4.2",
     "svelte-check": "4.7.6",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "@playwright/test": "1.63.0",
+    "@types/ws": "8.18.1"
   },
   "version": "0.0.0",
-  "packageManager": "bun@1.4.0"
+  "packageManager": "bun@1.4.0",
+  "bin": {
+    "surface": "./src/cli/index.ts"
+  },
+  "exports": {
+    "./client": "./src/client/index.ts"
+  }
 }

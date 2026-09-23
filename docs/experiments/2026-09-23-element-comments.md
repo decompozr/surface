@@ -15,7 +15,7 @@ Checkpoint: uncommitted comments WIP on HEAD `a97e34f`, in the existing linked w
 - Five model/access tests passed. The configured HTTPS origin is allowed; a different port, HTTP variant and unrelated origin are rejected. Production build passed.
 - The HTTP verifier passed through the actual private HTTPS URL from the hosting Mac: page 200, fixture batch receipt, identical receipt on repeated payload, foreign-origin rejection, real-recipient rejection, empty-batch rejection and body-size limit. Synthetic inputs never reached a real agent.
 
-Reproduction and lifecycle: [experiment README](../../experiments/comments/README.md). Verifiers: [model/access tests](../../experiments/comments/model.test.ts), [HTTP verification](../../experiments/comments/verify-http.ts). Ignored local `.decompozr/surface/comments-preview/preview.json` records the exact PID/origin/target; `server.log` records the process output.
+Reproduction and lifecycle: [experiment README](../../apps/surface/comments/README.md). Verifiers: [model/access tests](../../apps/surface/comments/model.test.ts), [HTTP verification](../../apps/surface/comments/verify-http.ts). Ignored local `.decompozr/surface/comments-preview/preview.json` records the exact PID/origin/target; `server.log` records the process output.
 
 ## Limits and next gate
 
@@ -76,3 +76,97 @@ The first integration test found concurrent duplicate batches colliding with the
 Active recipients now require explicit queue/steer intent in Core; the comment playground does not yet collect that choice. Its active submission is therefore rejected before consuming the response slot. Idle submission remains supported. This is an explicit integration limitation, not permission to restore automatic steering. Earlier live active-delivery observations describe their older revision. No installed service or preview was restarted during this reconciliation.
 
 Broader integration regression: `bun test tests` passed 76 cases and timed out in the legacy browser fixture because this checkout lacked the feedback example build/dependencies. Installed its pinned dependencies with `bun install --frozen-lockfile --cwd examples/svelte-feedback`, built with `bun run build:ui`, and reran `bun test tests/browser.test.ts`: passed (1 test, 5 assertions). Thus all 77 core cases passed across the initial run and targeted rerun; this is not a claim that the initial full-suite run was green. No tracked dependency manifest or lockfile changed.
+
+### Preview build replacement failure
+
+The user observed HTTP 500 after the identity update. Logs showed the running server importing an old hashed manifest/node chunk that no longer existed in the mutable build output. The preview now runs from a separate ignored release copy under its existing state directory; subsequent application builds cannot replace those files. Preserve this release-copy launch pattern on later preview updates. Existing interaction state and Tailscale mapping were retained. HTTPS verification returned 200 for the page and both entry scripts, and authenticated SSE returned its initial snapshot. This verifies transport recovery, not browser visual acceptance.
+
+### Duplicate shell correction
+
+Human screenshot evidence showed the global SurfaceShell wrapping the comment experiment after a later build, adding Workspace and Home above its minimal toolbar. The root layout now bypasses the shared shell only for the exact comment experiment page (including its trailing-slash form). Other routes retain the shared shell. This restores the previously requested single-toolbar experiment layout.
+
+### Shared header preference supersedes bypass-only correction
+
+The user prefers the upper shared shell. The experiment now renders that shell once, supplying its review controls as a header snippet. The root bypass prevents a second shell. The compact logo uses the canonical DecompozR square viewBox, cream background, arrow-brace transform and palette, replacing only the center bars with a typographic S. The previous custom stroked S and tightly cropped monochrome mark were rejected by human feedback. Visual acceptance of this revision remains pending.
+
+### Four-region layout
+
+The user selected a top action toolbar, left overlay navigation, right interaction pane that consumes layout width, and a fixed transparent bottom status bar. The comment experiment opts into overlay navigation on the shared shell; other shell consumers retain their existing behavior. The right pane animates a grid column rather than covering content and remains hidden/inert when closed. Connection status moves from the toolbar to a 24px bottom bar with reserved content space. Reduced motion disables the column animation. Browser visual acceptance remains pending.
+
+### Touch selection and responsive panel refinement
+
+User mobile feedback rejected touch-scroll selection and immediate comment composition. Selection now requires a click without movement beyond 8px, scroll or pointer cancellation; hover outlines are mouse-only. A selection first exposes nearby screenshot/comment actions. The slate Surface logo itself toggles navigation, replacing the hamburger. Both menus animate with reduced-motion support. The right pane pushes content on desktop and overlays it at widths up to 680px, superseding the earlier all-width push behavior. Build/type and HTTP checks do not establish touch-device acceptance; real mobile scrolling and animation remain a human verification gate.
+
+### Browser E2E checkpoint
+
+The user explicitly requested agent-run desktop and mobile E2E validation. `bun experiments/comments/mobile-desktop.e2e.ts` now exercises desktop Chromium, touch-emulated Chromium and iPhone 13 WebKit against the private HTTPS preview with fresh isolated storage and no connection capability. Batch POSTs are blocked, so fixture comments cannot reach the real conversation. All three profiles passed selection-to-toolbar, comment creation, element screenshot, logo navigation, intermediate animation geometry, pane bounds and desktop-push/mobile-overlay assertions with no page errors. Chromium's native synthesized touch-scroll gesture moved the workspace without creating a selection or hover outline. WebKit checks tap interactions and scrolling but does not constitute a physical iPhone Safari run.
+
+Rendered screenshot inspection found a real defect: the captured-image composer extended below the mobile viewport. The composer now has an available-height bound and internal scrolling; all three profiles passed a bottom-edge assertion after the fix. Screenshots are retained in ignored `.decompozr/surface/comments-e2e/`. Type checks and the production build also passed. Physical-device keyboard and browser-toolbar resize behavior remain unverified.
+
+### Controlled full-loop E2E
+
+The earlier mobile/desktop test blocked submission, leaving a functional gap. The new `experiments/comments/full-loop.e2e.ts` launches the built preview on a temporary loopback port with separate state and a local provider-protocol fixture socket. It uses the actual Codex adapter, HTTP routes, result CLI, store and SSE. Desktop Chromium and mobile WebKit passed real browser submission with element screenshot, accepted receipt, callback publication and pushed result display, offline recovery and reload persistence. Each produced exactly one fixture delivery; neither contacted the user's conversation. Reports, screenshots and replayable Playwright traces are retained under the ignored comments-full-e2e directory. This verifies the application loop across a controlled provider boundary; real model response and physical-device behavior remain separate gates.
+
+### Remove redundant Home row
+
+At the user request, the comment experiment hides the standalone Home breadcrumb row and its divider. Content starts directly below the 60px action header, with 24px reserved for bottom status. Other shell consumers retain breadcrumbs by default.
+
+### Keyboard actions
+
+The comment experiment supports Command/Control+Enter to save the current comment into the pending batch, S to toggle selection, I to toggle the interaction pane and M to toggle navigation. Single-letter actions are suppressed in editable fields and with modifier keys; composition and repeated page-action keys are ignored. Saving a comment does not implicitly send the batch to the agent. Button titles and aria-keyshortcuts expose these bindings.
+
+### Compact live indicator and connection toasts
+
+The status bar now contains a small radio/live icon; connected means the SSE transport is connected, not that a model is working. Its accessible name and tooltip identify transport state, and clicking shows connection details. A reusable Toast component shows dismissible, five-second messages on disconnect/reconnect without repeating every retry. E2E initially exposed that an existing stream could survive browser offline emulation and leave a stale connected icon; the offline event now aborts the transport so state updates immediately. Desktop Chromium and mobile WebKit full-loop tests passed disconnect toast, reconnect toast, result catch-up and exactly-one delivery after this correction. The preceding keyboard E2E also passed S/I/M and Command+Enter, including M while typing not opening the menu. The redundant Home row removal is deployed with these changes.
+
+### Standalone design-system consumer installation
+
+Installed the existing local private design-system tarball into apps/surface, preserving its source checkout. Recorded its artifact SHA-256 and source revision. Verified Toast, index and font stylesheet archive contents against the checkout dist. Imported packaged font faces and replaced the custom Toast implementation with an adapter around the package Toast. Svelte/server checks and the production build passed. Shell-wide design-system migration is not claimed.
+
+### Linked design-system development
+
+At the user's request, replaced the tarball dependency with Bun's registered `link:@decompozr/design-system`, resolving to the standalone local checkout. Removed the obsolete vendored archive/provenance snapshot and updated installation guidance. Vite deduplicates Svelte; Surface's Svelte patch is aligned to the design-system's 5.57.0 to avoid duplicate nominal Snippet types (the previous 5.57.1 consumer failed type checking when linked). No source changes were made in the design-system repository. Final consumer type checks and build pass. The package still exports dist: package regeneration and a consumer build remain required for the built preview. The full-loop verifier accepts COMMENTS_E2E_BUILD_DIR for checking a newly built consumer without changing the active preview release.
+
+
+### Design-system chrome migration
+
+Continued in the same worktree after the accepted handoff. The navbar, route menu, recipient panel, comment pane, selection toolbar, floating composer and status action now use the linked package's controls or visual tokens. `ChromeAction` delegates button/toggle states and touch targets to package components; its local Lucide content covers glyphs absent from the package catalogue. The package Toolbar supplies roving keyboard navigation. Route links, the native bounded textarea, recipient selects and the previously selected Slate `{S}` mark retain their application-specific contracts. See the [consumer contract](../design/README.md#surface-chrome-consumer-contract).
+
+Visual review caught clipped composer actions after increasing touch targets. The composer now scrolls screenshot/text content separately and keeps its action row visible. The three-profile interaction verifier checks toolbar keyboard traversal, mode toggling, 44px coarse-pointer targets, toolbar/editor viewport bounds, visible save action, gestures, selection/capture, shortcuts and panel layout. Existing test-output paths remain the defaults; environment overrides preserve prior evidence during this run.
+
+The first isolated preview launch incorrectly supplied an empty state directory, producing a missing-connection error. The local-only fixture was corrected by omitting live state configuration; no production state was altered. Runtime navigation separately revealed rejected design-system assets (403), initially `dist/index.js`, then version metadata. The runtime now permits the resolved published `dist` directory and exact package manifest in both request and Vite checks, deduplicates Svelte, and loads fonts with the shared shell. The navigation regression checks that the design-system source remains inaccessible (403).
+
+Validation: root TypeScript, application Svelte/server and core TypeScript checks pass (Svelte: zero errors/warnings); production build and `git diff --check` pass. Twenty host/runtime/comment tests pass. Desktop Chromium, touch Chromium and iPhone 13 WebKit interaction checks pass; rendered desktop pane, mobile pane/composer and navigation screenshots were inspected. Real Chrome navigation passes nested page/folder links, breadcrumbs, persistent collapse, mobile drawer/Escape, scoped horizontal overflow, package font loading and asset-boundary checks. Isolated desktop/mobile full-loop checks exercise browser submission, PNG storage, fake-provider receipt, real callback CLI, SSE, offline recovery and reload with one delivery per profile.
+
+Evidence is retained under `.decompozr/surface/chrome-migration-20260923/` (`final-interactions`, `navigation`, `verified-full-loop`; earlier attempts also retained). No design-system source edits, shared installation update, private preview restart, recipient rebinding, commit, new agent or caller archival occurred. The existing Tailscale preview still serves its prior immutable release. Human visual approval and physical-device acceptance remain pending.
+
+
+### Header simplification and private preview update
+
+User feedback identified the redundant Workspace tag and its inconsistent alignment beside Surface. Removed the tag at every viewport width and set an explicit line height for the centered product name. The shared design contract now records this simpler header. Svelte/server checks (zero errors/warnings), production build and diff whitespace checks passed.
+
+Updated the existing private preview on port 4387 behind the unchanged Tailscale Serve URL using a new immutable release (`1790185580103693000`). A separate local-only preflight passed before replacing the verified owned listener. The old release is retained; connection.json was verified byte-for-byte unchanged. This supersedes the preceding checkpoint's statement that the preview still serves the pre-migration release. Chrome verified the live HTTPS page with only the logo and Surface name in the header. No automated comment submission, recipient rebinding, shared installation update or commit occurred.
+
+
+## Full design-system component adoption
+
+The later user request supersedes the primitive-only migration boundary above. Surface now imports package-owned AppShell/AppHeader/Brand/Logo, NavigationLinks/Breadcrumbs, SidePanel/SurfaceCard/FloatingComposer/StatusBar/SelectionOutline/Divider, Text/TextArea/Select/Slider, and review IconButton/ToggleButton/Toolbar/Badge/Toast components. The package owns component appearance and shell motion. Surface retains content arrangement, route/capability identity, collapse persistence, selection coordinates, draft state and explicit delivery. The home and generated folder catalog also use package typography/navigation. The package Logo supplies the Slate Surface S mark; the local wrapper contains no copied SVG.
+
+Provider coordination used the user-designated task `01a0cf62-e6dd-7102-824a-e57104228529`. Its isolated checkout `/Users/scottchu/.codex/worktrees/98c9/design-system` supplied the tested dist. All 107 dist files matched tarball SHA256 `f952bab451a2d4744aad3ee49b01713b4f9abeba3ce588f035c05c18b6dad429`. Only this Surface worktree's consumer symlink was redirected; canonical checkout and global package registration were preserved. See [the consumer contract](../design/README.md#surface-chrome-consumer-contract) for the local-link limitation.
+
+Final checks passed: root/app/core TypeScript and Svelte (zero errors/warnings), build, 20 targeted tests, desktop Chromium/touch Chromium/mobile WebKit comment geometry and interaction checks, shared navigation and recipient fixtures, and desktop/mobile isolated end-to-end PNG submission → provider receipt → CLI reply → SSE → offline recovery → reload. Each full-loop profile delivered exactly once. No fixture reached a real conversation. The navigation check waits for the drawer to settle before screenshot capture; the full-loop check similarly waits for the right pane to be within the viewport.
+
+Evidence is retained under `.decompozr/surface/design-system-adoption-20260923/`, including provider-ready.json, completion.json, browser screenshots/traces and preview-update.json. The same private HTTPS experiment preview was replaced with an immutable verified build; the existing connection file remained byte-identical. Live Chrome rendering and opening the comment pane were verified after replacement. Prior releases and all WIP remain. This is still an opt-in experiment, not a shared-installation or production promotion. Physical-phone acceptance and human visual approval are not claimed.
+
+
+## Mobile keyboard and transparent status follow-up
+
+A user-provided iPhone screenshot showed the focused floating editor clipped by the browser chrome. The initial mobile emulation did not test a real software keyboard. Source inspection found layout-viewport-only positioning and no visualViewport event listeners. The transparent StatusBar also sat over an empty 24px AppShell grid row, creating an apparent solid strip.
+
+Surface now reads visual viewport offsets/size, listens to its resize and scroll events, measures the package composer's rendered height, and clamps it within the visible area. Nested content scrolling updates the anchor without replacing the draft or stealing focus. Focused input is revealed by scrolling the editor body only. Keyboard-constrained layouts omit the optional floating notice and reduce textarea rows. The status row reserves zero layout height, allowing page content to continue underneath the transparent package footer. This uses existing package props; no design-system source or canonical linkage change was needed.
+
+The browser coordinate distinction is documented by [MDN VisualViewport](https://developer.mozilla.org/en-US/docs/Web/API/VisualViewport): on-screen keyboard changes can affect the visual viewport independently of the layout viewport. This API evidence supports the coordinate/event choice; it is not device test evidence.
+
+Checks passed: app Svelte/TypeScript with zero diagnostics, build, four geometry regressions, synthetic visual viewport resize/pan tests in Chromium and WebKit (including focused nested scroll, screenshot+long selector, retained draft and visible actions), and all three existing interaction profiles. Screenshot review and live HTTPS rendering were completed. The new tests also check footer transparency, full-height page coverage, and pointer pass-through outside the status action. Evidence: `.decompozr/surface/mobile-viewport-fix-20260923/`.
+
+The same private experiment preview was updated to the verified immutable release, preserving connection.json byte-for-byte and retaining previous releases. Physical iPhone keyboard animation/viewport acceptance remains for user confirmation; synthetic browser events do not establish that result.

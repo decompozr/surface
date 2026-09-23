@@ -4,8 +4,8 @@ import { resolve, join } from 'node:path';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { loadPrompts } from './prompts.ts';
 import { selectSkills } from './provider.ts';
-import { requireCompatibleBun } from '../../src/installation/bun-version.ts';
-import { installationHome } from '../../src/installation/paths.ts';
+import { requireCompatibleBun } from '../../apps/surface/src/installation/bun-version.ts';
+import { installationHome } from '../../apps/surface/src/installation/paths.ts';
 import { inspectSkillLink, linkSkill } from './skill-link.ts';
 export async function agentSetup(args=process.argv.slice(2)) {
 const {values,positionals}=parseArgs({args,allowPositionals:true,options:{home:{type:'string'},'skills-dir':{type:'string',multiple:true},provider:{type:'string',multiple:true},port:{type:'string'},tailscale:{type:'string'},ref:{type:'string'},help:{type:'boolean'}}});
@@ -92,15 +92,15 @@ if(installedCommit===commit) {
   await verify();return;
 }
 step('Preparing project dependencies');
-for(const folder of ['', 'experiments/singleton', 'experiments/mcp', 'apps/surface'])await run([process.execPath,'install','--frozen-lockfile','--ignore-scripts'],join(root,folder));
+for(const folder of ['', 'apps/surface/runtime', 'apps/surface/mcp', 'apps/surface'])await run([process.execPath,'install','--frozen-lockfile','--ignore-scripts'],join(root,folder));
 step('Checking source and installation contracts');
 await run([process.execPath,'run','check']);
 await run([process.execPath,'run','check'],join(root,'apps/surface'));
-await run([process.execPath,'test','tests/release-bundle.test.ts','tests/agent-skill-link.test.ts']);
+await run([process.execPath,'test','apps/surface/tests/release-bundle.test.ts','apps/surface/tests/agent-skill-link.test.ts']);
 if(wasRunning){step('Stopping the selected service for update');await cli('stop');}
 try {
   step('Building and installing Surface');
-  await run([process.execPath,join(root,'src/cli/index.ts'),'install','--repo',root,'--ref',commit,'--home',home]);
+  await run([process.execPath,join(root,'apps/surface/src/cli/index.ts'),'install','--repo',root,'--ref',commit,'--home',home]);
   step('Linking agent skills and starting the service');
   for(const directory of skills)linkSkill(root,directory);
   await cli('start',...(values.port?['--port',values.port]:[]));

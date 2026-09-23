@@ -2,9 +2,9 @@ import {test,expect} from 'bun:test';
 import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {Store} from '../../src/core/store';
-import {Service} from '../../src/core/service';
-import {DeliveryError,type AgentAdapter} from '../../src/adapters/codex';
+import {Store} from '../../apps/surface/src/core/store';
+import {Service} from '../../apps/surface/src/core/service';
+import {DeliveryError,type AgentAdapter} from '../../apps/surface/src/adapters/codex';
 import {RecipientWorkflow} from './workflow';
 test('recipient lifecycle: load, disappearance, takeover, delivery, result, no replay',async()=>{
  const root=mkdtempSync(join(tmpdir(),'surface-recipient-'));try{

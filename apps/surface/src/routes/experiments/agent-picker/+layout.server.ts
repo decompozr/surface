@@ -1,6 +1,6 @@
 import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
-import { discoverAgents } from '../../../../../../experiments/agent-picker/discovery';
+import { discoverAgents } from '../../../adapters/discovery';
 import { fixtureDirectory } from '$lib/server/agent-directory';
 export async function load({url}) {
   if(env.SURFACE_AGENT_PICKER_EXPERIMENT!=='1')error(404);

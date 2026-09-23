@@ -1,6 +1,6 @@
 import { parseArgs } from 'node:util';
-import { Installation, type Host } from '../../src/installation/manager.ts';
-export { Installation, type Host } from '../../src/installation/manager.ts';
+import { Installation, type Host } from '../../apps/surface/src/installation/manager.ts';
+export { Installation, type Host } from '../../apps/surface/src/installation/manager.ts';
 
 if (import.meta.main) {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: { home: { type: 'string' }, repo: { type: 'string' }, ref: { type: 'string' }, host: { type: 'string' }, port: { type: 'string' } } });

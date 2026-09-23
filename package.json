@@ -6,28 +6,28 @@
   "packageManager": "bun@1.4.0",
   "scripts": {
     "build:release": "bun scripts/release/build.ts",
-    "dev": "bun src/cli/index.ts serve",
-    "test": "bun test tests",
-    "test:singleton": "bun test experiments/singleton/interactions.test.ts",
+    "dev": "bun apps/surface/src/cli/index.ts serve",
+    "test": "bun run --cwd apps/surface test:core",
+    "test:singleton": "bun test apps/surface/runtime/interactions.test.ts",
     "check": "tsc --noEmit",
     "check:ui": "bun run --bun --cwd examples/svelte-feedback check",
     "build:ui": "bun run --bun --cwd examples/svelte-feedback build",
     "verify:external": "bun scripts/verify-external.ts",
-    "singleton": "bun experiments/singleton/cli.ts",
-    "verify:singleton": "bun experiments/singleton/verify.ts",
-    "verify:singleton-interactions": "bun experiments/singleton/verify-interactions.ts",
-    "verify:dependencies": "bun experiments/singleton/verify-dependencies.ts",
-    "verify:soak": "bun experiments/singleton/verify-soak.ts",
-    "verify:mcp": "bun experiments/mcp/verify.ts",
+    "singleton": "bun apps/surface/runtime/cli.ts",
+    "verify:singleton": "bun apps/surface/runtime/verify.ts",
+    "verify:singleton-interactions": "bun apps/surface/runtime/verify-interactions.ts",
+    "verify:dependencies": "bun apps/surface/runtime/verify-dependencies.ts",
+    "verify:soak": "bun apps/surface/runtime/verify-soak.ts",
+    "verify:mcp": "bun apps/surface/mcp/verify.ts",
     "verify:sveltekit": "bun experiments/sveltekit/verify.ts",
     "verify:projects": "bun experiments/projects/verify.ts",
     "verify:installation": "bun experiments/lifecycle/verify.ts",
-    "verify:project-access": "bun experiments/mcp/verify-projects.ts",
+    "verify:project-access": "bun apps/surface/mcp/verify-projects.ts",
     "check:project-database": "tsc --noEmit -p experiments/project-database/tsconfig.json",
     "verify:project-database": "bun experiments/project-database/verify.ts",
     "check:server-contract": "tsc --noEmit -p experiments/server-contract/tsconfig.json",
     "verify:server-contract": "bun experiments/server-contract/verify.ts",
-    "surface": "bun src/cli/index.ts",
+    "surface": "bun apps/surface/src/cli/index.ts",
     "check:workspaces": "tsc --noEmit -p experiments/workspaces/tsconfig.json",
     "verify:workspaces": "bun experiments/workspaces/verify.ts",
     "verify:surface": "bun scripts/verify-surface.ts",
@@ -36,7 +36,7 @@
     "verify:multi-surface": "bun experiments/multi-surface/verify.ts",
     "check:surface-sync": "tsc --noEmit -p experiments/surface-sync/tsconfig.json",
     "verify:surface-sync": "bun experiments/surface-sync/verify.ts",
-    "reply": "bun experiments/comments/result.ts"
+    "reply": "bun apps/surface/comments/result.ts"
   },
   "dependencies": {
     "@clack/prompts": "1.8.1",
@@ -50,9 +50,9 @@
     "typescript": "6.0.3"
   },
   "bin": {
-    "surface": "./src/cli/index.ts"
+    "surface": "./apps/surface/src/cli/index.ts"
   },
   "exports": {
-    "./client": "./src/client/index.ts"
+    "./client": "./apps/surface/src/client/index.ts"
   }
 }
