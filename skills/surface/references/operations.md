@@ -19,7 +19,7 @@ The default home is `~/.decompozr/surface` on macOS/Linux. `--home`/`SURFACE_HOM
 
 `surface serve --state-dir STATE --data-root DATA` is the foreground shared host. Do not run it against an installed service's active state. It requires the SvelteKit shell build. Earlier per-runtime commands are under `surface legacy`; existing recorded singleton callbacks retain their original CLI path and state.
 
-For readable page routes and private Tailscale URLs, follow [project pages](pages.md). New user-facing previews should declare a routes directory instead of exposing component filenames.
+For readable page routes and private Tailscale URLs, follow [project pages](pages.md). New or updated user-facing previews must declare a routes directory instead of exposing component filenames.
 
 ## Project and workspace identities
 
