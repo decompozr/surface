@@ -24,12 +24,23 @@ export function createSurfaceClient(options?: { api: string; requestId: string; 
   if (scopedBase !== undefined && (typeof scopedBase !== 'string' || !/^\/api\/n\/[a-z0-9-]+\/[a-z0-9-]+\/requests\/$/.test(scopedBase))) throw new Error('Invalid preview interaction scope.');
   const base = new URL(`${scopedBase ?? '/api/requests/'}${encodeURIComponent(requestId)}`, endpoint).href;
   async function call(path: string, data?: unknown): Promise<Interaction> {
-    const response = await fetch(base + path, {
-      method: data === undefined ? 'GET' : 'POST',
-      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      body: data === undefined ? undefined : JSON.stringify(data), signal: AbortSignal.timeout(90_000),
-    });
-    const result = await response.json();
+    let response: Response, result: any;
+    try {
+      response = await fetch(base + path, {
+        method: data === undefined ? 'GET' : 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: data === undefined ? undefined : JSON.stringify(data), signal: AbortSignal.timeout(90_000),
+      });
+      result = await response.json();
+    } catch (cause) {
+      if (path === '/responses') {
+        const responseId = (data as { responseId: string }).responseId;
+        try { sessionStorage.setItem(`surface:uncertain:${requestId}`, responseId); } catch { /* Storage may be unavailable. */ }
+        window.dispatchEvent(new CustomEvent('surface:submission', { detail: { requestId, responseId, uncertain: true,
+          error: 'Submission acknowledgement was lost. Check this submission before taking further action; do not resend.' } }));
+      }
+      throw cause;
+    }
     if (path === '/responses') window.dispatchEvent(new CustomEvent('surface:submission', { detail: { requestId, ...(response.ok ? { interaction: result } : { error: result.error ?? `Surface returned HTTP ${response.status}.` }) } }));
     if (!response.ok) throw new Error(result.error ?? `Surface returned HTTP ${response.status}.`);
     return result;

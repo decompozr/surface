@@ -22,3 +22,9 @@ Development uses the linked private design-system package. Source installation v
 - Package materialization test passed immutable-copy, development-link preservation, provider drift and symlink rejection checks.
 
 These are local fixture/browser checks, not physical iPhone acceptance or deployment. Original installed service and the other agent's private preview remain separate until an explicit selected-installation update.
+
+## Delivery inspection follow-up
+
+The recipient panel now labels acceptance as awaiting a result, renders published results separately, retains a lost-acknowledgement response ID and offers read-only inspection. Stale recipient and directory controls are disabled. Browser verification additionally passed a POST response dropped after one fixture acceptance, read-only recovery of that record, provider failure with a durable result, reload, and a genuinely unknown provider outcome with no replay. Mobile screenshots were inspected after the responsive transition settled.
+
+An isolated committed source release was installed, started, checked with doctor and stopped successfully. The first fixture home exceeded the Unix socket path limit; the second used `/tmp`, which the data-root guard correctly rejected as a symlink alias. Repeating against its canonical `/private/tmp` path passed. Neither failure touched the shared service.

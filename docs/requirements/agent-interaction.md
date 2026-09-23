@@ -144,6 +144,14 @@ Takeover uses `POST .../requests/ID/takeover` with `{ threadId }`. The shared se
 Available fixture verifier (not run by this documentation task): `bun apps/surface/scripts/verify-recipients.ts` uses a real mounted browser page and fixture adapter for queue, independent tabs, explicit recipient change, no replay, stale-state rejection, and desktop/mobile layout. It never sends input to a real conversation.
 
 
+## Inspecting uncertain delivery
+
+The shared recipient panel distinguishes delivery in progress, runtime acceptance awaiting a result, failed/unknown delivery and an explicitly published result. “Check submission” reads the same request and never sends another response, changes recipient or invents a retry ID. A missing browser acknowledgement retains the submitted response ID in the current tab's session storage when available, including across reload. A successful durable read resolves that local uncertainty only when a response or result is recorded; absence of a record alone does not prove that an in-flight submission had no effect.
+
+Request history and provider inspection are independent. A provider outage must not hide a durable result. Refresh invalidates delivery choices immediately, and stale recipient/directory controls remain disabled until their reads succeed. Existing server preflight and reservation rules remain authoritative; this UI does not reconcile arbitrary provider journals or guarantee exactly-once external effects.
+
+Browser fixture evidence: `verify-recipients.ts` drops an acknowledgement after one provider acceptance, reads the original record, publishes a fixture result while provider inspection fails, and reloads without a second POST or provider delivery. It also checks stale choices remain disabled until refreshed.
+
 ## Contextual comment batches — experimental
 
 The user-selected experiment collects element comments and optional frozen element images into one reviewable draft, then submits the batch in an explicit action. Preserve each comment's target, source revision and capture context; distinguish unsent edits, a transport receipt and an actual agent result. Selection and capture alone do not instruct an agent. A preview requested for another device must use the selected private browser origin, and submission must enforce that same origin.

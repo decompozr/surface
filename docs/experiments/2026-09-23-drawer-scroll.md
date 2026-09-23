@@ -68,3 +68,7 @@ the scrolling contract with the ongoing AppShell migration, publish an authorize
 release through the normal setup workflow, then verify the user's physical phone.
 INTEGRATED-LOOP-03 still awaits its original intentional form submission; this
 reported shell defect is not counted as the form's saved response or acceptance.
+
+## Integrated follow-up
+
+The [combined UI integration](2026-09-23-ui-integration.md) now places the scroll lock in the design-system AppShell and removes the earlier local helper. Its verifier asserts the shell main scroll offset as well as document styles. Chromium and narrow desktop WebKit checks passed with the new consumer. The earlier delivery-boundary paragraph describes the pre-integration snapshot: INTEGRATED-LOOP-03 subsequently received its real user submission and published its result, as recorded in its own evidence. Physical phone acceptance remains separate.
