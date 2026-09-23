@@ -3,7 +3,7 @@ import { realpathSync, statSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { isAbsolute } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { DeliveryError, type AgentAdapter, type Binding } from '../adapters/codex.ts';
+import { DeliveryError, type AgentAdapter, type Binding, type DeliveryIntent } from '../adapters/codex.ts';
 import { Store, type RequestRecord, type PreviewScope } from './store.ts';
 
 export class InputError extends Error {
@@ -74,13 +74,23 @@ export class Service {
     this.get(id);
     this.store.update(state => { state.requests.find(item => item.id === id)!.closed = true; });
   }
+  async recipient(id: string) {
+    const request = this.get(id);
+    const binding = this.store.state.bindings.find(item => item.id === request.bindingId)!;
+    try {
+      const state = await this.adapter.inspect(binding);
+      return { threadId: binding.threadId, ...state, canSubmit: !request.closed && !request.response && ['active', 'idle', 'notLoaded'].includes(state.status) };
+    } catch { return { threadId: binding.threadId, status: 'unknown', canSubmit: false }; }
+  }
   async submit(id: string, input: unknown) {
     const body = object(input);
     const responseId = text(body.responseId, 'response ID', 100);
     const data = object(body.data);
+    const delivery = body.delivery === undefined ? undefined : object(body.delivery) as DeliveryIntent;
+    if (delivery && (!['queue', 'steer', 'start'].includes(delivery.mode) || !['active', 'idle', 'notLoaded'].includes(delivery.expectedStatus) || (delivery.expectedTurnId !== undefined && typeof delivery.expectedTurnId !== 'string'))) throw new InputError('Invalid delivery intent.');
     const request = this.get(id);
     if (request.response) {
-      if (request.response.id === responseId && isDeepStrictEqual(request.response.data, data)) return this.view(id);
+      if (request.response.id === responseId && isDeepStrictEqual(request.response.data, data) && isDeepStrictEqual(request.response.delivery, delivery)) return this.view(id);
       throw new InputError('This request already has a submission. Create a new request for another response.', 409);
     }
     if (request.closed) throw new InputError('This request is closed.', 409);
@@ -89,7 +99,7 @@ export class Service {
     const binding = this.store.state.bindings.find(item => item.id === request.bindingId)!;
     this.store.update(state => {
       state.requests.find(item => item.id === id)!.response = {
-        id: responseId, data, createdAt: new Date().toISOString(), status: 'delivering',
+        id: responseId, data, delivery, createdAt: new Date().toISOString(), status: 'delivering',
       };
     });
     const quote = (value: string) => "'" + value.replaceAll("'", "'\"'\"'") + "'";
@@ -102,7 +112,7 @@ export class Service {
       'The result JSON is a placeholder: publish the actual outcome and any fields expected by the page. Do not start another agent or change unrelated files.',
     ].join('\n');
     try {
-      const receipt = await this.adapter.deliver(binding, message);
+      const receipt = await this.adapter.deliver(binding, message, delivery, responseId);
       this.store.update(state => {
         const response = state.requests.find(item => item.id === id)!.response!;
         response.status = 'accepted'; response.receipt = receipt;

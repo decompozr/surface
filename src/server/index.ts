@@ -49,7 +49,7 @@ export function startServer(options: {
           if (req.headers.get('host') !== new URL(origin).host) return json({ error: 'Invalid Host.' }, 403);
           const requestOrigin = req.headers.get('origin');
           if (requestOrigin && requestOrigin !== origin && requestOrigin !== options.uiOrigin && !runtimes.isOrigin(requestOrigin)) return json({ error: 'Invalid Origin.' }, 403);
-          const pageRequest = /^\/api\/requests\/([a-f0-9-]+)(?:\/(responses))?$/.exec(url.pathname);
+          const pageRequest = /^\/api\/requests\/([a-f0-9-]+)(?:\/(responses|recipient))?$/.exec(url.pathname);
           const cors = requestOrigin && runtimes.isOrigin(requestOrigin);
           if (cors && !pageRequest) return json({ error: 'Project origins can only access their interactions.' }, 403);
           if (cors && pageRequest) {
@@ -85,6 +85,7 @@ export function startServer(options: {
           if (runtimeRoute) {
             requireAdmin();
             const [, id, operation] = runtimeRoute;
+            if (req.method === 'GET' && operation === 'recipient') return reply(await service.recipient(id!));
             if (req.method === 'GET' && !operation) return json(runtimes.inspect(id!));
             if (req.method === 'GET' && operation === 'logs') return json(runtimes.logs(id!));
             if (req.method === 'POST' && operation === 'mount') return json(await runtimes.mount(id!));
@@ -121,12 +122,13 @@ export function startServer(options: {
           if (url.pathname === '/api/requests' && req.method === 'GET') {
             requireAdmin(); return json(store.state.requests.map(record => service.view(record.id)));
           }
-          const match = /^\/api\/requests\/([a-f0-9-]+)(?:\/(responses|result|close))?$/.exec(url.pathname);
+          const match = /^\/api\/requests\/([a-f0-9-]+)(?:\/(responses|result|close|recipient))?$/.exec(url.pathname);
           if (match) {
             const [, id, operation] = match;
             const record = service.get(id!);
             if (operation === 'result' || operation === 'close') requireAdmin();
             else if (!admin && !equal(bearer, record.token)) throw new InputError('Interaction authorization required.', 401);
+            if (req.method === 'GET' && operation === 'recipient') return reply(await service.recipient(id!));
             if (req.method === 'GET' && !operation) return reply(service.view(id!));
             if (req.method === 'POST' && operation === 'responses') return reply(await service.submit(id!, await body()));
             if (req.method === 'POST' && operation === 'result') return json(service.result(id!, await body()));

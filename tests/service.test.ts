@@ -67,3 +67,12 @@ test('records a published result separately from delivery acceptance', async () 
   service.result(request.id, { message: 'Updated', option: 'B', width: 160 });
   expect(service.view(request.id)).toMatchObject({ response: { status: 'accepted' }, result: { width: 160 } });
 });
+
+test('duplicate reconciliation cannot silently change delivery mode', async () => {
+  const { service, request, calls } = fixture();
+  const delivery = { mode: 'start', expectedStatus: 'idle' };
+  await service.submit(request.id, { ...payload, delivery });
+  await service.submit(request.id, { ...payload, delivery });
+  await expect(service.submit(request.id, { ...payload, delivery: { mode: 'queue', expectedStatus: 'active' } })).rejects.toThrow('already has a submission');
+  expect(calls).toHaveLength(1);
+});

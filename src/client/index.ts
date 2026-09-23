@@ -1,7 +1,9 @@
 /** Browser-only client. Copy via `surface init`; no server credentials belong here. */
+export type DeliveryIntent = { mode: 'queue' | 'steer' | 'start'; expectedStatus: string; expectedTurnId?: string };
+export type Recipient = { threadId: string; status: string; turnId?: string; canSubmit: boolean };
 export type Interaction = {
   id: string; title: string; closed: boolean; schema: Record<string, unknown>;
-  response?: { id: string; status: 'delivering' | 'accepted' | 'failed' | 'unknown'; error?: string; data: Record<string, unknown> };
+  response?: { id: string; status: 'delivering' | 'accepted' | 'failed' | 'unknown'; error?: string; delivery?: DeliveryIntent; receipt?: { mode: string; turnId?: string; queuedSubmissionId?: string }; data: Record<string, unknown> };
   result?: Record<string, unknown>;
 };
 export function createSurfaceClient(options?: { api: string; requestId: string; token: string }) {
@@ -29,8 +31,9 @@ export function createSurfaceClient(options?: { api: string; requestId: string; 
   }
   return {
     read: () => call(''),
+    recipient: () => call('/recipient') as unknown as Promise<Recipient>,
     // Retain this ID on a transport failure. Never create a new ID to retry an uncertain delivery.
-    submit: (data: Record<string, unknown>, responseId: string) => call('/responses', { responseId, data }),
+    submit: (data: Record<string, unknown>, responseId: string, delivery?: DeliveryIntent) => call('/responses', { responseId, data, delivery }),
     async waitForResult(options: { timeoutMs?: number; signal?: AbortSignal } = {}) {
       const deadline = Date.now() + (options.timeoutMs ?? 120_000);
       while (Date.now() < deadline) {

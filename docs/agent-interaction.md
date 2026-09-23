@@ -109,3 +109,12 @@ Reject closed or stale requests explicitly. If the session or control endpoint i
 Use one Svelte page with options A and B, a width parameter, and a submit button. Deliver the selection to its originating agent session and observe the agent modify the page accordingly. Exercise both active-turn steering and idle continuation separately.
 
 See [experiment 1B](exploration.md#experiment-1b-a-button-steers-the-originating-agent-session) for acceptance criteria. Success requires evidence of the same conversation receiving the correct data and acting on it, not merely a successful submission request.
+
+
+## Explicit delivery intent
+
+The client can read `recipient()` and submit with `{ mode, expectedStatus, expectedTurnId }` as its third argument. Active recipients require an explicit `queue` or `steer` selection. `queue` calls `thread/queue/add` with a stable response ID as `clientUserMessageId`; its receipt stores `queuedSubmissionId`. `steer` calls `turn/steer` with the observed active turn ID. Idle recipients use `start`; an unloaded thread is resumed without configuration overrides and must then be idle. No error falls back to a different delivery mode. Duplicate reconciliation includes the delivery intent, and unknown outcomes are never automatically resent.
+
+Protocol evidence: generated experimental TypeScript from local `codex-cli 0.155.1` on 2026-09-23 (`ThreadQueueAddParams`, `ThreadQueueAddResponse`, `QueuedSubmission`, `TurnSteerParams`, `TurnStartParams`). The official [remote engineering guide](https://developers.openai.com/blog/mastering-codex-remote-for-engineering) describes queue as waiting for the current response and steer as mid-turn guidance. Adapter tests use fixture RPCs only.
+
+The adapter rejects observed status/turn changes before writing input. The current provider schema has no atomic expected-status condition on queue/start or turn/start: an external state change after the final read remains a provider race. Surface cannot claim atomic compare-and-send for those methods. `turn/steer` does have `expectedTurnId`. Legacy submissions without intent may start an idle thread but cannot implicitly steer an active thread. A failed or unknown recorded submission stays reserved for reconciliation.

@@ -69,8 +69,8 @@ export function createInteractions(options: {
         json({ ...record, previewUrl: preview.href }, 201); return true;
       }
     }
-    const scoped = /^\/api\/n\/([a-z0-9-]+)\/([a-z0-9-]+)\/requests\/([a-f0-9-]+)(?:\/(responses|result|close))?$/.exec(url.pathname);
-    const management = /^\/api\/requests\/([a-f0-9-]+)(?:\/(responses|result|close))?$/.exec(url.pathname);
+    const scoped = /^\/api\/n\/([a-z0-9-]+)\/([a-z0-9-]+)\/requests\/([a-f0-9-]+)(?:\/(responses|result|close|recipient))?$/.exec(url.pathname);
+    const management = /^\/api\/requests\/([a-f0-9-]+)(?:\/(responses|result|close|recipient))?$/.exec(url.pathname);
     if (!scoped && !management) return false;
     const id = scoped?.[3] ?? management![1]!, operation = scoped?.[4] ?? management?.[2];
     // The unscoped routes are management-only, even when carrying a request token.
@@ -83,7 +83,8 @@ export function createInteractions(options: {
       if (!scope || scope.namespace !== scoped[1] || scope.name !== scoped[2]) throw new InputError('Interaction belongs to a different mount.', 403);
       mounted(scope);
     }
-    if (req.method === 'GET' && !operation) json(service.view(id));
+    if (req.method === 'GET' && operation === 'recipient') json(await service.recipient(id));
+    else if (req.method === 'GET' && !operation) json(service.view(id));
     else if (req.method === 'POST' && operation === 'responses') {
       if (!record.previewScope) throw new InputError('Missing preview identity.', 409);
       const data = await body();
