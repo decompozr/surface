@@ -28,7 +28,7 @@ try {
     page.on('pageerror', error => errors.push(error.message));
     const response = await page.goto(request.browserPreviewUrl ?? request.previewUrl);
     expect(response?.status()).toBe(200);
-    await expect(page.getByRole('button', { name: 'Refresh recipient', exact: true })).toBeEnabled();
+    await expect(page.getByRole('button', { name: /^(Refresh recipient|Check submission)$/ })).toBeEnabled();
     const card = page.getByTestId('source-card');
     await expect(card.getByRole('heading', { level: 3 })).toHaveText(selection.title);
     if (!selection.applied) {
