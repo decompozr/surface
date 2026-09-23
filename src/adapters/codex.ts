@@ -1,3 +1,4 @@
+import { discoverAgents } from './discovery.ts';
 import { realpathSync } from 'node:fs';
 import { CodexRpc, RpcError, type Rpc } from './rpc.ts';
 
@@ -9,6 +10,7 @@ export class DeliveryError extends Error {
   constructor(message: string, public outcome: 'failed' | 'unknown') { super(message); }
 }
 export interface AgentAdapter {
+  discover?(binding: Binding): ReturnType<typeof discoverAgents>;
   inspect(binding: Binding): Promise<RecipientState>;
   deliver(binding: Binding, message: string, intent?: DeliveryIntent, responseId?: string): Promise<Receipt>;
 }
@@ -26,6 +28,7 @@ export class CodexAdapter implements AgentAdapter {
     }
     return thread;
   }
+  discover(binding: Binding) { return discoverAgents(binding.projectRoot, binding.socketPath, this.connect); }
   async inspect(binding: Binding) {
     const rpc = await this.connect(binding.socketPath);
     try {

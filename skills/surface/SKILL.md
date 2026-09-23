@@ -38,6 +38,8 @@ Check `surface status` and `surface doctor` for the selected installation. Start
      --component routes/+page.svelte --schema-file /absolute/project/artifacts/panel/interaction.schema.json \
      --title "Choose a direction"
    ```
+   Add `--allow-recipient-selection` only when the task authorizes choosing another conversation in this exact worktree. It enables the shared recipient picker and explicit takeover; the default remains bound to the original conversation. The picker creates a new scoped request/token and closes the old request without sending or replaying input. Other worktrees are listed for context only.
+
    The component must be in a ready mount. Supply the custom schema and share the returned private `previewUrl` only with the intended user. Do not commit capabilities or service state. If the session identity is unavailable, obtain it instead of guessing.
 
 ## Build the interaction component

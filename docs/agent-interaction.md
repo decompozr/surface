@@ -118,3 +118,14 @@ The client can read `recipient()` and submit with `{ mode, expectedStatus, expec
 Protocol evidence: generated experimental TypeScript from local `codex-cli 0.155.1` on 2026-09-23 (`ThreadQueueAddParams`, `ThreadQueueAddResponse`, `QueuedSubmission`, `TurnSteerParams`, `TurnStartParams`). The official [remote engineering guide](https://developers.openai.com/blog/mastering-codex-remote-for-engineering) describes queue as waiting for the current response and steer as mid-turn guidance. Adapter tests use fixture RPCs only.
 
 The adapter rejects observed status/turn changes before writing input. The current provider schema has no atomic expected-status condition on queue/start or turn/start: an external state change after the final read remains a provider race. Surface cannot claim atomic compare-and-send for those methods. `turn/steer` does have `expectedTurnId`. Legacy submissions without intent may start an idle thread but cannot implicitly steer an active thread. A failed or unknown recorded submission stays reserved for reconciliation.
+
+
+## Shared recipient lifecycle
+
+Mounted interaction pages show the common recipient panel. It reads current provider state after hydration, offers both active-turn modes, and keeps delivery selection local to the browser tab. The submission transport shares that choice with the page form. Refresh clears the old choice; a state change requires explicit review again. The adapter and service both revalidate before writing input, and the server revalidates the mount after asynchronous inspection.
+
+Recipient discovery and takeover require `recipientSelection: true` at request creation (`surface request --allow-recipient-selection`). A request capability can then read the bounded provider directory for the registered Git project. Only candidates from the exact canonical worktree can be selected. The server supplies the original socket and root; neither is accepted from the browser. Discovery never resumes threads. `notLoaded` is distinct from an unavailable provider.
+
+Takeover uses `POST .../requests/ID/takeover` with `{ threadId }`. The shared service serializes preflight against submit/close/takeover and atomically creates the new binding/request/token while closing the old request. Submitted requests, including unknown outcomes, cannot be taken over. No response or result is copied. A lost takeover response requires inspection of `replacedBy` and administrative reconciliation, not an automatic replay. Default-list visibility does not grant cross-worktree delivery.
+
+Validation: `bun apps/surface/scripts/verify-recipients.ts` uses a real mounted browser page and fixture adapter for queue, independent tabs, explicit recipient change, no replay, stale-state rejection, and desktop/mobile layout. It never sends input to a real conversation.
