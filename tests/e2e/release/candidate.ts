@@ -80,7 +80,7 @@ try {
   async function comments(releaseId: string, scenario: 'idle' | 'active', folder: string) {
     const app = join(installationHome, 'releases', releaseId, 'apps/surface');
     const child = Bun.spawn([process.execPath, resolve('tests/e2e/comments/mounted.e2e.ts')], {
-      env: { ...process.env, COMMENTS_E2E_INSTALLED_HOME: installationHome, COMMENTS_E2E_INSTALLED_PORT: String(port), COMMENTS_E2E_APP_DIR: app, COMMENTS_E2E_ACTIVE: scenario === 'active' ? '1' : '0', COMMENTS_E2E_OUTPUT: join(output, folder) },
+      env: { ...process.env, COMMENTS_E2E_LEGACY_INTERACTIONS: folder === 'previous-idle' ? '1' : '0', COMMENTS_E2E_INSTALLED_HOME: installationHome, COMMENTS_E2E_INSTALLED_PORT: String(port), COMMENTS_E2E_APP_DIR: app, COMMENTS_E2E_ACTIVE: scenario === 'active' ? '1' : '0', COMMENTS_E2E_OUTPUT: join(output, folder) },
       stdout: Bun.file(join(output, folder + '.log')), stderr: 'inherit',
     });
     if (await child.exited) throw new Error('Installed comment flow failed: ' + folder);

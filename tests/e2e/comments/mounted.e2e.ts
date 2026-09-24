@@ -14,6 +14,8 @@ if (installedHome && JSON.parse(readFileSync(join(installedHome, 'e2e-fixture.js
 const state = installedHome ? join(installedHome, 'state') : realpathSync(mkdtempSync(join(tmpdir(), 'surface-loop-')));
 const socket = join(state, 'fixture.sock');
 const http = createServer(); const ws = new WebSocketServer({ server: http });
+const interactionModule = process.env.COMMENTS_E2E_LEGACY_INTERACTIONS === '1' ? 'virtual:surface-client' : 'virtual:surface-interactions';
+const interactionFactory = process.env.COMMENTS_E2E_LEGACY_INTERACTIONS === '1' ? 'createSurfaceClient' : 'createInteractionClient';
 const activeRecipient = process.env.COMMENTS_E2E_ACTIVE !== '0';
 let activeTurn = 'fixture-active-1';
 let deliveries: { method: string; params: any }[] = [];
@@ -34,7 +36,7 @@ mkdirSync(join(project, 'ui/routes/second'), { recursive: true });
 writeFileSync(join(project, 'ui/package.json'), JSON.stringify({ private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
 writeFileSync(join(project, 'ui/artifact.json'), JSON.stringify({ framework: 'svelte', components: 'routes', routes: 'routes' }));
 writeFileSync(join(project, 'ui/routes/+page.svelte'), `<script>
-import { createInteractionClient } from 'virtual:surface-interactions';
+import { ${interactionFactory} as createInteractionClient } from '${interactionModule}';
 let count = $state(0), domainMessage = $state(''), domainReply = $state('');
 async function sendDomain() {
  const client = createInteractionClient();
