@@ -42,3 +42,9 @@ The production application lives under `apps/surface`: `src/` owns CLI, adapters
 Root `src/`, `tests/` and `templates/` have been removed after relocation. Root package scripts forward to app-owned entries. Repository setup/release tools, documentation, examples and unadopted experiments remain outside the application. Experiments may consume application code; the default production import graph must not consume experiment code. `apps/surface/tests/application-boundary.test.ts` checks that boundary from the CLI, host, MCP and comment-delivery entries.
 
 Installed historical releases retain explicit compatibility lookup paths. Legacy host modes in the installation runner remain supported; their named historical paths are compatibility branches, not dependencies of the default Surface host. This source migration does not install or publish an uncommitted release.
+
+### Mounted comment ownership
+
+`CommentWorkspace.svelte` is the shared selection/capture/review shell used by both the historical demo and ordinary mounted component pages. The demo supplies only its study content. The live compiler mounts project content into the shared shell without changing the project's source or domain interaction client.
+
+`comments/mounted.ts`, reached through the existing authenticated interaction router, owns per-parent-request comment bridges at `STATE/mounted-comments/REQUEST_ID/`. Each bridge reuses the original server-owned binding and existing comment delivery implementation, with its own images, request/result store and local callback configuration. Browser endpoints are scoped beneath the parent request; callback publication uses a distinct token. Store files and callback credentials stay outside mounted source. Shutdown closes streams and waits for admitted operations before releasing the host lock. See the [adopted interaction boundary](../requirements/agent-interaction.md#mounted-page-contextual-comments-september-24-adoption).

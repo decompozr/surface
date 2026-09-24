@@ -1,7 +1,7 @@
 import { createServer as createHTTPServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { mkdirSync, readFileSync, writeFileSync, renameSync, realpathSync, existsSync, symlinkSync, unlinkSync, readdirSync, lstatSync, openSync, closeSync, readlinkSync } from 'node:fs';
 import { join, resolve, relative, sep, basename } from 'node:path';
-import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer as createViteServer, type ViteDevServer, type Plugin } from 'vite';
 import { scopedDependencies } from './dependencies.ts';
 import { createInteractions } from './interactions.ts';
@@ -14,12 +14,14 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 
 const compilerVersion = '5.57.1';
 const experimentRoot = import.meta.dir;
+const compilerAssets = realpathSync(join(experimentRoot, 'node_modules'));
 const sharedUI = resolve(experimentRoot, '../src/lib/components');
 const sharedAssets = resolve(sharedUI, '..');
 // Shared chrome consumes the published assets and version metadata, including fonts.
 // Resolve the link once; do not grant access to the design-system source checkout.
 const designSystemAssets = realpathSync(resolve(experimentRoot, '../node_modules/@decompozr/design-system/dist'));
 const designSystemManifest = realpathSync(resolve(experimentRoot, '../node_modules/@decompozr/design-system/package.json'));
+const captureAssets = realpathSync(resolve(experimentRoot, '../node_modules/html-to-image'));
 const browserClient = resolve(experimentRoot, '../src/client');
 type Phase = 'registered' | 'installing' | 'preparing' | 'ready' | 'failed' | 'unmounted';
 type Mount = {
@@ -113,7 +115,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
   const active = (mount: Mount) => mount.status === 'ready' || mount.status === 'preparing';
   const dependencies = scopedDependencies(source => registry.mounts.some(mount => mount.source === source && active(mount)));
   const view = (mount: Mount) => ({ ...mount, previewUrl: mount.status === 'ready' ? `${options.browserOrigin ?? origin}${mount.publicPath ?? `/n/${mount.namespace}/${mount.name}`}/` : undefined });
-  const allowedFile = (path: string) => inside(sharedAssets, path) || inside(designSystemAssets, path) || path === designSystemManifest || inside(browserClient, path) || inside(workspace, path) || inside(join(experimentRoot, 'node_modules'), path) || registry.mounts.some(mount => active(mount) && inside(mount.source, path));
+  const allowedFile = (path: string) => inside(captureAssets, path) || inside(sharedAssets, path) || inside(designSystemAssets, path) || path === designSystemManifest || inside(browserClient, path) || inside(workspace, path) || inside(compilerAssets, path) || registry.mounts.some(mount => active(mount) && inside(mount.source, path));
   function removeLink(mount: Mount) {
     const link = mountPath(mount);
     try { if (!lstatSync(link).isSymbolicLink()) throw new Error('Refusing to remove a non-symlink mount.'); unlinkSync(link); }
@@ -297,7 +299,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       if (id.startsWith(virtualPrefix)) { parseVirtual(id); return '\0' + id; }
     },
     load(id) {
-      if (id === '\0virtual:surface-shell') return `import {mount, flushSync} from 'svelte'; import SurfaceShell from ${JSON.stringify(join(sharedUI, 'SurfaceShell.svelte'))}; import FolderIndex from ${JSON.stringify(join(sharedUI, 'FolderIndex.svelte'))}; const folder=document.querySelector('.surface-folder'); if(folder){const title=folder.querySelector('h1').textContent; const initialEntries=Array.from(folder.querySelectorAll('a')).map((a,i)=>({id:String(i),label:a.textContent,href:a.getAttribute('href')})); folder.replaceChildren(); flushSync(()=>mount(FolderIndex,{target:folder,props:{title,initialEntries}}));} const context=JSON.parse(document.getElementById('artifact-preview-context').textContent); if(context.navigation){flushSync(()=>mount(SurfaceShell,{target:document.getElementById('surface-shell'),props:{navigation:context.navigation,currentPath:location.pathname}})); document.getElementById('surface-page').append(document.getElementById('app'));}`;
+      if (id === '\0virtual:surface-shell') return `if(import.meta.hot) import.meta.hot.on('vite:beforeUpdate',()=>window.dispatchEvent(new Event('surface:source-changed'))); import {mount, flushSync} from 'svelte'; import SurfaceShell from ${JSON.stringify(join(sharedUI, 'SurfaceShell.svelte'))}; import CommentWorkspace from ${JSON.stringify(join(sharedUI, 'CommentWorkspace.svelte'))}; import FolderIndex from ${JSON.stringify(join(sharedUI, 'FolderIndex.svelte'))}; const folder=document.querySelector('.surface-folder'); if(folder){const title=folder.querySelector('h1').textContent; const initialEntries=Array.from(folder.querySelectorAll('a')).map((a,i)=>({id:String(i),label:a.textContent,href:a.getAttribute('href')})); folder.replaceChildren(); flushSync(()=>mount(FolderIndex,{target:folder,props:{title,initialEntries}}));} const context=JSON.parse(document.getElementById('artifact-preview-context').textContent); if(context.navigation){flushSync(()=>mount(context.component ? CommentWorkspace : SurfaceShell,{target:document.getElementById('surface-shell'),props:context.component ? {mounted:true,data:{navigation:context.navigation,...context.comments},currentPath:location.pathname,endpoint:context.commentsEndpoint,storageKey:context.commentsStorageKey,revision:context.revision} : {navigation:context.navigation,currentPath:location.pathname}})); document.getElementById('surface-page').append(document.getElementById('app'));}`;
       if (id === '\0virtual:surface-client') return new Bun.Transpiler({ loader: 'ts' }).transformSync(readFileSync(join(experimentRoot, '../src/client/index.ts'), 'utf8'));
       if (id === '\0virtual:surface-preview') return readFileSync(join(experimentRoot, 'preview-client.js'), 'utf8');
       if (!id.startsWith('\0' + virtualPrefix)) return;
@@ -344,7 +346,11 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       if (component && !record.components.includes(component)) throw new InputError('Unknown component.', 404);
       const requestId = url.searchParams.get('request');
       if (requestId) interactions.checkPage(requestId, record.namespace, record.name, component ?? '');
-      const context = JSON.stringify({ navigation, publicPath: record.publicPath, interactionBase: `/api/n/${record.namespace}/${record.name}/requests/`, namespace: record.namespace, name: record.name, source: record.source, component, props: component ? record.props[component] ?? {} : {} }).replaceAll('<', '\\u003c');
+      const comments = requestId ? interactions.commentContext(requestId) : { recipient: '', label: 'Connect this page to an agent to send comments', live: true };
+      const commentsEndpoint = requestId ? `/api/n/${record.namespace}/${record.name}/requests/${requestId}/comments` : '';
+      const commentsStorageKey = JSON.stringify([record.namespace, record.name, component, requestId]);
+      const revision = component ? createHash('sha256').update(readFileSync(join(record.source, component))).digest('hex') : '';
+      const context = JSON.stringify({ comments, commentsEndpoint, commentsStorageKey, revision, navigation, publicPath: record.publicPath, interactionBase: `/api/n/${record.namespace}/${record.name}/requests/`, namespace: record.namespace, name: record.name, source: record.source, component, props: component ? record.props[component] ?? {} : {} }).replaceAll('<', '\\u003c');
       const client = `<script id="artifact-preview-context" type="application/json">${context}</script><script type="module" src="/@id/__x00__virtual:surface-preview"></script>`;
       const html = component
         ? `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHTML(readable ? route || 'Home' : component)}</title></head><body>${client}<div id="surface-shell"></div><div id="surface-recipient"></div><div id="app"></div><script type="module" src="/@id/__x00__${virtualPrefix}${record.namespace}/${record.name}/${component.split('/').map(encodeURIComponent).join('/')}.entry.js"></script></body></html>`
@@ -377,7 +383,7 @@ export async function startSingleton(options: { stateDir: string; port?: number;
       plugins: [dependencies.plugin, plugin, svelte({ configFile: false, prebundleSvelteLibraries: false })],
       resolve: { preserveSymlinks: false, dedupe: ['svelte'] },
       optimizeDeps: { noDiscovery: true, include: [], exclude: ['svelte'] },
-      server: { allowedHosts: browserURL ? [browserURL.hostname] : [], middlewareMode: true, hmr: { server: http, overlay: false }, fs: { strict: true, allow: [workspace, sharedAssets, designSystemAssets, designSystemManifest, browserClient, join(experimentRoot, 'node_modules')] } },
+      server: { allowedHosts: browserURL ? [browserURL.hostname] : [], middlewareMode: true, hmr: { server: http, overlay: false }, fs: { strict: true, allow: [workspace, captureAssets, sharedAssets, designSystemAssets, designSystemManifest, browserClient, compilerAssets] } },
       logLevel: 'error',
     });
     vite.watcher.on('all', (event, file) => {

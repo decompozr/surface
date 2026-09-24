@@ -19,7 +19,7 @@ From the repository root with the existing dependencies and Playwright Chromium/
 bun run test:e2e:comments
 ```
 
-This invokes `scripts/test-comments-e2e.ts`. It runs the app check, targeted delivery tests and build, copies the build into a fresh immutable test snapshot, and runs the browser matrix plus toolbar scroll regressions against disposable loopback services and an isolated Unix-socket provider fixture. It does not start, stop, rebind or submit to the user's preview. A failing step exits nonzero. Evidence defaults to `.decompozr/surface/comments-e2e/<timestamp>/`; set `COMMENTS_E2E_OUTPUT` to a new directory to choose another destination. Do not reuse an existing snapshot directory.
+This invokes `scripts/test-comments-e2e.ts`. It runs the app check, targeted delivery tests and build, copies the build into a fresh immutable test snapshot, and runs the browser matrix, toolbar scroll regressions, desktop/touch interaction audit and synthetic keyboard viewport checks against disposable loopback services and an isolated Unix-socket provider fixture. It does not start, stop, rebind or submit to the user's preview. A failing step exits nonzero. Evidence defaults to `.decompozr/surface/comments-e2e/<timestamp>/`; set `COMMENTS_E2E_OUTPUT` to a new directory to choose another destination. Do not reuse an existing snapshot directory.
 
 Playwright is the browser automation framework (`@playwright/test`); these verifiers are executable Bun scripts using its browser engines and assertions, not a conventional `playwright test` configuration. If engines are absent, install the pinned project's engines with `bunx playwright install chromium webkit`; do not upgrade dependencies or modify shared registration to make a test pass.
 
@@ -57,3 +57,11 @@ Other focused regressions are `apps/surface/comments/mobile-desktop.e2e.ts`, `vi
 ## Evidence boundaries
 
 The fake provider exercises the real browser, HTTP routes, persistence, adapter protocol, reply CLI and SSE. It cannot establish that a real Codex task consumes a queued input, that the user's phone shares browser storage with a link, or that iOS keyboard/compositor behavior matches emulation. Observe live transport read-only where appropriate; reserve real submissions for the user's explicitly authorized interaction. Do not describe fixture success as live-user acceptance.
+
+## Ordinary mounted pages
+
+The same command also freezes the app host, compiler and comment sources into the test snapshot and runs `apps/surface/comments/mounted.e2e.ts` in idle/active × Chromium/WebKit profiles. It creates a separate temporary Git fixture project (no linked worktree), local service/storage and provider socket. The mounted fixture owns ordinary Svelte content and a domain request schema; it does not import a comment component.
+
+In addition to the existing matrix, verify normal project controls before selection, selection of controls through nested presentation spans, 320px review and 400px-high editing, per-page/request draft separation, request-token isolation, browser-token rejection at the reply endpoint, and preservation of the original domain response/schema. Retain screenshots/traces and the snapshot file-hash manifest. The runtime compiler and the built shell are both part of the tested snapshot; a built experimental page alone cannot verify mounted behavior.
+
+The interaction audit covers roving keyboard focus with ArrowLeft/Right and Home/End, 44px targets, independent navigation/review scrolling, capture/editor bounds and transient feedback that leaves actions reachable. Wait for image layout and measured placement to settle before recording geometry. A status row is reserved space even where its background does not intercept pointer events.

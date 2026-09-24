@@ -14,6 +14,7 @@
   let stale = $state(true);
   let uncertainResponseId = $state('');
   let requestId = '';
+  let refreshGeneration = 0;
   function retainRequest(next: Interaction) {
     request = next;
     if (next.response || next.result) {
@@ -27,15 +28,20 @@
   }
   async function refresh() {
     if (!client) return;
-    busy = true; stale = true; error = ''; client.configureDelivery(); mode = '';
+    const generation = ++refreshGeneration;
+    const currentClient = client;
+    busy = true; stale = true; error = ''; currentClient.configureDelivery(); mode = '';
     // Durable submission history remains inspectable even if the recipient is unavailable.
-    const [history, live] = await Promise.allSettled([client.read(), client.recipient()]);
+    const [history, live] = await Promise.allSettled([currentClient.read(), currentClient.recipient()]);
+    if (generation !== refreshGeneration) return;
     if (history.status === 'fulfilled') retainRequest(history.value);
     else error = `Could not check submission: ${history.reason instanceof Error ? history.reason.message : String(history.reason)}`;
     if (live.status === 'fulfilled' && history.status === 'fulfilled') {
       recipient = live.value; selected = recipient.threadId;
       try {
-        directory = request?.recipientSelection && !request.response && !request.closed ? await client.directory() : undefined;
+        const nextDirectory = request?.recipientSelection && !request.response && !request.closed ? await currentClient.directory() : undefined;
+        if (generation !== refreshGeneration) return;
+        directory = nextDirectory;
         if (directory && !directory.available) throw new Error('Recipient directory is unavailable.');
         stale = false;
         mode = !uncertainResponseId && (recipient.status === 'idle' || recipient.status === 'notLoaded') ? 'start' : '';
@@ -61,8 +67,15 @@
     if (!url.searchParams.has('request')) { busy = false; return; }
     enabled = true; requestId = url.searchParams.get('request')!;
     try { uncertainResponseId = sessionStorage.getItem(`surface:uncertain:${requestId}`) ?? ''; } catch { /* Optional browser storage. */ }
-    try { client = createSurfaceClient(); void refresh(); }
-    catch (cause) { error = String(cause); busy = false; }
+    const connect = () => {
+      ++refreshGeneration;
+      client?.configureDelivery(); client = undefined;
+      stale = true; mode = ''; recipient = undefined; directory = undefined;
+      try { client = createSurfaceClient(); void refresh(); }
+      catch (cause) { error = String(cause); busy = false; }
+    };
+    connect();
+    window.addEventListener('hashchange', connect);
     const update = (event: Event) => {
       const detail = (event as CustomEvent<{ requestId: string; interaction?: Interaction; error?: string; uncertain?: boolean; responseId?: string }>).detail;
       if (detail.requestId !== url.searchParams.get('request')) return;
@@ -74,7 +87,7 @@
       }
     };
     window.addEventListener('surface:submission', update);
-    return () => window.removeEventListener('surface:submission', update);
+    return () => { ++refreshGeneration; window.removeEventListener('hashchange', connect); window.removeEventListener('surface:submission', update); };
   });
 </script>
 

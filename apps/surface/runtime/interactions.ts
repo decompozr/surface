@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join } from 'node:path';
 import { realpathSync as canonical } from 'node:fs';
 import { timingSafeEqual } from 'node:crypto';
+import { mountedComments } from '../comments/mounted.ts';
 import { Service, InputError, text } from '../src/core/service.ts';
 import { Store, type PreviewScope } from '../src/core/store.ts';
 import { CodexAdapter, type AgentAdapter } from '../src/adapters/codex.ts';
@@ -23,6 +24,7 @@ export function createInteractions(options: {
   }
   const store = new Store(join(options.stateDir, 'interactions.json'));
   const service = new Service(store, options.adapter ?? new CodexAdapter(), join(import.meta.dir, 'cli.ts'), options.stateDir);
+  const comments = mountedComments(options.stateDir, service, options.adapter ?? new CodexAdapter());
   function mounted(scope: PreviewScope) {
     const mount = options.find(scope.namespace, scope.name);
     if (mount.status !== 'ready' || mount.source !== scope.source || mount.projectRoot !== scope.projectRoot || !mount.components.includes(scope.component)) {
@@ -42,6 +44,7 @@ export function createInteractions(options: {
   }
   async function route(req: IncomingMessage, res: ServerResponse, url: URL, admin: boolean,
     body: () => Promise<Record<string, unknown>>, json: (value: unknown, status?: number) => void): Promise<boolean> {
+    if (url.pathname.includes('/comments/') && await track(() => comments.route(req, res, url, json, record => { requireOpen(); return mounted(record.previewScope!); }))) return true;
     const requireAdmin = () => { if (!admin) throw new InputError('Management authorization required.', 401); };
     if (url.pathname === '/api/bindings' && req.method === 'POST') {
       requireAdmin(); const data = await body();
@@ -97,11 +100,15 @@ export function createInteractions(options: {
       const data = await body();
       requireOpen();
       mounted(record.previewScope);
-      json(await track(() => service.submit(id, data, () => { requireOpen(); mounted(record.previewScope!); })));
+      json(await track(() => service.submit(id, data, () => { requireOpen(); return mounted(record.previewScope!); })));
     } else if (req.method === 'POST' && operation === 'result') { const data = await body(); requireOpen(); json(service.result(id, data)); }
     else if (req.method === 'POST' && operation === 'close') { requireOpen(); service.close(id); json({ closed: true }); }
     else throw new InputError('Method not allowed.', 405);
     return true;
   }
-  return { route, checkPage, async stop() { closing = true; await Promise.allSettled([...operations]); } };
+  return { route, checkPage, commentContext(id: string) {
+    const record = service.get(id);
+    const binding = store.state.bindings.find(item => item.id === record.bindingId)!;
+    return { recipient: `codex:${binding.threadId}`, label: record.title, live: true };
+  }, async stop() { closing = true; comments.stop(); await Promise.allSettled([...operations]); } };
 }

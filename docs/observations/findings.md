@@ -191,3 +191,9 @@ The user required automatic auditing after UI/UX changes and asked for several a
 ## Comments consolidation and regression ownership
 
 The user confirmed a newer comments consumer already worked in the other task. Reading that task established real received comments and a distinct 8467 preview with Switch-based delivery. The old 8466 active-recipient failure must not be generalized to that implementation. The original worktree now uses that newer committed source as its integration baseline and carries forward only missing toolbar/connection fixes plus [self-owned E2E rules](../evaluations/self-e2e.md). The regression runner follows the newer automatic recovery and compact-event contracts. See the [consolidation record](../experiments/2026-09-23-element-comments.md#consolidation-of-the-two-comments-work-streams).
+
+## September 24 mounted-page comment adoption
+
+The user-authorized same-worktree continuation extracts the validated comment UI for ordinary mounted pages and adds request-scoped comment bridges without changing project domain schemas. Source disposition: [mounted comments](../requirements/agent-interaction.md#mounted-page-contextual-comments-september-24-adoption). Evidence, failures and limits: [dated integration record](../experiments/2026-09-24-mounted-comments.md). Prior experiment and PR53 evidence remain historical; no installed preview or recipient is changed by this work.
+
+PR54 integration follow-up preserved the newer compact strip and reserved status row. The automatic audit reproduced missing strip keyboard navigation and a transient confirmation covering mobile Send. Local fixes and expanded isolated interaction/viewport checks are recorded in the [integration follow-up](../experiments/2026-09-24-mounted-comments.md#integration-follow-up-against-pr54); source disposition is in the typed-comment interaction contract.

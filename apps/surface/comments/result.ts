@@ -31,7 +31,7 @@ if (process.argv[2] === 'result') {
   result = { message: message === '-' ? await Bun.stdin.text() : message, stage: values.ack ? 'acknowledged' : 'completed' };
 }
 const config = JSON.parse(readFileSync(join(stateDir, 'connection.json'), 'utf8'));
-const response = await fetch(`${config.origin}/experiments/comments/result`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${config.callbackToken}` }, body: JSON.stringify({ requestId, result }) });
+const response = await fetch(`${config.origin}${config.resultPath ?? '/experiments/comments/result'}`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${config.callbackToken}` }, body: JSON.stringify({ requestId, result }) });
 if (!response.ok) throw new Error(`Result publication failed (${response.status})`);
 const published = await response.json();
 console.log(JSON.stringify({ requestId: published.requestId, stage: published.result?.stage ?? 'completed' }));

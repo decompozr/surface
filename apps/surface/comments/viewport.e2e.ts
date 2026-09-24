@@ -21,10 +21,10 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]] as con
     await page.goto(origin + '/experiments/comments', { waitUntil: 'networkidle' });
     await expect(page.getByRole('button', { name: 'Leave comment mode', exact: true })).toBeEnabled();
     const workspace = page.locator('#comment-workspace');
-    expect(await workspace.evaluate(el => Math.abs(el.getBoundingClientRect().bottom - innerHeight))).toBeLessThan(1);
+    expect(await workspace.evaluate(el => Math.abs(el.getBoundingClientRect().bottom - (innerHeight - 44)))).toBeLessThan(1);
     const status = page.getByRole('contentinfo', { name: 'Connection status' });
-    expect(await status.evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
-    expect(await page.evaluate(() => !!document.elementFromPoint(12, innerHeight - 12)?.closest('#comment-workspace'))).toBe(true);
+    expect(await status.evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(255, 255, 255)');
+    expect(await page.evaluate(() => !!document.elementFromPoint(12, innerHeight - 12)?.closest('#comment-workspace'))).toBe(false);
     await page.locator('#headline').tap();
     await page.getByRole('button', { name: 'Comment on selected element', exact: true }).click();
     const field = page.locator('#comment');
@@ -33,7 +33,8 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]] as con
     await expect(field).toBeFocused();
     // A focused nested content scroll moves the anchored composer, not just its outline.
     const initial = await editor.boundingBox();
-    await workspace.evaluate(el => { el.scrollTop += 50; });
+    // Move the anchor far enough to leave the bottom clamp above the status row.
+    await workspace.evaluate(el => { el.scrollTop += 120; });
     await expect.poll(async () => (await editor.boundingBox())!.y).toBeLessThan(initial!.y - 10);
     await expect(field).toBeFocused();
     async function resize(x: number, y: number, width: number, height: number, event = 'resize') {
@@ -79,7 +80,7 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]] as con
     await page.screenshot({ path: `${output}/${name}-capture-keyboard.png` });
     await expect(field).toHaveValue('Capture plus keyboard draft');
     expect(errors).toEqual([]);
-    console.log(`${name}: PASS keyboard resize/pan, focused nested scroll, retained draft, transparent overlay status`);
+    console.log(`${name}: PASS keyboard resize/pan, focused nested scroll, retained draft, reserved status row`);
   } catch (error) {
     await page.screenshot({ path: `${output}/${name}-failure.png` }); throw error;
   } finally {
