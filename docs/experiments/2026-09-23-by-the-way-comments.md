@@ -19,3 +19,7 @@ The delivered user-preference data requests acknowledgement and processing order
 - Screenshots and traces are retained under ignored `.decompozr/surface/comments-by-the-way/`. This does not establish real-model acknowledgement timing or physical-phone acceptance. No fixture input reached a real conversation.
 
 Other Surface and design-system author tasks were inspected as idle before edits; their original worktrees and private preview were preserved.
+
+## Superseding user feedback
+
+The user subsequently rejected the phrase as product policy, mandatory acknowledgement/completion pairs and repeated prompt instructions. The [current contract](../requirements/agent-interaction.md#typed-comments-and-concise-replies) uses minimal typed events and skill-owned replies. Earlier observations above remain historical.

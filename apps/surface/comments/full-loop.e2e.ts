@@ -47,23 +47,31 @@ try {
     try {
       await page.goto(origin + '/experiments/comments#connect=' + token);
       await page.locator('#headline').click();
+      await expect(page.getByRole('button', { name: 'Select parent element' })).toBeVisible();
+      await page.screenshot({ path: join(output, name + '-selection.png'), fullPage: true });
       await page.getByRole('button', { name: 'Capture selected element', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Select parent element' })).toHaveCount(0);
       await expect(page.getByAltText('Selected element screenshot preview')).toBeVisible();
       await page.locator('#comment').fill(`E2E ${name}: fixture submission`);
       await page.getByRole('button', { name: 'Add comment to draft' }).click();
       await page.getByRole('button', { name: /Open comments/ }).click();
       const send = page.getByRole('button', { name: 'Send 1 comments together' });
-      await expect(page.getByRole('button', { name: 'Steer', exact: true })).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.getByRole('switch', { name: 'Steer delivery', exact: true })).toBeChecked();
       await expect(send).toBeEnabled();
       // A turn change must retain the unsent draft until an explicit refresh/send.
       activeTurn = `changed-${name}`;
       await send.click();
-      await expect(page.getByRole('region', { name: 'Comment review' }).getByRole('status')).toContainText('Comments remain unsent');
+      await expect(page.getByRole('region', { name: 'Comment review' }).locator('.notice')).toContainText('Comments remain unsent');
       expect(deliveries.length).toBe(count);
       await expect(send).toBeDisabled();
       await page.getByRole('button', { name: 'Refresh agent', exact: true }).click();
       await expect(send).toBeEnabled();
-      if (mobile) await page.getByRole('button', { name: 'Queue', exact: true }).click();
+      if (mobile) {
+        await page.locator('label').filter({ has: page.getByRole('switch', { name: 'Steer delivery', exact: true }) }).tap();
+        await expect(page.getByRole('switch', { name: 'Steer delivery', exact: true })).not.toBeChecked();
+        await expect(page.getByText('Queue', { exact: true })).toBeVisible();
+      }
+      await page.waitForTimeout(200); // Let the shared Switch finish its visual transition.
       await page.screenshot({ path: join(output, `${name}-send-choice.png`), fullPage: true });
       // Drop the POST acknowledgement after server acceptance; inspection is GET-only.
       let posts = 0;
@@ -75,27 +83,39 @@ try {
       await send.click();
       await expect(page.getByText(mobile ? 'Queued' : 'Delivered', { exact: true })).toBeVisible();
       await expect(page.getByText('Agent acknowledged', { exact: true })).toHaveCount(0);
-      await page.getByRole('button', { name: 'Check submission', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Check submission', exact: true })).toHaveCount(0);
+      await expect(page.getByText('Waiting for reply…', { exact: true })).toBeVisible();
       expect(posts).toBe(1);
       expect(deliveries.at(-1)?.method).toBe(mobile ? 'thread/queue/add' : 'turn/steer');
       expect(deliveries.length).toBe(count + 1);
       const stateData = () => JSON.parse(readFileSync(join(state, 'interactions.json'), 'utf8'));
       const request = stateData().requests.at(-1);
       expect(request.response.data.comments[0].text).toContain(name);
+      const event = JSON.parse(deliveries.at(-1)!.params.input[0].text);
+      expect(event.type).toBe('surface.comments'); expect(event.requestId).toBe(request.id);
+      expect(Object.keys(event).sort()).toEqual(['comments', 'replyTo', 'requestId', 'type']);
+      expect(event.comments[0].text).toContain(name);
       const image = request.response.data.comments[0].capture.imagePath;
+      expect(event.comments[0].imagePath).toBe(image);
       expect(readFileSync(image).subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
       // Publish through the actual callback CLI and assert push without refreshing.
       const reply = async (message: string, stage = 'completed', next?: string) => {
-        const command = Bun.spawn(['bun', resolve('apps/surface/comments/result.ts'), 'result', '--state-dir', state, '--request', request.id, '--data', JSON.stringify({ message, stage, ...(next ? { next } : {}) })], { stdout: 'pipe', stderr: 'pipe' });
+        const args = stage === 'acknowledged'
+          ? ['result', '--state-dir', state, '--request', request.id, '--data', JSON.stringify({ message, stage, ...(next ? { next } : {}) })]
+          : [request.id, message, '--state-dir', state];
+        const command = Bun.spawn(['bun', resolve('apps/surface/comments/result.ts'), ...args], { stdout: 'pipe', stderr: 'pipe' });
         expect(await command.exited).toBe(0);
       };
+      if (mobile) {
       await reply(`Received ${name}; continuing the original task.`, 'acknowledged', 'continue-original');
       await expect(page.getByText('Agent acknowledged', { exact: true })).toBeVisible();
       await expect(page.getByText('Continuing the original task', { exact: true })).toBeVisible();
       await expect(page.getByText('Agent replied', { exact: true })).toHaveCount(0);
       await page.screenshot({ path: join(output, `${name}-acknowledged.png`), fullPage: true });
+      }
       await reply(`Fixture reply ${name}`);
       await expect(page.locator('.agent-reply')).toHaveText(`Fixture reply ${name}`);
+      await expect(page.locator('.reply-wait')).toHaveCount(0);
       // Receive a changed durable result while offline, then reconnect without replay.
       await expect(page.getByRole('button', { name: 'Live updates connected', exact: true })).toBeVisible();
       await context.setOffline(true);
@@ -118,7 +138,7 @@ try {
         return !!bounds && bounds.x >= 0 && bounds.x + bounds.width <= page.viewportSize()!.width + 1;
       }).toBe(true);
       await page.screenshot({ path: join(output, `${name}-result.png`), fullPage: true });
-      console.log(`PASS ${name}: stale turn retains draft -> explicit refresh -> steer/queue + lost POST acknowledgement -> read-only inspection -> agent acknowledgement -> result -> offline recovery -> reload; exactly one delivery`);
+      console.log(`PASS ${name}: stale turn retains draft -> explicit refresh -> steer/queue + lost POST acknowledgement -> automatic monitoring -> concise result -> offline recovery -> reload; exactly one delivery`);
     } catch (error) { await page.screenshot({ path: join(output, `${name}-failure.png`), fullPage: true }); throw error; }
     finally { await context.tracing.stop({ path: join(output, `${name}-trace.zip`) }); await browser.close(); }
   }

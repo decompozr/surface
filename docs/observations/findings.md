@@ -173,3 +173,9 @@ Follow-up: user feedback removed the redundant Workspace tag from the header. Th
 ### By-the-way comment preference — September 23
 
 The user selected immediate Steer as conversational input: acknowledge promptly, retain the original task and let the agent state its processing order. Queue remains an alternative. This is adopted for the comment experiment in [agent interaction](../requirements/agent-interaction.md#by-the-way-comments-user-selected-follow-up). Transport delivery, agent acknowledgement and completed output remain separate. Browser/provider-fixture evidence is recorded in [the follow-up](../experiments/2026-09-23-by-the-way-comments.md); model behavior and physical-device acceptance are separate gates.
+
+### September 24: comment feedback correction
+
+The user rejected repeated workflow prose, two-stage replies for trivial tests, the delivery ToggleGroup, selection navigation inside the editor, the upload-like send icon and manual submission checks. Adopted disposition: [typed comment contract](../requirements/agent-interaction.md#typed-comments-and-concise-replies), concise replies in the Surface skill, shared Switch, selection-stage parent control, Enter-style send and SSE-driven waiting state. Historical experiments retain their original evidence; this correction does not claim physical iPhone acceptance.
+
+Validation: TypeScript and Svelte checks passed; 39 focused unit tests passed, including legacy-record reconciliation without replay. The isolated full-loop browser run passed desktop Chromium and iPhone-size WebKit: Switch controls transport, selection parent action exists before editing, lost POST acceptance is recovered by SSE, direct completion and optional legacy acknowledgement work, waiting ends on completion, and reconnect/reload preserve exactly one provider delivery. Surface skill validation passed. These are browser simulations, not a physical-device acceptance claim.

@@ -32,6 +32,21 @@ describe('exact conversation comment delivery using a fake adapter', () => {
     const changed = batch(); changed.comments[0].text = 'Different payload';
     await expect(restored.submit(changed)).rejects.toThrow('already has a submission');
   });
+  test('legacy verbose records reconcile without replay or changing the stored result', async () => {
+    let calls = 0;
+    const { bridge, root, config } = await fixture({ inspect: async () => ({ status: 'idle' }), deliver: async () => { calls++; return { mode: 'start', turnId: 'legacy-turn' }; } });
+    const receipt = await bridge.submit(batch());
+    bridge.service.store.update(state => {
+      const record = state.requests.find(r => r.id === receipt!.requestId)!;
+      Object.assign(record.response!.data, { handling: 'by-the-way', handlingPreference: 'Legacy instructions', imageInstructions: 'Legacy image instructions' });
+      record.result = { message: 'Already done', stage: 'completed' };
+    });
+    const restored = new CommentDelivery(root, config, { inspect: async () => ({ status: 'idle' }), deliver: async () => { throw new Error('Must not replay'); } });
+    expect((await restored.submit(batch()))?.result).toEqual({ message: 'Already done', stage: 'completed' });
+    expect(calls).toBe(1);
+    const changed = batch(); changed.comments[0].text = 'Changed';
+    await expect(restored.submit(changed)).rejects.toThrow('already has a submission');
+  });
   test('preflight shares identical pending batches but rejects changed payloads', async () => {
     let release!: () => void;
     const gate = new Promise<void>(resolve => { release = resolve; });
@@ -63,35 +78,38 @@ describe('exact conversation comment delivery using a fake adapter', () => {
     expect((await bridge.submit(batch()))?.status).toBe('unknown');
     expect(calls).toBe(1);
   });
-  test('by-the-way steers the observed turn and preserves acknowledgement separately from completion', async () => {
+  test('typed comments steer the observed turn without workflow prose', async () => {
     let calls = 0, prompt = '';
     const { bridge } = await fixture({ inspect: async () => ({ status: 'active', turnId: 'active-turn' }), deliver: async (_binding, message, intent, id) => {
       calls++; prompt = message; expect(id).toBe('batch-1');
       expect(intent).toEqual({ mode: 'steer', expectedStatus: 'active', expectedTurnId: 'active-turn' });
       return { mode: 'steer', turnId: 'active-turn' };
     } });
-    const value: Batch = { ...batch(), handling: 'by-the-way', delivery: { mode: 'steer', expectedStatus: 'active', expectedTurnId: 'active-turn' } };
+    const value: Batch = { ...batch(), delivery: { mode: 'steer', expectedStatus: 'active', expectedTurnId: 'active-turn' } };
     const received = await bridge.submit(value);
     expect(received?.deliveryMode).toBe('steer'); expect(received?.result).toBeUndefined();
-    expect(prompt).toContain('Preserve the original objective'); expect(prompt).toContain('stage=acknowledged'); expect(prompt).toContain('--data'); expect(prompt).toContain('--request ' + received!.requestId);
+    const event = JSON.parse(prompt);
+    expect(event).toEqual({ type: 'surface.comments', requestId: received!.requestId, replyTo: bridge.directory,
+      comments: [{ selector: '#heading', text: 'Automated fixture only.' }] });
+    expect(prompt.length).toBeLessThan(400);
     bridge.service.result(received!.requestId, { stage: 'acknowledged', message: 'Received; continuing the original task.', next: 'continue-original' });
     expect(bridge.view(value.id)?.result?.stage).toBe('acknowledged');
     bridge.service.result(received!.requestId, { stage: 'completed', message: 'Done.' });
     expect(bridge.view(value.id)?.result?.stage).toBe('completed');
     await bridge.submit(value); expect(calls).toBe(1);
-    await expect(bridge.submit({ ...value, handling: 'after-current', delivery: { ...value.delivery!, mode: 'queue' } })).rejects.toThrow('already has a submission');
+    await expect(bridge.submit({ ...value, delivery: { ...value.delivery!, mode: 'queue' } })).rejects.toThrow('already has a submission');
   });
-  test('after-current queues and exposes the queue receipt without claiming acknowledgement', async () => {
+  test('explicit intent queues and exposes the queue receipt without claiming acknowledgement', async () => {
     const { bridge } = await fixture({ inspect: async () => ({ status: 'active', turnId: 'active-turn' }), deliver: async (_binding, _message, intent) => {
       expect(intent?.mode).toBe('queue'); return { mode: 'queue', queuedSubmissionId: 'queued-1' };
     } });
-    const result = await bridge.submit({ ...batch(), handling: 'after-current', delivery: { mode: 'queue', expectedStatus: 'active', expectedTurnId: 'active-turn' } });
+    const result = await bridge.submit({ ...batch(), delivery: { mode: 'queue', expectedStatus: 'active', expectedTurnId: 'active-turn' } });
     expect(result?.queuedSubmissionId).toBe('queued-1'); expect(result?.receipt).toBe('queued-1'); expect(result?.result).toBeUndefined();
   });
   test('stale turn rejects before reservation and permits an explicitly refreshed submission', async () => {
     let calls = 0;
     const { bridge } = await fixture({ inspect: async () => ({ status: 'active', turnId: 'new-turn' }), deliver: async () => { calls++; return { mode: 'steer', turnId: 'new-turn' }; } });
-    const value: Batch = { ...batch(), handling: 'by-the-way', delivery: { mode: 'steer', expectedStatus: 'active', expectedTurnId: 'old-turn' } };
+    const value: Batch = { ...batch(), delivery: { mode: 'steer', expectedStatus: 'active', expectedTurnId: 'old-turn' } };
     await expect(bridge.submit(value)).rejects.toThrow('Recipient state changed');
     expect(calls).toBe(0); expect(bridge.service.store.state.requests[0].response).toBeUndefined();
     await bridge.submit({ ...value, delivery: { ...value.delivery!, expectedTurnId: 'new-turn' } });
@@ -104,6 +122,7 @@ describe('exact conversation comment delivery using a fake adapter', () => {
     value.comments[0].capture = { png: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aC1kAAAAASUVORK5CYII=', width: 1, height: 1, capturedAt: value.createdAt, method: 'dom-render', bounds: { x: 0, y: 0, width: 1, height: 1 } };
     await bridge.submit(value);
     expect(prompt).not.toContain('data:image/png'); expect(prompt).toContain('imagePath');
+    const event = JSON.parse(prompt); expect(event.comments[0].imagePath).toBeDefined();
     const record = bridge.service.store.state.requests[0].response!.data;
     const comments = record.comments as { capture: { imagePath: string } }[];
     expect(readFileSync(comments[0].capture.imagePath).subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
