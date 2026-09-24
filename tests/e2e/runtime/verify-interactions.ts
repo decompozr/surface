@@ -4,8 +4,8 @@ import { createServer } from 'node:net';
 import { request as httpRequest } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DeliveryError, type AgentAdapter, type Binding } from '@decompozr/surface-agent-adapters/codex';
-import type { RequestRecord } from '@decompozr/surface-app/server/core/store';
+import { DeliveryError, type AgentAdapter, type Binding } from '@decompozr/surface-app/server/agent-adapters/codex';
+import type { RequestRecord } from '@decompozr/surface-app/server/services/store';
 import { startSingleton } from '@decompozr/surface-app/server/host/runtime';
 
 // No live model calls: this regression proves singleton wiring, not provider behavior.

@@ -1,7 +1,7 @@
 <script lang="ts">
   import '@decompozr/design-system/fonts.css';
   import { onMount, tick, type Snippet } from 'svelte';
-  import type { NavigationNode } from '@decompozr/surface-contracts/navigation';
+  import type { NavigationNode } from '../contracts/navigation.ts';
   import SurfaceLogo from '../comment-experiment/SurfaceLogo.svelte';
   import { AppShell, AppHeader, Brand, Button, Icon, Text, Breadcrumbs } from '@decompozr/design-system';
   import NavigationTree from './NavigationTree.svelte';

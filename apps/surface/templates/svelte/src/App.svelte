@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { createSurfaceClient } from './surface-client';
+  import { createInteractionClient } from './interactions';
   let message = $state('');
   let status = $state('Ready for your input.');
   let result = $state('');
@@ -15,7 +15,7 @@
     const controller = new AbortController();
     void (async () => {
       try {
-        const client = createSurfaceClient();
+        const client = createInteractionClient();
         const current = await client.read();
         if (controller.signal.aborted) return;
         if (current.response) {
@@ -33,7 +33,7 @@
     event.preventDefault();
     busy = true;
     try {
-      const client = createSurfaceClient();
+      const client = createInteractionClient();
       const existing = await client.read();
       if (existing.response) {
         submitted = true;

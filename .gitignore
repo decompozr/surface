@@ -17,9 +17,7 @@ coverage/
 *.log
 
 # Local Surface sessions and browser verification
-.decompozr/surface/
-# Legacy local state stays private until explicitly migrated.
-.decompozr/artifact/
+.decompozr/
 # Keep private state from earlier checkouts ignored.
 .artifact/
 playwright-report/

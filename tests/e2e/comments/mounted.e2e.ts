@@ -34,10 +34,10 @@ mkdirSync(join(project, 'ui/routes/second'), { recursive: true });
 writeFileSync(join(project, 'ui/package.json'), JSON.stringify({ private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
 writeFileSync(join(project, 'ui/artifact.json'), JSON.stringify({ framework: 'svelte', components: 'routes', routes: 'routes' }));
 writeFileSync(join(project, 'ui/routes/+page.svelte'), `<script>
-import { createSurfaceClient } from 'virtual:surface-client';
+import { createInteractionClient } from 'virtual:surface-interactions';
 let count = $state(0), domainMessage = $state(''), domainReply = $state('');
 async function sendDomain() {
- const client = createSurfaceClient();
+ const client = createInteractionClient();
  const result = await client.submit({ domainChoice: 'keep' }, crypto.randomUUID());
  domainMessage = result.response?.status;
  domainReply = (await client.waitForResult()).message;

@@ -20,7 +20,6 @@
   },
   "dependencies": {
     "@decompozr/surface-app": "workspace:*",
-    "@decompozr/surface-client": "workspace:*",
     "@decompozr/surface-installer": "workspace:*"
   }
 }

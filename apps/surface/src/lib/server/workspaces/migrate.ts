@@ -2,7 +2,7 @@ import { existsSync, lstatSync, readFileSync, writeFileSync, mkdirSync, renameSy
 import { join, resolve, relative, isAbsolute, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { inspectGit, type Workspace } from './identity.ts';
-import { readProjectManifest } from '../core/projects.ts';
+import { readProjectManifest } from '../services/projects.ts';
 
 const digest=(text:string)=>createHash('sha256').update(text).digest('hex');
 const names=['project-bindings.json','registry.json','interactions.json','workspaces.json','workspace-host.json'];

@@ -10,13 +10,9 @@
         "ws": "8.21.3",
       },
       "devDependencies": {
-        "@decompozr/surface-agent-adapters": "workspace:*",
         "@decompozr/surface-app": "workspace:*",
         "@decompozr/surface-cli": "workspace:*",
-        "@decompozr/surface-client": "workspace:*",
-        "@decompozr/surface-contracts": "workspace:*",
         "@decompozr/surface-installer": "workspace:*",
-        "@decompozr/surface-page-runtime": "workspace:*",
         "@modelcontextprotocol/client": "2.0.0",
         "@playwright/test": "1.63.0",
         "@types/bun": "1.4.2",
@@ -32,7 +28,6 @@
       },
       "dependencies": {
         "@decompozr/surface-app": "workspace:*",
-        "@decompozr/surface-client": "workspace:*",
         "@decompozr/surface-installer": "workspace:*",
       },
       "devDependencies": {
@@ -57,10 +52,6 @@
       "dependencies": {
         "@clack/prompts": "1.8.1",
         "@decompozr/design-system": "link:@decompozr/design-system",
-        "@decompozr/surface-agent-adapters": "workspace:*",
-        "@decompozr/surface-client": "workspace:*",
-        "@decompozr/surface-contracts": "workspace:*",
-        "@decompozr/surface-page-runtime": "workspace:*",
         "@modelcontextprotocol/server": "2.0.0",
         "@sveltejs/adapter-node": "5.5.7",
         "@sveltejs/kit": "2.70.3",
@@ -82,49 +73,6 @@
         "typescript": "6.0.3",
       },
     },
-    "packages/agent-adapters": {
-      "name": "@decompozr/surface-agent-adapters",
-      "version": "0.1.0",
-      "dependencies": {
-        "ws": "8.21.3",
-      },
-      "devDependencies": {
-        "@types/bun": "1.4.2",
-        "typescript": "6.0.3",
-      },
-    },
-    "packages/client": {
-      "name": "@decompozr/surface-client",
-      "version": "0.1.0",
-      "dependencies": {
-        "@decompozr/surface-contracts": "workspace:*",
-      },
-      "devDependencies": {
-        "@types/bun": "1.4.2",
-        "typescript": "6.0.3",
-      },
-    },
-    "packages/contracts": {
-      "name": "@decompozr/surface-contracts",
-      "version": "0.1.0",
-      "devDependencies": {
-        "@types/bun": "1.4.2",
-        "typescript": "6.0.3",
-      },
-    },
-    "packages/page-runtime": {
-      "name": "@decompozr/surface-page-runtime",
-      "dependencies": {
-        "@decompozr/surface-contracts": "workspace:*",
-        "@sveltejs/vite-plugin-svelte": "7.3.0",
-        "svelte": "5.57.1",
-        "vite": "8.3.0",
-      },
-      "devDependencies": {
-        "@types/bun": "1.4.2",
-        "typescript": "6.0.3",
-      },
-    },
   },
   "packages": {
     "@clack/core": ["@clack/core@1.5.1", "", { "dependencies": { "fast-wrap-ansi": "^0.2.0", "sisteransi": "^1.0.5" } }, "sha512-iHTrHA8MtVuLl2TfZySmcKv1qO2PoyC9Z7pfSDozEuV5vtY3/wcOPKJXlqJ5Oq2Cx5DDGQGAMVx6HZfRRoVEbQ=="],
@@ -133,19 +81,11 @@
 
     "@decompozr/design-system": ["@decompozr/design-system@link:@decompozr/design-system", {}],
 
-    "@decompozr/surface-agent-adapters": ["@decompozr/surface-agent-adapters@workspace:packages/agent-adapters"],
-
     "@decompozr/surface-app": ["@decompozr/surface-app@workspace:apps/surface"],
 
     "@decompozr/surface-cli": ["@decompozr/surface-cli@workspace:apps/cli"],
 
-    "@decompozr/surface-client": ["@decompozr/surface-client@workspace:packages/client"],
-
-    "@decompozr/surface-contracts": ["@decompozr/surface-contracts@workspace:packages/contracts"],
-
     "@decompozr/surface-installer": ["@decompozr/surface-installer@workspace:apps/installer"],
-
-    "@decompozr/surface-page-runtime": ["@decompozr/surface-page-runtime@workspace:packages/page-runtime"],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 

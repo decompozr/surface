@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { type ProjectOperationInput, type ProjectOutcome } from '@decompozr/surface-contracts/projects';
-export { projectOperations, type ProjectOperation } from '@decompozr/surface-contracts/projects';
+import { type ProjectOperationInput, type ProjectOutcome } from '../../contracts/projects.ts';
+export { projectOperations, type ProjectOperation } from '../../contracts/projects.ts';
 export type ProjectCommand = ProjectOperationInput;
 export type ManagementOutcome = Omit<ProjectOutcome, 'status'> & {
   status: ProjectOutcome['status'] | 'unknown' | 'unavailable' | 'invalid_connection';
@@ -11,7 +11,7 @@ export type ManagementOutcome = Omit<ProjectOutcome, 'status'> & {
 const failure = (status: ManagementOutcome['status'], code: string, message: string): ManagementOutcome => ({ version: 1, ok: false, status, error: { code, message } });
 
 /** One request to the existing local host. Never starts a host or retries a mutation. */
-export async function projectOperation(stateDir: string, command: ProjectCommand): Promise<ManagementOutcome> {
+export const projectOperation = async (stateDir: string, command: ProjectCommand): Promise<ManagementOutcome> => {
   let connection: unknown;
   try { connection = JSON.parse(readFileSync(join(stateDir, 'connection.json'), 'utf8')); }
   catch { return failure('unavailable', 'connection_unavailable', 'Cannot read the Surface connection. Start the server with this state directory.'); }
@@ -38,7 +38,7 @@ export async function projectOperation(stateDir: string, command: ProjectCommand
       : failure('unknown', 'outcome_unknown', 'Operation outcome is unknown. Inspect existing state before retrying; the client did not retry.');
   }
 }
-function isOutcome(value: unknown): value is ManagementOutcome {
+const isOutcome = (value: unknown): value is ManagementOutcome => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const outcome = value as ManagementOutcome;
   if (outcome.version !== 1 || typeof outcome.ok !== 'boolean') return false;

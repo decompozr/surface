@@ -31,7 +31,7 @@ Check `surface status` and `surface doctor` for the selected installation. Start
 
 ## Create, mount and bind
 
-1. Route-based pages are the only supported authoring workflow for new or updated previews: read [project pages and readable URLs](references/pages.md), create `routes/+page.svelte` and optional nested pages, and declare `routes` in the source `artifact.json`. Read the [source/dependency contract](../../packages/page-runtime/README.md) for pinned Svelte, discovery, props and optional source-scoped prebundling. Preserve existing framework/package-manager choices and report unsupported cases rather than converting a project implicitly.
+1. Route-based pages are the only supported authoring workflow for new or updated previews: read [project pages and readable URLs](references/pages.md), create `routes/+page.svelte` and optional nested pages, and declare `routes` in the source `artifact.json`. Read the [source/dependency contract](../../docs/experiments/legacy-page-runtime.md) for pinned Svelte, discovery, props and optional source-scoped prebundling. Preserve existing framework/package-manager choices and report unsupported cases rather than converting a project implicitly.
 2. Use the project commands from the worktree. They also infer the containing Git root from a subdirectory. Initialize only when the versioned manifest is absent; registration gives a linked worktree its own namespace without copying service state:
    ```sh
    surface project init --name "Project name"
@@ -54,7 +54,7 @@ Check `surface status` and `surface doctor` for the selected installation. Start
 
 ## Build the interaction component
 
-Import `createSurfaceClient` from `virtual:surface-client`. It exposes `read()`, `recipient()`, `submit(data, responseId, delivery)`, and `waitForResult()`. Existing components may still use the legacy `createArtifactClient` export and `virtual:artifact-client` / `virtual:artifact-preview` aliases; use Surface names for new source. Copy the guide's linked `preview.d.ts` into the mounted project's included declarations for editor/type-check support.
+Import `createInteractionClient` from `virtual:surface-interactions`. It exposes `read()`, `recipient()`, `submit(data, responseId, delivery)`, and `waitForResult()`. Existing components may still use the legacy `createArtifactClient` export and `virtual:artifact-client` / `virtual:artifact-preview` aliases; use Surface names for new source. Copy the guide's linked `preview.d.ts` into the mounted project's included declarations for editor/type-check support.
 
 Read `recipient()` before submission. For an active recipient, explicitly offer queue (after the current turn) and steer (during the current turn); pass `{ mode, expectedStatus, expectedTurnId }` from that observation. For idle or notLoaded recipients, use `start`. Refresh and reconfirm after a state-change rejection. Queue receipts identify a queued submission, not a completed turn.
 

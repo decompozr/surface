@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer, type Server } from 'node:net';
 import { CommentDelivery, type Connection } from '../../src/lib/server/comments/delivery.ts';
-import { DeliveryError, type AgentAdapter } from '@decompozr/surface-agent-adapters/codex';
+import { DeliveryError, type AgentAdapter } from '../../src/lib/server/agent-adapters/codex.ts';
 import type { Batch } from '../../src/lib/comment-experiment/model.ts';
 const cleanup: (() => void)[] = [];
 afterEach(() => { for (const dispose of cleanup.splice(0)) dispose(); });

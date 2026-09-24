@@ -24,7 +24,7 @@ declare module 'virtual:surface-client' {
     result?: Record<string, unknown>;
   };
   /** Reads the request capability and mount scope from the returned interaction preview URL. */
-  export function createSurfaceClient(options?: { api: string; requestId: string; token: string }): {
+  export const createInteractionClient: (options?: { api: string; requestId: string; token: string }) => {
     read(): Promise<Interaction>;
     recipient(): Promise<Recipient>;
     configureDelivery(intent?: DeliveryIntent): void;
@@ -33,9 +33,12 @@ declare module 'virtual:surface-client' {
     submit(data: Record<string, unknown>, responseId: string, delivery?: DeliveryIntent): Promise<Interaction>;
     waitForResult(options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<Record<string, unknown>>;
   };
-  export const createArtifactClient: typeof createSurfaceClient;
+  export const createSurfaceClient: typeof createInteractionClient;
+  export const createArtifactClient: typeof createInteractionClient;
 }
 
 /** Compatibility declarations for sources mounted before the Surface rename. */
 declare module 'virtual:artifact-preview' { export * from 'virtual:surface-preview'; }
 declare module 'virtual:artifact-client' { export * from 'virtual:surface-client'; }
+
+declare module 'virtual:surface-interactions' { export * from 'virtual:surface-client'; }

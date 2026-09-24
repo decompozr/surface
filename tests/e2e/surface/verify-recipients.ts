@@ -3,7 +3,7 @@ import { chromium, expect } from '@playwright/test';
 import { createServer } from 'node:net';
 import { readFileSync, rmSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import type { AgentAdapter, DeliveryIntent } from '@decompozr/surface-agent-adapters/codex';
+import type { AgentAdapter, DeliveryIntent } from '@decompozr/surface-app/server/agent-adapters/codex';
 import { startSurfaceApp } from '@decompozr/surface-app/server/host/host';
 import { workspaceFixture } from './workspace-fixture.ts';
 const f = await workspaceFixture();

@@ -2,8 +2,8 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdtempSync, mkdirSync, writeFileSync, realpathSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Store } from '../src/lib/server/core/store.ts';
-import { Runtimes } from '../src/lib/server/core/runtime.ts';
+import { Store } from '../src/lib/server/services/store.ts';
+import { Runtimes } from '../src/lib/server/services/runtime.ts';
 import { startServer } from '../src/lib/server/http/index.ts';
 import { scaffold } from '@decompozr/surface-cli/scaffold';
 const cleanup: (() => unknown | Promise<unknown>)[] = [];
@@ -80,7 +80,7 @@ test('scaffolding preserves nonempty projects and copies a standalone browser cl
   const directory = join(root, 'new-page');
   expect(scaffold(process.cwd(), directory, 'svelte').installed).toBe(false);
   expect(() => scaffold(process.cwd(), directory, 'svelte')).toThrow('overwrite');
-  expect(Bun.file(join(directory, 'src/surface-client.ts')).size).toBeGreaterThan(100);
+  expect(Bun.file(join(directory, 'src/interactions.ts')).size).toBeGreaterThan(100);
 });
 
 test('killing the manager closes its preview process group', async () => {

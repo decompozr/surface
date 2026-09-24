@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { projectOperation, projectOperations, type ProjectCommand } from '@decompozr/surface-client/management';
+import { projectOperation, projectOperations, type ProjectCommand } from './surface-api.ts';
 
 export async function projectMain(args: string[], defaultStateDir: string): Promise<void> {
   const { values, positionals } = parseArgs({ args, allowPositionals: true, options: {

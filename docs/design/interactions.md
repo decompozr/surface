@@ -1,6 +1,6 @@
 # Interaction, drafts and recovery
 
-Source-inspected at `7fceefc`: [recipient panel](../../apps/surface/src/lib/components/RecipientPanel.svelte), [browser client](../../packages/client/src/index.ts), [service](../../apps/surface/src/lib/server/core/service.ts), [adapter](../../packages/agent-adapters/src/codex.ts). [Agent interaction](../requirements/agent-interaction.md) is the protocol contract. Tables distinguish source behavior from proposed presentation; they do not report a live run.
+Source-inspected at `7fceefc`: [recipient panel](../../apps/surface/src/lib/components/RecipientPanel.svelte), [browser client](../../apps/surface/src/lib/interactions/index.ts), [service](../../apps/surface/src/lib/server/services/service.ts), [adapter](../../apps/surface/src/lib/server/agent-adapters/codex.ts). [Agent interaction](../requirements/agent-interaction.md) is the protocol contract. Tables distinguish source behavior from proposed presentation; they do not report a live run.
 
 ## D-03: recipient choice and submission
 

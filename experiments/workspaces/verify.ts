@@ -6,7 +6,7 @@ import { createServer } from 'node:net';
 import { fixture, git, command } from './fixture.ts';
 import { startWorkspaceHost } from './host.ts';
 import { workspaceDirectory, type Workspace } from './identity.ts';
-import type { AgentAdapter } from '@decompozr/surface-agent-adapters/codex';
+import type { AgentAdapter } from '@decompozr/surface-app/server/agent-adapters/codex';
 
 function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
 const publicCli = process.argv.includes('--public-cli');

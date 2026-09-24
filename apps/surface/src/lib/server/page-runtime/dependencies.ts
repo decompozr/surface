@@ -3,7 +3,7 @@ import { builtinModules } from 'node:module';
 import { readFileSync, existsSync, realpathSync } from 'node:fs';
 import { join, relative, sep, isAbsolute } from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
-import { InputError } from '@decompozr/surface-contracts/errors';
+import { InputError } from '../../contracts/errors.ts';
 
 const prefix = 'virtual:artifact-dependency/';
 const builtins = new Set(builtinModules.map(name => name.replace(/^node:/, '')));

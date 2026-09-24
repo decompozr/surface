@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, renameSync, realpathSync, lstatSync, mkdirSync, openSync, closeSync, unlinkSync } from 'node:fs';
 import { join, resolve, relative, sep, isAbsolute, basename, normalize } from 'node:path';
-import type { ProjectArtifact, ProjectManifest, ProjectMount, ProjectOperation, ProjectOperationInput, ProjectOutcome, ProjectRuntime, ProjectScope, ProjectIdentityResolver } from '@decompozr/surface-contracts/projects';
+import type { ProjectArtifact, ProjectManifest, ProjectMount, ProjectOperation, ProjectOperationInput, ProjectOutcome, ProjectRuntime, ProjectScope, ProjectIdentityResolver } from '../../contracts/projects.ts';
 
 export const projectManifestName = 'artifact.project.json';
 type Ledger = { version: 1; projects: { projectId: string; root: string }[] };

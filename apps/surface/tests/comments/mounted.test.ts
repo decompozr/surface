@@ -4,10 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { Service, InputError } from '../../src/lib/server/core/service.ts';
-import { Store } from '../../src/lib/server/core/store.ts';
+import { Service, InputError } from '../../src/lib/server/services/service.ts';
+import { Store } from '../../src/lib/server/services/store.ts';
 import { mountedComments } from '../../src/lib/server/comments/mounted.ts';
-import type { AgentAdapter } from '@decompozr/surface-agent-adapters/codex';
+import type { AgentAdapter } from '../../src/lib/server/agent-adapters/codex.ts';
 
 for (const change of ['close', 'unmount'] as const) test(`mounted comments revalidate ${change} after asynchronous preflight`, async () => {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'surface-mounted-guard-')));

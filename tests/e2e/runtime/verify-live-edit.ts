@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 import { existsSync, mkdirSync, writeFileSync, readFileSync, realpathSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { startSingleton } from '@decompozr/surface-app/server/host/runtime';
-import { CodexRpc } from '@decompozr/surface-agent-adapters/rpc';
+import { CodexRpc } from '@decompozr/surface-app/server/agent-adapters/rpc';
 const { values } = parseArgs({ options: { live: { type: 'boolean' }, project: { type: 'string' }, thread: { type: 'string' }, socket: { type: 'string' } } });
 if (!values.live || !values.project || !values.thread || !values.socket) throw new Error('Explicit live gate: --live --project CANONICAL_PROJECT --thread EXISTING_THREAD --socket EXISTING_SOCKET. This sends one authorized source-edit request to that exact session.');
 const project = realpathSync(resolve(values.project)), threadId = values.thread, socketPath = resolve(values.socket);

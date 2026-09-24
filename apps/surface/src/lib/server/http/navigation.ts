@@ -31,5 +31,5 @@ export function navigationTree(mounts: NavigationMount[], directory: Directory):
   }
   return result;
 }
-import type { NavigationNode, NavigationMount } from '@decompozr/surface-contracts/navigation';
-export type { NavigationNode, NavigationMount } from '@decompozr/surface-contracts/navigation';
+import type { NavigationNode, NavigationMount } from '../../contracts/navigation.ts';
+export type { NavigationNode, NavigationMount } from '../../contracts/navigation.ts';

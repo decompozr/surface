@@ -1,5 +1,5 @@
 import {Service,InputError} from './service.ts';
-import type {AgentAdapter} from '@decompozr/surface-agent-adapters/codex';
+import type {AgentAdapter} from '../agent-adapters/codex.ts';
 /** Isolated experiment wrapper: production endpoints are unchanged. */
 export class RecipientWorkflow {
  private pending=new Set<string>();

@@ -4,9 +4,9 @@ import { join } from 'node:path';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { CommentDelivery, UnsubmittedCommentError, type Connection } from './delivery.ts';
 import { validateBatch } from '../../comment-experiment/validate.ts';
-import { InputError, type Service } from '../core/service.ts';
-import type { RequestRecord } from '../core/store.ts';
-import type { AgentAdapter } from '@decompozr/surface-agent-adapters/codex';
+import { InputError, type Service } from '../services/service.ts';
+import type { RequestRecord } from '../services/store.ts';
+import type { AgentAdapter } from '../agent-adapters/codex.ts';
 
 /** One comment conversation per existing page request. Never changes its domain response/schema. */
 export function mountedComments(stateDir: string, service: Service, adapter: AgentAdapter) {

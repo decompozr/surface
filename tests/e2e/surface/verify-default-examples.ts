@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { cpSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { projectOperation } from '@decompozr/surface-client/management';
+import { projectOperation } from '@decompozr/surface-app/server/http/project-client';
 import { startProjectApp } from '@decompozr/surface-app/server/host/project-app';
 import { workspaceFixture } from './workspace-fixture.ts';
 const f = await workspaceFixture();

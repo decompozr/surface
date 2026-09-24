@@ -4,14 +4,14 @@ import { join, resolve, relative, sep, basename, dirname } from 'node:path';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer as createViteServer, type ViteDevServer, type Plugin } from 'vite';
 import { scopedDependencies } from './dependencies.ts';
-import type { NavigationNode, NavigationMount } from '@decompozr/surface-contracts/navigation';
-import { InputError } from '@decompozr/surface-contracts/errors';
+import type { NavigationNode, NavigationMount } from '../../contracts/navigation.ts';
+import { InputError } from '../../contracts/errors.ts';
 import type { RuntimeIntegration, InteractionPort } from './ports.ts';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 
 const compilerVersion = '5.57.1';
 const experimentRoot = import.meta.dir;
-const compilerAssets = realpathSync(resolve(import.meta.dir, '../node_modules'));
+const compilerAssets = realpathSync(resolve(import.meta.dir, '../../../../node_modules'));
 // Workspace linkers place dependencies outside this package's node_modules.
 // Allow only the actual browser runtime packages, not the entire workspace store.
 function packageRoot(specifier: string, from = import.meta.dir) {
@@ -296,7 +296,7 @@ export async function startPageRuntime(options: { integration: RuntimeIntegratio
     name: 'surface-singleton-components',
     resolveId(id) {
       // Both names resolve to one module identity so compatibility imports share preview state.
-      if (id === 'virtual:artifact-client' || id === 'virtual:surface-client') return join(browserClient, 'index.ts');
+      if (id === 'virtual:surface-interactions' || id === 'virtual:artifact-client' || id === 'virtual:surface-client') return join(browserClient, 'index.ts');
       if (id === 'virtual:surface-shell') return '\0virtual:surface-shell';
       if (id === 'virtual:artifact-preview') return '\0virtual:surface-preview';
       if (id === 'virtual:surface-client' || id === 'virtual:surface-preview') return '\0' + id;
@@ -416,7 +416,7 @@ export async function startPageRuntime(options: { integration: RuntimeIntegratio
     writeFileSync(join(stateDir, 'connection.json'), JSON.stringify({ origin, token, pid: process.pid, instanceId }), { mode: 0o600 });
     // Restore intended mounts using this same Vite instance, not saved URLs or spawned dev servers.
     for (const record of registry.mounts.filter(record => record.status !== 'unmounted')) await prepare(record);
-    return { origin, instanceId, pid: process.pid, vite, stop() {
+    return { origin, instanceId, pid: process.pid, vite, projectOperation: projectRoutes.execute, stop() {
       if (stopTask) return stopTask;
       closing = true;
       stopTask = (async () => {

@@ -26,7 +26,7 @@ if (prepared && bundle) {
 await run(['bun', 'run', '--cwd', 'apps/surface', 'check']);
 await run(['bun', 'run', '--cwd', 'apps/surface', 'build']);
 const releaseRoot = join(output, 'release'); mkdirSync(releaseRoot);
-for (const directory of ['apps', 'packages', 'node_modules']) cpSync(resolve(directory), join(releaseRoot, directory), { recursive: true, verbatimSymlinks: true, filter: path => !path.split('/').some(part => ['.vite'].includes(part)) });
+for (const directory of ['apps', 'node_modules']) cpSync(resolve(directory), join(releaseRoot, directory), { recursive: true, verbatimSymlinks: true, filter: path => !path.split('/').some(part => ['.vite'].includes(part)) });
 cpSync(resolve('package.json'), join(releaseRoot, 'package.json'));
 materializeDesignSystem(root, releaseRoot);
 snapshot = join(releaseRoot, 'apps/surface'); appSnapshot = snapshot;

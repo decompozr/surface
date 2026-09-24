@@ -1,11 +1,11 @@
 import { mkdirSync, openSync, closeSync, writeFileSync, unlinkSync } from 'node:fs';
 import { resolve, join, sep } from 'node:path';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
-import type { AgentAdapter } from '@decompozr/surface-agent-adapters/codex';
-import { CodexAdapter } from '@decompozr/surface-agent-adapters/codex';
-import { Runtimes } from '../core/runtime.ts';
-import { Store } from '../core/store.ts';
-import { Service, InputError, object } from '../core/service.ts';
+import type { AgentAdapter } from '../agent-adapters/codex.ts';
+import { CodexAdapter } from '../agent-adapters/codex.ts';
+import { Runtimes } from '../services/runtime.ts';
+import { Store } from '../services/store.ts';
+import { Service, InputError, object } from '../services/service.ts';
 
 function equal(left: string, right: string) {
   const a = Buffer.from(left), b = Buffer.from(right);

@@ -2,9 +2,9 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Store } from '../src/lib/server/core/store.ts';
-import { Service } from '../src/lib/server/core/service.ts';
-import { DeliveryError, type AgentAdapter, type Binding } from '@decompozr/surface-agent-adapters/codex';
+import { Store } from '../src/lib/server/services/store.ts';
+import { Service } from '../src/lib/server/services/service.ts';
+import { DeliveryError, type AgentAdapter, type Binding } from '../src/lib/server/agent-adapters/codex.ts';
 
 const directories: string[] = [];
 afterEach(() => { for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true }); });

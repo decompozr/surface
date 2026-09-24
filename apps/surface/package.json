@@ -23,11 +23,7 @@
     "ajv": "8.20.0",
     "ws": "8.21.3",
     "@modelcontextprotocol/server": "2.0.0",
-    "zod": "4.6.5",
-    "@decompozr/surface-agent-adapters": "workspace:*",
-    "@decompozr/surface-client": "workspace:*",
-    "@decompozr/surface-contracts": "workspace:*",
-    "@decompozr/surface-page-runtime": "workspace:*"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "typescript": "6.0.3",
@@ -40,6 +36,9 @@
   "version": "0.0.0",
   "packageManager": "bun@1.4.0",
   "exports": {
-    "./server/*": "./src/lib/server/*.ts"
+    "./server/*": "./src/lib/server/*.ts",
+    "./contracts/*": "./src/lib/contracts/*.ts",
+    "./interactions": "./src/lib/interactions/index.ts",
+    "./interactions/*": "./src/lib/interactions/*.ts"
   }
 }

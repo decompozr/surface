@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync, renameSync, mkdirSync, realpathSync, lstatSync, openSync, closeSync, unlinkSync } from 'node:fs';
 import { join, resolve, relative, isAbsolute, dirname } from 'node:path';
-import type { ProjectIdentityResolver, ProjectManifest } from '@decompozr/surface-contracts/projects';
+import type { ProjectIdentityResolver, ProjectManifest } from '../../contracts/projects.ts';
 
 export type Workspace = { id: string; root: string; gitDir: string; namespace: string; status: 'active' | 'retiring' | 'retired'; branch: string; dataDirectory: string; storage?: 'adopted' };
 type Project = { id: string; commonDir: string; workspaces: Workspace[] };
@@ -13,8 +13,8 @@ function canonicalCandidate(path: string) {
   if (realpathSync(ancestor) !== ancestor) throw new Error('Data root must use a canonical path without symlink indirection.');
   return path;
 }
-import { inspectGit } from '@decompozr/surface-agent-adapters/git';
-export { inspectGit } from '@decompozr/surface-agent-adapters/git';
+import { inspectGit } from '../agent-adapters/git.ts';
+export { inspectGit } from '../agent-adapters/git.ts';
 export function workspaceDirectory(stateDir: string, suppliedDataRoot: string) {
   stateDir = resolve(stateDir); const dataRoot = canonicalCandidate(suppliedDataRoot), file = join(stateDir, 'workspaces.json');
   function read(): Ledger {

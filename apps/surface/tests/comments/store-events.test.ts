@@ -2,7 +2,7 @@ import { test, expect } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Store } from '../../src/lib/server/core/store.ts';
+import { Store } from '../../src/lib/server/services/store.ts';
 
 test('durable store changes notify subscribers and disconnect removes them', () => {
   const directory = mkdtempSync(join(tmpdir(), 'surface-events-'));

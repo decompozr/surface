@@ -1,18 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { projectOperation } from '@decompozr/surface-client/management';
-import type { ProjectManifest, ProjectMount } from '@decompozr/surface-contracts/projects';
+import type { ProjectManifest, ProjectMount } from '../../contracts/projects.ts';
 import { startSurfaceApp } from './host.ts';
 
 /** Development entry point: register this checkout and mount its versioned examples. */
-export async function startProjectApp(options: Parameters<typeof startSurfaceApp>[0] & { projectRoot: string }) {
+export const startProjectApp = async (options: Parameters<typeof startSurfaceApp>[0] & { projectRoot: string }) => {
   const manifest = JSON.parse(readFileSync(join(options.projectRoot, 'artifact.project.json'), 'utf8')) as ProjectManifest;
   const example = manifest.artifacts.filter(item => item.source === 'examples' && !item.archived);
   if (example.length !== 1) throw new Error('Expected one active project artifact with source examples.');
   const app = await startSurfaceApp(options);
   try {
     for (const operation of ['register', 'mount'] as const) {
-      const outcome = await projectOperation(options.stateDir, {
+      const outcome = await app.projectOperation({
         operation, projectRoot: options.projectRoot,
         ...(operation === 'mount' ? { artifactId: example[0]!.id } : {}),
       });

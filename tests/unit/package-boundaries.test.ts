@@ -4,7 +4,7 @@ import { resolve, relative, join } from 'node:path';
 const root = resolve(import.meta.dir, '../..');
 const workspaces: string[] = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).workspaces;
 const packages = new Map(workspaces.map(path => { const manifest = JSON.parse(readFileSync(join(root, path, 'package.json'), 'utf8')); return [manifest.name, { path, manifest }]; }));
-function files(directory: string): string[] { return readdirSync(directory, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? files(join(directory, entry.name)) : /\.(ts|js|svelte)$/.test(entry.name) ? [join(directory, entry.name)] : []); }
+const files = (directory: string): string[] => { return readdirSync(directory, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? files(join(directory, entry.name)) : /\.(ts|js|svelte)$/.test(entry.name) ? [join(directory, entry.name)] : []); }
 test('workspace source imports follow declared exports and never reach experiments or another package by path', () => {
   for (const [name, { path, manifest }] of packages) {
     for (const file of files(join(root, path, 'src'))) {
@@ -16,15 +16,14 @@ test('workspace source imports follow declared exports and never reach experimen
         const dependency = spec.split('/').slice(0, 2).join('/');
         expect(packages.has(dependency), spec).toBe(true);
         if (dependency !== name) expect(manifest.dependencies?.[dependency], `${name}: ${dependency}`).toBe('workspace:*');
-        if (path.startsWith('packages/')) expect(packages.get(dependency)!.path.startsWith('packages/'), `${name} cannot depend on an app`).toBe(true);
-        if (path === 'apps/installer' && dependency !== name) expect(packages.get(dependency)!.path.startsWith('packages/')).toBe(true);
+        if (path !== 'apps/cli') expect(dependency, `${name} must own its implementation`).toBe(name);
       }
     }
   }
 });
 test('production workspace dependency graph is acyclic', () => {
   const done = new Set<string>();
-  function visit(name: string, stack: string[]) {
+  const visit = (name: string, stack: string[]) => {
     expect(stack.includes(name), stack.join(' -> ') + ' -> ' + name).toBe(false);
     if (done.has(name)) return;
     for (const dependency of Object.keys(packages.get(name)!.manifest.dependencies ?? {})) if (packages.has(dependency)) visit(dependency, [...stack, name]);

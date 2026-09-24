@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { RuntimeDefinition } from './runtime.ts';
-import type { Binding, Receipt, DeliveryIntent } from '@decompozr/surface-agent-adapters/codex';
+import type { Binding, Receipt, DeliveryIntent } from '../agent-adapters/codex.ts';
 
 export type PreviewScope = { namespace: string; name: string; source: string; projectRoot: string; component: string };
 export type RequestRecord = {

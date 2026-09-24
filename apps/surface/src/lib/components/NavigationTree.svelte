@@ -1,6 +1,6 @@
 <script lang="ts">
   import { NavigationLinks, type NavigationLink } from '@decompozr/design-system';
-  import type { NavigationNode } from '@decompozr/surface-contracts/navigation';
+  import type { NavigationNode } from '../contracts/navigation.ts';
   let { nodes, currentPath = '/', currentURL = '' }: { nodes: NavigationNode[]; currentPath?: string; currentURL?: string } = $props();
   const clean = (path: string) => path.replace(/\/$/, '');
   function links(nodes: NavigationNode[]): NavigationLink[] {

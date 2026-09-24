@@ -104,7 +104,7 @@ try {
   const next = JSON.parse(await command([join(candidate.directory, 'install'), '--home', installationHome]));
   const candidateTemplate = join(home, 'candidate-template');
   await installed('init', '--directory', candidateTemplate, '--framework', 'svelte');
-  expect(readFileSync(join(candidateTemplate, 'src/surface-client.ts'), 'utf8')).toContain('createSurfaceClient');
+  expect(readFileSync(join(candidateTemplate, 'src/interactions.ts'), 'utf8')).toContain('createSurfaceClient');
   await start(); await retained('upgraded'); await stop();
   await installed('rollback', '--release', old.release); await start(); await retained('rolled-back'); await stop();
   await installed('rollback', '--release', next.release); await start(); await retained('restored-candidate');

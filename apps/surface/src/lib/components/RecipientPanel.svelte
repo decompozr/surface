@@ -1,8 +1,8 @@
 <script lang="ts">
   import { Button, Select, SurfaceCard, Text } from '@decompozr/design-system';
   import { onMount } from 'svelte';
-  import { createSurfaceClient, type Recipient, type Interaction, type Directory, type DeliveryIntent } from '@decompozr/surface-client/index';
-  let client: ReturnType<typeof createSurfaceClient> | undefined;
+  import { createInteractionClient, type Recipient, type Interaction, type Directory, type DeliveryIntent } from '../interactions/index.ts';
+  let client: ReturnType<typeof createInteractionClient> | undefined;
   let recipient = $state<Recipient>();
   let request = $state<Interaction>();
   let directory = $state<Directory>();
@@ -71,7 +71,7 @@
       ++refreshGeneration;
       client?.configureDelivery(); client = undefined;
       stale = true; mode = ''; recipient = undefined; directory = undefined;
-      try { client = createSurfaceClient(); void refresh(); }
+      try { client = createInteractionClient(); void refresh(); }
       catch (cause) { error = String(cause); busy = false; }
     };
     connect();

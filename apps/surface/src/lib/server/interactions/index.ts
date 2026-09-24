@@ -3,9 +3,9 @@ import { join } from 'node:path';
 import { realpathSync as canonical } from 'node:fs';
 import { timingSafeEqual } from 'node:crypto';
 import { mountedComments } from '../comments/mounted.ts';
-import { Service, InputError, text } from '../core/service.ts';
-import { Store, type PreviewScope } from '../core/store.ts';
-import { CodexAdapter, type AgentAdapter } from '@decompozr/surface-agent-adapters/codex';
+import { Service, InputError, text } from '../services/service.ts';
+import { Store, type PreviewScope } from '../services/store.ts';
+import { CodexAdapter, type AgentAdapter } from '../agent-adapters/codex.ts';
 
 // Namespace paths scope capabilities and prevent accidental cross-mount routing.
 // They do not isolate hostile scripts sharing this server's browser origin.
@@ -23,7 +23,7 @@ export function createInteractions(options: {
     try { return await task; } finally { operations.delete(task); }
   }
   const store = new Store(join(options.stateDir, 'interactions.json'));
-  const service = new Service(store, options.adapter ?? new CodexAdapter(), join(import.meta.dir, '../../../../../../apps/cli/src/runtime.ts'), options.stateDir);
+  const service = new Service(store, options.adapter ?? new CodexAdapter(), join(import.meta.dir, '../../../../../cli/src/runtime.ts'), options.stateDir);
   const comments = mountedComments(options.stateDir, service, options.adapter ?? new CodexAdapter());
   function mounted(scope: PreviewScope) {
     const mount = options.find(scope.namespace, scope.name);

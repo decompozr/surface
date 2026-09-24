@@ -10,7 +10,7 @@ export type Interaction = {
   response?: { id: string; status: 'delivering' | 'accepted' | 'failed' | 'unknown'; error?: string; delivery?: DeliveryIntent; receipt?: { mode: string; turnId?: string; queuedSubmissionId?: string }; data: Record<string, unknown> };
   result?: Record<string, unknown>;
 };
-export function createSurfaceClient(options?: { api: string; requestId: string; token: string }) {
+export const createInteractionClient = (options?: { api: string; requestId: string; token: string }) => {
   const page = new URL(location.href);
   const fragment = new URLSearchParams(page.hash.slice(1));
   const api = options?.api ?? fragment.get('api') ?? location.origin;
@@ -23,7 +23,7 @@ export function createSurfaceClient(options?: { api: string; requestId: string; 
   const scopedBase = context ? JSON.parse(context.textContent ?? '{}').interactionBase : undefined;
   if (scopedBase !== undefined && (typeof scopedBase !== 'string' || !/^\/api\/n\/[a-z0-9-]+\/[a-z0-9-]+\/requests\/$/.test(scopedBase))) throw new Error('Invalid preview interaction scope.');
   const base = new URL(`${scopedBase ?? '/api/requests/'}${encodeURIComponent(requestId)}`, endpoint).href;
-  async function call(path: string, data?: unknown): Promise<Interaction> {
+  const call = async (path: string, data?: unknown): Promise<Interaction> => {
     let response: Response, result: any;
     try {
       response = await fetch(base + path, {
@@ -68,5 +68,6 @@ export function createSurfaceClient(options?: { api: string; requestId: string; 
   };
 }
 
-/** Compatibility export for existing mounted sources. New code uses createSurfaceClient. */
-export const createArtifactClient = createSurfaceClient;
+/** Compatibility aliases for existing mounted sources. */
+export const createSurfaceClient = createInteractionClient;
+export const createArtifactClient = createInteractionClient;

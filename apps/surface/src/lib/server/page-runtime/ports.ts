@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import type { ProjectRuntime, ProjectOutcome } from '@decompozr/surface-contracts/projects';
+import type { ProjectRuntime, ProjectOutcome, ProjectOperationInput } from '../../contracts/projects.ts';
 export type InteractionMount = { namespace: string; name: string; source: string; projectRoot: string; status: string; components: string[]; publicPath?: string; pages?: Record<string, string> };
 export interface InteractionPort {
   route(req: IncomingMessage, res: ServerResponse, url: URL, authorized: boolean, body: () => Promise<unknown>, json: (value: unknown, status?: number) => void): Promise<boolean>;
@@ -10,6 +10,6 @@ export interface InteractionPort {
 export type ProjectRequest = { pathname: string; method?: string; authorized: boolean; readBody(): Promise<unknown>; json(outcome: ProjectOutcome, status: number): void };
 export interface RuntimeIntegration {
   interactions(options: { stateDir: string; find(namespace: string, name: string): InteractionMount }): InteractionPort;
-  projects(options: { stateDir: string; runtime: ProjectRuntime; schedule<T>(operation: () => Promise<T>): Promise<T> }): (request: ProjectRequest) => Promise<boolean>;
+  projects(options: { stateDir: string; runtime: ProjectRuntime; schedule<T>(operation: () => Promise<T>): Promise<T> }): ((request: ProjectRequest) => Promise<boolean>) & { execute(input: ProjectOperationInput): Promise<ProjectOutcome> };
   presentation: { allowedPaths: string[]; browserClient: string; shellSource: string; beforeComponent: string };
 }

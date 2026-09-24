@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, realpathSync, rmSy
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { AgentAdapter } from '@decompozr/surface-agent-adapters/codex';
+import type { AgentAdapter } from '@decompozr/surface-app/server/agent-adapters/codex';
 import { startKitFoundation } from './server.ts';
 
 // Automated fixture inputs only. This does not contact a live model session.

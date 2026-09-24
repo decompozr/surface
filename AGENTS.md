@@ -22,6 +22,10 @@ For interaction or UI bug fixes, follow `docs/evaluations/self-e2e.md`. Reproduc
 
 Keep E2E providers and storage isolated; never send fixture messages to real tasks or alter preview recipients. Build and test immutable snapshots, preserve user drafts, inspect rendered evidence for visual changes, and record the exact tested build, scenarios, failures, results and device limitations. Update the relevant docs and evidence records when findings change the implementation or verification contract. Physical-device acceptance is separate; do not shift automatable verification to the user.
 
+## JavaScript and TypeScript style
+
+Prefer arrow functions for new or modified JavaScript and TypeScript functions, including callbacks and exported functions. Do not use the `function` keyword unless a specific semantic or API requirement calls for it, such as declaration hoisting, overload declarations, generators, or dynamic `this` binding. Keep exceptions narrowly scoped and explain the reason when it is not obvious from the code. Do not rewrite unrelated existing functions solely for style consistency.
+
 ## Package ownership
 
-Follow `docs/architecture/package-boundaries.md`. Keep Surface business logic and MCP in the SvelteKit app, infrastructure and transports in their owning workspaces, and templates directly under `apps/surface/templates`. Use declared package exports across workspaces, never cross-package source-relative imports. Shared packages must not import apps. Use the root frozen Bun workspace lockfile. Root scripts are repository-wide tooling only; integrated verifiers belong in `tests/e2e`.
+Follow `docs/architecture/package-boundaries.md`. Use only the Surface, CLI and installer workspaces under `apps/`; do not split internal modules into packages without concrete independent consumers. Surface owns interactions, contracts, services, agent adapters, page runtime, MCP and templates. Use declared exports across apps and keep the dependency graph acyclic. Surface and installer must not import other apps. Use the root frozen Bun workspace lockfile. Root scripts are repository-wide tooling only; integrated verifiers belong in `tests/e2e`.

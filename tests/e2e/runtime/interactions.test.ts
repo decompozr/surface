@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, realpathSync, exis
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { createInteractions } from '@decompozr/surface-app/server/host/interactions';
+import { createInteractions } from '@decompozr/surface-app/server/interactions/index';
 import { startSingleton } from '@decompozr/surface-app/server/host/runtime';
 
 function deferred<T>() {

@@ -15,11 +15,11 @@
     "apps/cli/src/**/*.ts",
     "apps/installer/src/**/*.ts",
     "apps/surface/src/lib/server/**/*.ts",
-    "packages/*/src/**/*.ts",
     "apps/*/tests/**/*.ts",
     "tests/**/*.ts",
     "scripts/**/*.ts",
     "apps/surface/.svelte-kit/ambient.d.ts",
-    "packages/*/tests/**/*.ts"
+    "apps/surface/src/lib/contracts/**/*.ts",
+    "apps/surface/src/lib/interactions/**/*.ts"
   ]
 }

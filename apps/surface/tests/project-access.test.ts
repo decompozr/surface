@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { projectOperation } from '@decompozr/surface-client/management';
+import { projectOperation } from '../src/lib/server/http/project-client.ts';
 
 const directories: string[] = [];
 const servers: ReturnType<typeof Bun.serve>[] = [];

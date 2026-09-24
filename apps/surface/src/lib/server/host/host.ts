@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { startSingleton } from './runtime.ts';
 import { workspaceDirectory } from '../workspaces/identity.ts';
-import type { AgentAdapter } from '@decompozr/surface-agent-adapters/codex';
+import type { AgentAdapter } from '../agent-adapters/codex.ts';
 import type { RuntimeStatus } from '../../runtime-status.ts';
 
 import { readableMountPath } from './mount-path.ts';

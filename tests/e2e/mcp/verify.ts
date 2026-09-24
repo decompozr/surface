@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { Client } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import { startSingleton } from '@decompozr/surface-app/server/host/runtime';
-import { DeliveryError, type AgentAdapter, type Binding } from '@decompozr/surface-agent-adapters/codex';
+import { DeliveryError, type AgentAdapter, type Binding } from '@decompozr/surface-app/server/agent-adapters/codex';
 
 const root = process.cwd();
 const temporary = realpathSync(mkdtempSync(join(tmpdir(), 'surface-mcp-')));

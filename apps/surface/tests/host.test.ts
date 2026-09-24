@@ -78,9 +78,32 @@ test('mounted compiler cannot serve server-only app source or management SDK', a
   const stateDir = realpathSync(mkdtempSync('/tmp/surface-boundary-'));
   const app = await startSurfaceApp({ stateDir, port: 0 });
   try {
-    for (const file of ['apps/surface/src/lib/server/core/store.ts', 'packages/client/src/management.ts']) {
+    for (const file of ['apps/surface/src/lib/server/services/store.ts', 'apps/surface/src/lib/server/http/project-client.ts']) {
       const response = await fetch(app.origin + '/@fs/' + process.cwd() + '/' + file);
       expect(response.status).toBe(403);
     }
   } finally { await app.stop(); }
 });
+
+
+test('direct project operations share the host service and reject new work after shutdown', async () => {
+  const stateDir = temporary(), projectRoot = temporary();
+  const app = await startSurfaceApp({ stateDir, port: 0 });
+  try {
+    const result = await app.projectOperation({ operation: 'init', projectRoot, name: 'Direct service' });
+    expect(result.ok).toBe(true);
+    const connection = JSON.parse(readFileSync(join(stateDir, 'connection.json'), 'utf8'));
+    const response = await fetch(app.origin + '/api/v1/projects/operations', {
+      method: 'POST', headers: { authorization: `Bearer ${connection.token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ operation: 'list', projectRoot }),
+    });
+    const direct = await app.projectOperation({ operation: 'list', projectRoot });
+    expect(await response.json()).toEqual(direct);
+    await app.stop();
+    await expect(app.projectOperation({ operation: 'list', projectRoot })).rejects.toThrow('Server is closing');
+  } finally {
+    await app.stop();
+    rmSync(stateDir, { recursive: true, force: true });
+    rmSync(projectRoot, { recursive: true, force: true });
+  }
+}, 30000);

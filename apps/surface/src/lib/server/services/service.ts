@@ -3,11 +3,11 @@ import { realpathSync, statSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { isAbsolute } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { DeliveryError, type AgentAdapter, type Binding, type DeliveryIntent } from '@decompozr/surface-agent-adapters/codex';
+import { DeliveryError, type AgentAdapter, type Binding, type DeliveryIntent } from '../agent-adapters/codex.ts';
 import { Store, type RequestRecord, type PreviewScope } from './store.ts';
 
-import { InputError } from '@decompozr/surface-contracts/errors';
-export { InputError } from '@decompozr/surface-contracts/errors';
+import { InputError } from '../../contracts/errors.ts';
+export { InputError } from '../../contracts/errors.ts';
 export function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new InputError('Expected a JSON object.');
   return value as Record<string, unknown>;

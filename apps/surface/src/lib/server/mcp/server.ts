@@ -4,7 +4,7 @@ import { parseArgs } from 'node:util';
 import { McpServer } from '@modelcontextprotocol/server';
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import * as z from 'zod/v4';
-import { projectOperation } from '@decompozr/surface-client/management';
+import { projectOperation } from '../http/project-client.ts';
 
 const slug = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
 const absolutePath = z.string().min(1).refine(isAbsolute, 'Expected an absolute path.');
