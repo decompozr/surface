@@ -2,13 +2,8 @@ import { Database } from 'bun:sqlite';
 import { mkdirSync, realpathSync, lstatSync } from 'node:fs';
 import { join } from 'node:path';
 
-// Project-owned domain code. No Surface imports, manifest or state directory needed.
-export type Scenario = { id: string; title: string; angle: number; revision: number };
-export type Outcome = { ok: true; data: Scenario[] | Scenario | { storage: 'optional' } } | { ok: false; code: string; message: string };
-const root = realpathSync(import.meta.dir);
-export const databasePath = join(root, 'data', 'scenarios.sqlite');
 
-function openStore(directory: string) {
+const openStore = (directory: string) => {
   const databasePath = join(directory, 'scenarios.sqlite');
   mkdirSync(directory, { recursive: true });
   if (realpathSync(directory) !== directory) throw new Error('Project data directory must not be a symlink.');
@@ -37,17 +32,20 @@ function openStore(directory: string) {
     });
     return { db, list, save };
   } catch (error) { db.close(true); throw error; }
-}
+};
+
 
 // Constructing the backend is inert. Only a validated database operation acquires a store.
-export function createProjectBackend(options?: { dataDirectory: string }) {
+export const createProjectBackend = (options?: { dataDirectory: string }) => {
+
+  const acquire = () => {
+    if (!store) { store = openStore(directory); opens++; }
+    return store;
+  };
+
   const directory = options?.dataDirectory ?? join(root, 'data');
   let store: ReturnType<typeof openStore> | undefined;
   let closed = false, opens = 0;
-  function acquire() {
-    if (!store) { store = openStore(directory); opens++; }
-    return store;
-  }
   return {
     inspect() { return { databaseOpen: store !== undefined, opens }; },
     invoke(action: string, input: unknown): Outcome {
@@ -73,7 +71,14 @@ export function createProjectBackend(options?: { dataDirectory: string }) {
       if (!closed) { store?.db.close(true); store = undefined; closed = true; }
     },
   };
-}
+};
+
+
+// Project-owned domain code. No Surface imports, manifest or state directory needed.
+export type Scenario = { id: string; title: string; angle: number; revision: number };
+export type Outcome = { ok: true; data: Scenario[] | Scenario | { storage: 'optional' } } | { ok: false; code: string; message: string };
+const root = realpathSync(import.meta.dir);
+export const databasePath = join(root, 'data', 'scenarios.sqlite');
 
 // Independently executable by the project after Surface has stopped.
 if (import.meta.main) {

@@ -6,7 +6,7 @@ This earlier wrapper remains a comparison fixture. For current project operation
 
 ## Use
 
-Install the repository's root and singleton dependencies as described in the [singleton guide](../singleton/README.md), then start or connect to its existing server. The project directory and source folder must already exist. `init` creates only the manifest, never overwrites one, and does not scaffold or install source dependencies.
+Install the repository's root and singleton dependencies as described in the [singleton guide](../../docs/experiments/legacy-page-runtime.md), then start or connect to its existing server. The project directory and source folder must already exist. `init` creates only the manifest, never overwrites one, and does not scaffold or install source dependencies.
 
 ```sh
 bun experiments/projects/cli.ts init --project /absolute/my-project --name "My project"

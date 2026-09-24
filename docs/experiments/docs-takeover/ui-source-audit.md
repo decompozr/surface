@@ -23,6 +23,6 @@ Recorded September 23, 2026 by a separate read-only audit agent. Source inspecti
 
 ## Evidence references
 
-`apps/surface/scripts/verify-navigation.ts` encodes navigation/SSR, folder/breadcrumb, collapse, 1440px and 390px cases, Escape focus and contained overflow. `apps/surface/scripts/verify-recipients.ts` encodes capability retention, queue, per-tab mode choice, explicit takeover/no replay, stale-state rejection and mobile overflow with a fake adapter. These commands were inspected, not run for this audit.
+`tests/e2e/surface/verify-navigation.ts` encodes navigation/SSR, folder/breadcrumb, collapse, 1440px and 390px cases, Escape focus and contained overflow. `tests/e2e/surface/verify-recipients.ts` encodes capability retention, queue, per-tab mode choice, explicit takeover/no replay, stale-state rejection and mobile overflow with a fake adapter. These commands were inspected, not run for this audit.
 
 `experiments/agent-picker/README.md` describes a separate gated lab. Its historical tab draft persistence and cross-worktree selection are not contracts of the shared panel. Preserve the distinction when reorganizing evidence.

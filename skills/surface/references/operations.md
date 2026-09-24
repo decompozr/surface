@@ -1,6 +1,6 @@
 # Service, workspace and project operations
 
-Use the [public entry guide](../../../docs/architecture/workspace-service.md) for installation layout, defaults, migration and current limits. `surface` is the public CLI; a checkout fallback is `bun /path/to/surface/apps/surface/src/cli/index.ts`. Keep one selected service across operations.
+Use the [public entry guide](../../../docs/architecture/workspace-service.md) for installation layout, defaults, migration and current limits. `surface` is the public CLI; a checkout fallback is `bun /path/to/surface/apps/cli/src/index.ts`. Keep one selected service across operations.
 
 ## Installation and service
 

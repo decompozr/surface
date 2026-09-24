@@ -1,4 +1,29 @@
 <script lang="ts">
+
+  const action = async (operation: string, input: unknown) => {
+    const response = await fetch(`/project-db/${scope}/actions`, {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-project-capability': capability },
+      body: JSON.stringify({ operation, input }),
+    });
+    const result = await response.json();
+    if (!result.ok) throw new Error(`${result.code}: ${result.message}`);
+    return result.data;
+  };
+
+  const load = async () => {
+    try { rows = await action('listScenarios', {}); loaded = true; status = 'Saved data loaded'; }
+    catch (error) { status = String(error); }
+  };
+
+  const save = async () => {
+    pending = true;
+    try {
+      const row = await action('saveScenario', { id: 'shared-id', title, angle, expectedRevision: rows.find(row => row.id === 'shared-id')?.revision ?? 0 });
+      rows = [row]; loaded = true; status = 'Saved to this project';
+    } catch (error) { status = String(error); }
+    finally { pending = false; }
+  };
+
   let { label }: { label: string } = $props();
   type Row = { id: string; title: string; angle: number; revision: number };
   let rows = $state<Row[]>([]);
@@ -9,27 +34,6 @@
   let pending = $state(false);
   const scope = location.pathname.split('/').filter(Boolean).slice(1, 3).join('/');
   const capability = new URLSearchParams(location.hash.slice(1)).get('db') ?? '';
-  async function action(operation: string, input: unknown) {
-    const response = await fetch(`/project-db/${scope}/actions`, {
-      method: 'POST', headers: { 'content-type': 'application/json', 'x-project-capability': capability },
-      body: JSON.stringify({ operation, input }),
-    });
-    const result = await response.json();
-    if (!result.ok) throw new Error(`${result.code}: ${result.message}`);
-    return result.data;
-  }
-  async function load() {
-    try { rows = await action('listScenarios', {}); loaded = true; status = 'Saved data loaded'; }
-    catch (error) { status = String(error); }
-  }
-  async function save() {
-    pending = true;
-    try {
-      const row = await action('saveScenario', { id: 'shared-id', title, angle, expectedRevision: rows.find(row => row.id === 'shared-id')?.revision ?? 0 });
-      rows = [row]; loaded = true; status = 'Saved to this project';
-    } catch (error) { status = String(error); }
-    finally { pending = false; }
-  }
 </script>
 
 <main>

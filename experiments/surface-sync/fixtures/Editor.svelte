@@ -1,27 +1,32 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Replica, watch } from './sync';
+  import { Replica, watch } from './sync.ts';
+
+  const action = async (operation:string,input:unknown,signal?:AbortSignal) => {
+    const response=await fetch(base+'/actions',{method:'POST',signal,headers:{'content-type':'application/json','x-project-capability':token},body:JSON.stringify({operation,input})});
+    const result=await response.json();if(!result.ok)throw new Error(result.code);return result;
+  };
+
+  const edit = () => {dirty=true;edits++;status='Unsaved changes';};
+
+  const save = async () => {
+    pending=true;const submitted=edits;
+    try{const result=await action('saveScenario',{id:'near',title,angle,expectedRevision:revision});revision=result.data.revision;if(edits===submitted)dirty=false;status=`Saved revision ${revision}`;await replica.load();}
+    catch(error){status=String(error);}
+    finally{pending=false;}
+  };
+
+  const reload = () => {dirty=false;edits++;void replica.load();};
+
   type Row = { id: string; title: string; angle: number; revision: number };
   let title=$state('Near view'),angle=$state(35),revision=$state(0),dirty=$state(false),edits=0;
   let status=$state('Unsaved draft'),connection=$state('Connecting…'),pending=$state(false);
   const scope=location.pathname.split('/').filter(Boolean).slice(1,3).join('/');
   const token=new URLSearchParams(location.hash.slice(1)).get('db')??'',base=`/project-db/${scope}`;
-  async function action(operation:string,input:unknown,signal?:AbortSignal){
-    const response=await fetch(base+'/actions',{method:'POST',signal,headers:{'content-type':'application/json','x-project-capability':token},body:JSON.stringify({operation,input})});
-    const result=await response.json();if(!result.ok)throw new Error(result.code);return result;
-  }
   const replica=new Replica<Row[]>({read:signal=>action('listScenarios',{},signal),dirty:()=>dirty,
     apply(rows){const row=rows.find(row=>row.id==='near');if(row){title=row.title;angle=row.angle;revision=row.revision;}else{title='Near view';angle=35;revision=0;}status=`Loaded revision ${revision}`;},
     stale(){status='Saved data changed. Your draft is preserved.';},error(message){status=message;},
   });
-  function edit(){dirty=true;edits++;status='Unsaved changes';}
-  async function save(){
-    pending=true;const submitted=edits;
-    try{const result=await action('saveScenario',{id:'near',title,angle,expectedRevision:revision});revision=result.data.revision;if(edits===submitted)dirty=false;status=`Saved revision ${revision}`;await replica.load();}
-    catch(error){status=String(error);}
-    finally{pending=false;}
-  }
-  function reload(){dirty=false;edits++;void replica.load();}
   onMount(()=>{const stream=watch(base+'/events',token,replica,text=>connection=text);return()=>{stream.stop();replica.stop();};});
 </script>
 <main>

@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { agentSetup } from '../scripts/agent/setup.ts';
+import { agentSetup } from '../apps/installer/src/setup/setup.ts';
 
 await agentSetup(['test', ...process.argv.slice(2)]).catch(error => {
   console.error(error instanceof Error ? error.message : String(error));

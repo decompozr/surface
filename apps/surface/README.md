@@ -4,12 +4,10 @@ Current slice: the built SvelteKit app and the existing live component compiler 
 
 ## Prepare and run
 
-This is currently a repository integration, not a standalone installed package. From the repository root, prepare the app and the runtime it reuses:
+Surface is the SvelteKit business application in the repository workspace. From the repository root:
 
 ```sh
 bun install --frozen-lockfile --ignore-scripts
-bun install --cwd apps/surface/runtime --frozen-lockfile --ignore-scripts
-bun install --cwd apps/surface --frozen-lockfile --ignore-scripts
 cd apps/surface
 bun run check
 bun run dev --state-dir /tmp/surface-app-development
@@ -38,7 +36,7 @@ Startup prints the actual origin, PID and instance ID. Ctrl+C/SIGTERM stops the 
 
 The host injects only public readiness metadata into SvelteKit locals. It does not expose the management token or state path. The original runtime retains its host/origin checks, management authorization and operation endpoints.
 
-`server/host.ts` is deliberately a thin bridge to `apps/surface/runtime/server.ts`; this slice does not relocate or duplicate that implementation. Existing project/interaction endpoints are inherited, but these slices validate server/compiler topology, lifecycle, fixed component mounting, workspace identity and the structured interaction loop. Backend integration and management UI controls remain later slices. No live agent callback is sent during verification.
+`src/lib/server/host` composes the built app with the page-runtime package through explicit ports. Business services, MCP and template generation remain app-owned. See [workspace boundaries](../../docs/architecture/package-boundaries.md).
 
 ## Verify
 
@@ -56,9 +54,9 @@ The root CLI, existing experiments and shared installation are unchanged. This i
 The source lives at root `examples/` in this Git project. `dev` and `start` automatically register this checkout and mount that source before reporting readiness. The returned startup JSON includes `previewUrl`. `artifact.project.json` records it as a project-owned Surface. The app does not contain a separate copy of the example pages. From the repository root, with this app running:
 
 ```sh
-bun apps/surface/src/cli/index.ts project register --state-dir /tmp/surface-app-development
-bun apps/surface/src/cli/index.ts project list --state-dir /tmp/surface-app-development
-bun apps/surface/src/cli/index.ts project mount --artifact ARTIFACT_UUID --state-dir /tmp/surface-app-development
+bun apps/cli/src/index.ts project register --state-dir /tmp/surface-app-development
+bun apps/cli/src/index.ts project list --state-dir /tmp/surface-app-development
+bun apps/cli/src/index.ts project mount --artifact ARTIFACT_UUID --state-dir /tmp/surface-app-development
 ```
 
 Use the artifact ID returned by `list`. Open the mounted preview URL and select `routes/counter/+page.svelte`. Counter and draft state survive component HMR through explicit `previewState` stores. The source has a pinned Svelte dependency and frozen Bun lockfile; installation scripts are disabled during mount preparation.
@@ -91,14 +89,14 @@ The host forwards an optional typed `AgentAdapter` to the existing interaction s
 The project-owned examples include `routes/feedback/+page.svelte` and `feedback.schema.json`. For an explicitly selected conversation, use the existing development CLI (from the repository root):
 
 ```sh
-bun apps/surface/runtime/cli.ts bind --project /absolute/project-root --thread EXACT_THREAD_ID --socket /absolute/control.sock --state-dir /tmp/surface-app-development
-bun apps/surface/runtime/cli.ts request --binding BINDING_ID --namespace WORKSPACE_NAMESPACE --name MOUNT_NAME --component routes/feedback/+page.svelte --title 'Choose a label' --schema-file examples/feedback.schema.json --state-dir /tmp/surface-app-development
+bun apps/cli/src/runtime.ts bind --project /absolute/project-root --thread EXACT_THREAD_ID --socket /absolute/control.sock --state-dir /tmp/surface-app-development
+bun apps/cli/src/runtime.ts request --binding BINDING_ID --namespace WORKSPACE_NAMESPACE --name MOUNT_NAME --component routes/feedback/+page.svelte --title 'Choose a label' --schema-file examples/feedback.schema.json --state-dir /tmp/surface-app-development
 ```
 
 Open the returned `previewUrl`. Opening or editing the form sends no agent message; pressing **Send feedback** submits `{ "label": "..." }`. The request capability cannot publish agent results or cross workspace namespaces. The agent receives the request/response identity and an explicit result command targeting this state directory:
 
 ```sh
-bun apps/surface/runtime/cli.ts result --request REQUEST_ID --data '{"message":"Reviewed choice"}' --state-dir /tmp/surface-app-development
+bun apps/cli/src/runtime.ts result --request REQUEST_ID --data '{"message":"Reviewed choice"}' --state-dir /tmp/surface-app-development
 ```
 
 These are trusted local components sharing one origin, not a hostile-code sandbox. An accepted response means transport delivery was accepted, not that the agent completed the task. A delivery marked `unknown` remains uncertain and is not automatically resent. Duplicate submissions with the same response identity and data do not deliver twice. Unmount revokes browser access while preserving the original interaction record; restart preserves results without replaying responses.
@@ -131,6 +129,6 @@ The source manifest declares `"components": "routes", "routes": "routes"`. Stati
 
 ## Shared workspace shell
 
-`src/routes/+layout.server.ts` receives the registered route tree from the host, and `SurfaceShell.svelte` renders it for both the SvelteKit home and mounted pages. `apps/surface/src/server/navigation.ts` derives project/worktree/folder/page nodes only from the service ledger and ready route mounts. Folder indexes do not expose raw filesystem contents. The shell uses a white background with slate, sand, and lavender accents, desktop collapse, a mobile drawer, and breadcrumbs.
+`src/routes/+layout.server.ts` receives the registered route tree from the host, and `SurfaceShell.svelte` renders it for both the SvelteKit home and mounted pages. `apps/surface/src/lib/server/http/navigation.ts` derives project/worktree/folder/page nodes only from the service ledger and ready route mounts. Folder indexes do not expose raw filesystem contents. The shell uses a white background with slate, sand, and lavender accents, desktop collapse, a mobile drawer, and breadcrumbs.
 
-Run `bun apps/surface/scripts/verify-navigation.ts` from the repository root after building this app for parent SSR, worktree separation, nested folder/page routes, desktop and mobile behavior. `verify-recipients.ts` exercises the common interaction UI with fixture adapters. Browser screenshots remain in ignored `.decompozr/surface/screenshots`. Health, provider directory inspection, fixture delivery, installation identity, and actual user delivery are separate evidence.
+Run `bun tests/e2e/surface/verify-navigation.ts` from the repository root after building this app for parent SSR, worktree separation, nested folder/page routes, desktop and mobile behavior. `verify-recipients.ts` exercises the common interaction UI with fixture adapters. Browser screenshots remain in ignored `.decompozr/surface/screenshots`. Health, provider directory inspection, fixture delivery, installation identity, and actual user delivery are separate evidence.

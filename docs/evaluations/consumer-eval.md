@@ -12,7 +12,7 @@ UI-CONTINUATION-02 additionally exercised a planned pause after UI implementatio
 
 Covers [R-01/R-02](../requirements/consumers.md). Use a disposable Git project with project-owned route source and declared schema; mount without a DecompozR service or request binding for read-only use. Pass if it renders through returned routes, source/dependencies remain project-owned and Core makes no domain judgment. Add a separate scoped request for submission; clean browsing alone must not imply permission to send.
 
-Available fixture sources: [workspace fixture](../../apps/surface/scripts/workspace-fixture.ts), [navigation verifier](../../apps/surface/scripts/verify-navigation.ts), [interaction verifier](../../apps/surface/scripts/verify-interactions.ts), [public installed verifier](../../scripts/verify-surface.ts). Commands: `bun apps/surface/scripts/verify-navigation.ts`, `bun run --cwd apps/surface verify:interactions`, `bun run verify:surface`, after appropriate isolated preparation. Not executed in this documentation task.
+Available fixture sources: [workspace fixture](../../tests/e2e/surface/workspace-fixture.ts), [navigation verifier](../../tests/e2e/surface/verify-navigation.ts), [interaction verifier](../../tests/e2e/surface/verify-interactions.ts), [public installed verifier](../../tests/e2e/surface/run.ts). Commands: `bun tests/e2e/surface/verify-navigation.ts`, `bun run --cwd apps/surface verify:interactions`, `bun run verify:surface`, after appropriate isolated preparation. Not executed in this documentation task.
 
 There is no Inquiry-specific acceptance run or adopted Inquiry data/product spec here. A later consumer must supply domain criteria from its own source documents rather than treating these generic fixtures as a domain result.
 

@@ -1,21 +1,20 @@
 import { readFileSync, writeFileSync, renameSync, realpathSync, lstatSync, existsSync, openSync, closeSync, unlinkSync } from 'node:fs';
 import { join, resolve, relative, sep, isAbsolute, basename } from 'node:path';
 
-export const manifestName = 'artifact.project.json';
-export type Artifact = { id: string; name: string; source: string; archived: boolean };
-export type Manifest = { version: 1; projectId: string; name: string; artifacts: Artifact[] };
-type Ledger = { version: 1; projects: { projectId: string; root: string }[] };
-type Mount = { namespace: string; name: string; source: string; projectRoot: string; status: string; error?: string; previewUrl?: string };
-const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
-function inside(root: string, path: string) { const part = relative(root, path); return part === '' || (!part.startsWith('..' + sep) && part !== '..' && !isAbsolute(part)); }
-function label(value: unknown): string { if (typeof value !== 'string' || !value.trim() || value.length > 80) throw new Error('Name must be nonempty text up to 80 characters.'); return value; }
-function sourcePath(value: unknown): string {
+const inside = (root: string, path: string) => { const part = relative(root, path); return part === '' || (!part.startsWith('..' + sep) && part !== '..' && !isAbsolute(part)); };
+
+const label = (value: unknown): string => { if (typeof value !== 'string' || !value.trim() || value.length > 80) throw new Error('Name must be nonempty text up to 80 characters.'); return value; };
+
+const sourcePath = (value: unknown): string => {
   if (typeof value !== 'string' || !value || isAbsolute(value) || value.split(/[\\/]/).includes('..') || value.includes('\\')) throw new Error('Source must be a project-relative path without parent traversal.');
   return value;
-}
-export function identity(projectId: string, artifactId: string) { return { namespace: `p-${projectId}`, name: `a-${artifactId}` }; }
-function projectRoot(path: string) { const root = realpathSync(path); if (!lstatSync(root).isDirectory()) throw new Error('Project root must be a directory.'); return root; }
-function readManifest(root: string): Manifest {
+};
+
+export const identity = (projectId: string, artifactId: string) => { return { namespace: `p-${projectId}`, name: `a-${artifactId}` }; };
+
+const projectRoot = (path: string) => { const root = realpathSync(path); if (!lstatSync(root).isDirectory()) throw new Error('Project root must be a directory.'); return root; };
+
+const readManifest = (root: string): Manifest => {
   const file = join(root, manifestName);
   if (!lstatSync(file).isFile()) throw new Error('Project manifest must be a regular project-owned file, not a symlink.');
   const manifest = JSON.parse(readFileSync(file, 'utf8')) as Manifest;
@@ -28,14 +27,16 @@ function readManifest(root: string): Manifest {
     ids.add(artifact.id); names.add(artifact.name); sources.add(artifact.source);
   }
   return manifest;
-}
-function atomic(file: string, data: unknown) {
+};
+
+const atomic = (file: string, data: unknown) => {
   const temporary = `${file}.${process.pid}.${crypto.randomUUID()}.tmp`;
   try { writeFileSync(temporary, JSON.stringify(data, null, 2) + '\n', { mode: 0o600, flag: 'wx' }); renameSync(temporary, file); }
   finally { try { unlinkSync(temporary); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; } }
-}
+};
+
 /** Fail explicitly on competing ownership. Never remove another process's lock automatically. */
-export async function withLock<T>(path: string, task: () => T | Promise<T>): Promise<T> {
+export const withLock = async <T>(path: string, task: () => T | Promise<T>): Promise<T> => {
   let descriptor: number;
   try { descriptor = openSync(path, 'wx', 0o600); } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'EEXIST') throw new Error(`Ownership lock exists: ${path}. Inspect its PID before recovering a stale lock.`);
@@ -43,19 +44,30 @@ export async function withLock<T>(path: string, task: () => T | Promise<T>): Pro
   }
   try { writeFileSync(descriptor, JSON.stringify({ pid: process.pid, createdAt: new Date().toISOString() })); return await task(); }
   finally { closeSync(descriptor); unlinkSync(path); }
-}
-function resolveSource(root: string, source: string) {
+};
+
+const resolveSource = (root: string, source: string) => {
   const path = realpathSync(resolve(root, sourcePath(source)));
   if (!inside(root, path)) throw new Error('Source resolves outside the canonical project root.');
   if (!lstatSync(path).isDirectory()) throw new Error('Artifact source must be a directory.');
   if (!existsSync(join(path, 'package.json'))) throw new Error('Artifact source needs its project-owned package.json.');
   return path;
-}
-function sourceStatus(root: string, artifact: Artifact) {
+};
+
+const sourceStatus = (root: string, artifact: Artifact) => {
   try { return { sourceStatus: 'available', canonicalSource: resolveSource(root, artifact.source) }; }
   catch (error) { return { sourceStatus: 'unavailable', error: error instanceof Error ? error.message : String(error) }; }
-}
-function selected(manifest: Manifest, id: string | undefined) { const artifact = manifest.artifacts.find(item => item.id === id); if (!artifact) throw new Error('Unknown artifact ID. Use list to obtain its stable ID.'); return artifact; }
+};
+
+const selected = (manifest: Manifest, id: string | undefined) => { const artifact = manifest.artifacts.find(item => item.id === id); if (!artifact) throw new Error('Unknown artifact ID. Use list to obtain its stable ID.'); return artifact; };
+
+
+export const manifestName = 'artifact.project.json';
+export type Artifact = { id: string; name: string; source: string; archived: boolean };
+export type Manifest = { version: 1; projectId: string; name: string; artifacts: Artifact[] };
+type Ledger = { version: 1; projects: { projectId: string; root: string }[] };
+type Mount = { namespace: string; name: string; source: string; projectRoot: string; status: string; error?: string; previewUrl?: string };
+const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 
 export class ProjectManager {
   root: string;

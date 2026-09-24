@@ -1,4 +1,4 @@
-import { createSurfaceClient } from './surface-client';
+import { createInteractionClient } from './interactions';
 const form = document.querySelector<HTMLFormElement>('form')!;
 const button = document.querySelector<HTMLButtonElement>('button')!;
 const status = document.querySelector<HTMLElement>('[role=status]')!;
@@ -8,7 +8,7 @@ form.addEventListener('submit', async event => {
   event.preventDefault();
   button.disabled = true;
   try {
-    const client = createSurfaceClient();
+    const client = createInteractionClient();
     const current = await client.read();
     if (!current.response) {
       const message = String(new FormData(form).get('message'));
@@ -23,7 +23,7 @@ form.addEventListener('submit', async event => {
 if (new URL(location.href).searchParams.has('request')) {
   void (async () => {
     try {
-      const client = createSurfaceClient();
+      const client = createInteractionClient();
       const current = await client.read();
       if (current.response) {
         button.disabled = true;

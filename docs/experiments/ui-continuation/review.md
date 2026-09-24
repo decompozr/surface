@@ -35,6 +35,6 @@ Implementation, browser evidence, source updates and independent review are comp
 Final reviewed source SHA-256:
 
 - `apps/surface/src/lib/components/SurfaceShell.svelte`: `9d64d73325d75f6e9566c5c635dd7469f1d06a2e17dc2fdb7c6cabcc5365a380`
-- `apps/surface/scripts/verify-skip-link.ts`: `78e1107e889c124a65bf78416060ad76fac6c5e6a14a604bcfec648d80eda4d6`
+- `tests/e2e/surface/verify-skip-link.ts`: `78e1107e889c124a65bf78416060ad76fac6c5e6a14a604bcfec648d80eda4d6`
 
 Final documentation check passed: 98 Markdown files, 712 local references, 13 requirements, 9 design contracts and 16 evaluation gates. `git diff --check` passed.

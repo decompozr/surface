@@ -1,10 +1,6 @@
 <script lang="ts">
-  type Row = { id: string; title: string; angle: number; revision: number };
-  let rows = $state<Row[]>([]), loaded = $state(false), pending = $state(false);
-  let status = $state('Saved scenarios have not been loaded.');
-  const scope = location.pathname.split('/').filter(Boolean).slice(1, 3).join('/');
-  const token = new URLSearchParams(location.hash.slice(1)).get('db') ?? '';
-  async function load() {
+
+  const load = async () => {
     pending = true;
     try {
       const response = await fetch(`/project-db/${scope}/actions`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-project-capability': token }, body: JSON.stringify({ operation: 'listScenarios', input: {} }) });
@@ -13,7 +9,13 @@
       rows = result.data; loaded = true; status = `Loaded ${rows.length} scenarios`;
     } catch (error) { status = String(error); }
     finally { pending = false; }
-  }
+  };
+
+  type Row = { id: string; title: string; angle: number; revision: number };
+  let rows = $state<Row[]>([]), loaded = $state(false), pending = $state(false);
+  let status = $state('Saved scenarios have not been loaded.');
+  const scope = location.pathname.split('/').filter(Boolean).slice(1, 3).join('/');
+  const token = new URLSearchParams(location.hash.slice(1)).get('db') ?? '';
 </script>
 <main>
   <p class="eyebrow">SURFACE EXPERIMENT · COMPARISON</p><h1>Compare scenarios</h1>

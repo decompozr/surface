@@ -1,39 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { createSurfaceClient } from './surface-client';
-  let message = $state('');
-  let status = $state('Ready for your input.');
-  let result = $state('');
-  let submitted = $state(false);
-  let busy = $state(false);
-  const responseId = crypto.randomUUID();
-  onMount(() => {
-    if (!new URL(location.href).searchParams.has('request')) {
-      status = 'Preview only. Open a Surface interaction link to send data.';
-      return;
-    }
-    const controller = new AbortController();
-    void (async () => {
-      try {
-        const client = createSurfaceClient();
-        const current = await client.read();
-        if (controller.signal.aborted) return;
-        if (current.response) {
-          submitted = true;
-          message = typeof current.response.data.message === 'string' ? current.response.data.message : '';
-          status = `Existing submission: ${current.response.status}.`;
-          result = JSON.stringify(current.result ?? await client.waitForResult({ signal: controller.signal }), null, 2);
-          status = 'Agent result received.';
-        }
-      } catch (error) { if (!controller.signal.aborted) status = error instanceof Error ? error.message : String(error); }
-    })();
-    return () => controller.abort();
-  });
-  async function submit(event: SubmitEvent) {
+  import { createInteractionClient } from './interactions';
+
+  const submit = async (event: SubmitEvent) => {
     event.preventDefault();
     busy = true;
     try {
-      const client = createSurfaceClient();
+      const client = createInteractionClient();
       const existing = await client.read();
       if (existing.response) {
         submitted = true;
@@ -48,7 +21,36 @@
       status = 'Agent result received.';
     } catch (error) { status = error instanceof Error ? error.message : String(error); }
     finally { busy = false; }
-  }
+  };
+
+  let message = $state('');
+  let status = $state('Ready for your input.');
+  let result = $state('');
+  let submitted = $state(false);
+  let busy = $state(false);
+  const responseId = crypto.randomUUID();
+  onMount(() => {
+    if (!new URL(location.href).searchParams.has('request')) {
+      status = 'Preview only. Open a Surface interaction link to send data.';
+      return;
+    }
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const client = createInteractionClient();
+        const current = await client.read();
+        if (controller.signal.aborted) return;
+        if (current.response) {
+          submitted = true;
+          message = typeof current.response.data.message === 'string' ? current.response.data.message : '';
+          status = `Existing submission: ${current.response.status}.`;
+          result = JSON.stringify(current.result ?? await client.waitForResult({ signal: controller.signal }), null, 2);
+          status = 'Agent result received.';
+        }
+      } catch (error) { if (!controller.signal.aborted) status = error instanceof Error ? error.message : String(error); }
+    })();
+    return () => controller.abort();
+  });
 </script>
 
 <main>

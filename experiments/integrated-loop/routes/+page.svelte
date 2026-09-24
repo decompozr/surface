@@ -1,23 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { createSurfaceClient, type Interaction } from 'virtual:surface-client';
-  import { selection } from '../selection';
+  import { selection } from '../selection.ts';
 
-  type Payload = { experiment: string; title: string; density: string };
-  let client: ReturnType<typeof createSurfaceClient>;
-  let record = $state<Interaction>();
-  let title = $state('我的 Surface 完整流程');
-  let density = $state('comfortable');
-  let ready = $state(false);
-  let busy = $state(false);
-  let attempted = $state(false);
-  let error = $state('');
-  let requestId = $state('');
-  let responseId = $state('');
-  let storageKey = '';
-  const locked = $derived(!ready || busy || attempted || Boolean(record?.response) || Boolean(record?.closed));
 
-  async function inspect() {
+  const inspect = async () => {
     if (!client) return;
     try {
       record = await client.read();
@@ -32,7 +19,43 @@
       ready = false;
       error = cause instanceof Error ? cause.message : String(cause);
     }
-  }
+  };
+
+
+  const submit = async (event: SubmitEvent) => {
+    event.preventDefault();
+    if (locked || !title.trim()) return;
+    busy = true;
+    error = '';
+    try {
+      // Read exact recipient before the explicit action. The shared recipient
+      // panel owns the user's mode choice; the server revalidates that choice.
+      const recipient = await client.recipient();
+      if (!recipient.canSubmit) throw new Error('接收者目前無法接收，請先更新上方接收者狀態。');
+      const data: Payload = { experiment: 'INTEGRATED-LOOP-03', title: title.trim(), density };
+      responseId = crypto.randomUUID();
+      sessionStorage.setItem(storageKey, JSON.stringify({ responseId, data }));
+      attempted = true;
+      record = await client.submit(data, responseId);
+    } catch (cause) {
+      error = cause instanceof Error ? cause.message : String(cause);
+    } finally { busy = false; }
+  };
+
+
+  type Payload = { experiment: string; title: string; density: string };
+  let client: ReturnType<typeof createSurfaceClient>;
+  let record = $state<Interaction>();
+  let title = $state('我的 Surface 完整流程');
+  let density = $state('comfortable');
+  let ready = $state(false);
+  let busy = $state(false);
+  let attempted = $state(false);
+  let error = $state('');
+  let requestId = $state('');
+  let responseId = $state('');
+  let storageKey = '';
+  const locked = $derived(!ready || busy || attempted || Boolean(record?.response) || Boolean(record?.closed));
 
   onMount(() => {
     const url = new URL(location.href);
@@ -62,26 +85,6 @@
     void poll();
     return () => { stopped = true; clearTimeout(timer); };
   });
-
-  async function submit(event: SubmitEvent) {
-    event.preventDefault();
-    if (locked || !title.trim()) return;
-    busy = true;
-    error = '';
-    try {
-      // Read exact recipient before the explicit action. The shared recipient
-      // panel owns the user's mode choice; the server revalidates that choice.
-      const recipient = await client.recipient();
-      if (!recipient.canSubmit) throw new Error('接收者目前無法接收，請先更新上方接收者狀態。');
-      const data: Payload = { experiment: 'INTEGRATED-LOOP-03', title: title.trim(), density };
-      responseId = crypto.randomUUID();
-      sessionStorage.setItem(storageKey, JSON.stringify({ responseId, data }));
-      attempted = true;
-      record = await client.submit(data, responseId);
-    } catch (cause) {
-      error = cause instanceof Error ? cause.message : String(cause);
-    } finally { busy = false; }
-  }
 </script>
 
 <svelte:head><title>Surface 完整流程驗證</title></svelte:head>

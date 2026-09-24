@@ -17,7 +17,7 @@ surface doctor
 
 `install` resolves the Git ref to a full commit, installs frozen dependencies with lifecycle scripts disabled, builds the SvelteKit shell, prepares a self-contained bootstrap and activates last. Uncommitted checkout changes are not installed. `bin/surface` in the selected home works from any cwd without the original checkout; it dispatches application commands to the selected installed release. Its lifecycle commands survive uninstall, enabling reinstall.
 
-The existing package/global link also points at `src/cli/index.ts`, exposing the same public command contract. `surface --help` lists commands. `surface mcp` runs the installed/source-matched stdio adapter with its existing 19 tools against the selected service. It does not install an MCP-host configuration.
+The existing package/global link also points at `apps/cli/src/index.ts`, exposing the same public command contract. `surface --help` lists commands. `surface mcp` runs the installed/source-matched stdio adapter with its existing 19 tools against the selected service. It does not install an MCP-host configuration.
 
 ## Shared selection and layout
 

@@ -82,7 +82,7 @@ bun run surface send \
   --data '{"option":"B","width":120,"comment":"Use this version"}'
 ```
 
-At this baseline, [the public CLI send command](../../apps/surface/src/cli/index.ts) sends response ID and data without a delivery intent. The example therefore uses the compatibility idle-start path; active recipients reject it. Active queue/steer selection is available through the request page/browser client. CLI delivery-intent flags are not implemented.
+At this baseline, [the public CLI send command](../../apps/cli/src/index.ts) sends response ID and data without a delivery intent. The example therefore uses the compatibility idle-start path; active recipients reject it. Active queue/steer selection is available through the request page/browser client. CLI delivery-intent flags are not implemented.
 
 The request resolves to the registered session, so callers do not supply a second destination that could disagree with it. The CLI and page endpoint use the same validation and delivery operations. The implemented Codex adapter calls the native control API; a configured agent CLI remains another possible adapter mechanism.
 
@@ -141,7 +141,7 @@ Recipient discovery and takeover require `recipientSelection: true` at request c
 
 Takeover uses `POST .../requests/ID/takeover` with `{ threadId }`. The shared service serializes preflight against submit/close/takeover and atomically creates a new request/token and, if needed, a binding while closing the old request. Submitted requests, including unknown outcomes, cannot be taken over. No response or result is copied. A lost takeover response requires inspection of `replacedBy` and administrative reconciliation, not an automatic replay. Default-list visibility does not grant cross-worktree delivery.
 
-Available fixture verifier (not run by this documentation task): `bun apps/surface/scripts/verify-recipients.ts` uses a real mounted browser page and fixture adapter for queue, independent tabs, explicit recipient change, no replay, stale-state rejection, and desktop/mobile layout. It never sends input to a real conversation.
+Available fixture verifier (not run by this documentation task): `bun tests/e2e/surface/verify-recipients.ts` uses a real mounted browser page and fixture adapter for queue, independent tabs, explicit recipient change, no replay, stale-state rejection, and desktop/mobile layout. It never sends input to a real conversation.
 
 
 ## Inspecting uncertain delivery

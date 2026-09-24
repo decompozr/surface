@@ -1,5 +1,34 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+
+  const advance = () => {
+    if(ticks>=12)return;
+    const processed=Math.min(queue+4,capacity);
+    const finished=Math.min(review+processed,3);
+    queue=queue+4-processed; review=review+processed-finished;
+    completed+=finished; ticks+=1;
+    history=[...history,{tick:ticks,waiting:queue+review}];
+  };
+
+  const compare = (rate:number) => {
+    let upstream=0, downstream=0, done=0;
+    for(let i=0;i<8;i++) {
+      const processed=Math.min(upstream+4,rate);
+      const finished=Math.min(downstream+processed,3);
+      upstream+=4-processed; downstream+=processed-finished; done+=finished;
+    }
+    return {upstream,downstream,done};
+  };
+
+  const go = (index: number) => {
+    index = Math.max(0, Math.min(chapters.length - 1, index));
+    navigating = index;
+    active = index;
+    requestAnimationFrame(() => steps[index]?.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));
+  };
+
+  const reset = () => { capacity=2; ticks=0; queue=0; review=0; completed=0; history=[]; };
+
   let active = $state(0);
   let inRange = $state(false);
   let navigating: number | null = null;
@@ -19,36 +48,10 @@
     {label:'An observation',title:'The queue can move downstream.',text:'At five requests per round, processing can outpace review. Review still finishes at most three. Compare the two runs below: upstream waiting shrinks, but downstream waiting grows. More work finishes than in the baseline, but review limits further improvement.',prompt:'An improvement can help — and still leave a different limit in place.'},
     {label:'A next experiment',title:'Now ask a more precise question.',text:'The model suggests checking review capacity before adding more processing. Next, measure arrivals and time spent at each stage in a real workflow. Those observations may support this model — or show that its assumptions are wrong.',prompt:'Surface makes the hypothesis explorable. Real evidence determines what to do next.'},
   ];
-  function advance() {
-    if(ticks>=12)return;
-    const processed=Math.min(queue+4,capacity);
-    const finished=Math.min(review+processed,3);
-    queue=queue+4-processed; review=review+processed-finished;
-    completed+=finished; ticks+=1;
-    history=[...history,{tick:ticks,waiting:queue+review}];
-  }
-  function compare(rate:number) {
-    let upstream=0, downstream=0, done=0;
-    for(let i=0;i<8;i++) {
-      const processed=Math.min(upstream+4,rate);
-      const finished=Math.min(downstream+processed,3);
-      upstream+=4-processed; downstream+=processed-finished; done+=finished;
-    }
-    return {upstream,downstream,done};
-  }
   const comparisons=[{rate:2,...compare(2)},{rate:5,...compare(5)}];
-  function go(index: number) {
-    index = Math.max(0, Math.min(chapters.length - 1, index));
-    navigating = index;
-    active = index;
-    requestAnimationFrame(() => steps[index]?.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));
-  }
-  function reset() { capacity=2; ticks=0; queue=0; review=0; completed=0; history=[]; }
   onMount(() => {
-    let frame = 0;
-    const desktop = window.matchMedia('(min-width: 851px)');
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-    function update() {
+
+    const update = () => {
       frame=0;
       const bounds = root.getBoundingClientRect();
       inRange = bounds.top < window.innerHeight * .5 && bounds.bottom > window.innerHeight * .5;
@@ -59,9 +62,9 @@
       steps.forEach((step,index)=>{if(step.getBoundingClientRect().top<=80)chapter=index});
       if (navigating === null) active=chapter;
       drift=reduced.matches?0:Math.max(-10,Math.min(10,(root.getBoundingClientRect().top/window.innerHeight)*6));
-    }
-    const schedule=()=>{if(!frame)frame=requestAnimationFrame(update)};
-    function keydown(event: KeyboardEvent) {
+    };
+
+    const keydown = (event: KeyboardEvent) => {
       if (!inRange || event.defaultPrevented || event.repeat || event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
       const target = event.target;
@@ -70,7 +73,12 @@
       const next = active + (event.key === 'ArrowRight' ? 1 : -1);
       if (next < 0 || next >= chapters.length) return;
       event.preventDefault(); go(next);
-    }
+    };
+
+    let frame = 0;
+    const desktop = window.matchMedia('(min-width: 851px)');
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const schedule=()=>{if(!frame)frame=requestAnimationFrame(update)};
     const cancelNavigation = () => { navigating = null; schedule(); };
     window.addEventListener('keydown',keydown);
     window.addEventListener('wheel',cancelNavigation,{passive:true});

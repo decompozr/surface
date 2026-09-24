@@ -1,32 +1,22 @@
 <script lang="ts">
   import { Button, Select, SurfaceCard, Text } from '@decompozr/design-system';
   import { onMount } from 'svelte';
-  import { createSurfaceClient, type Recipient, type Interaction, type Directory, type DeliveryIntent } from '../../client/index';
-  let client: ReturnType<typeof createSurfaceClient> | undefined;
-  let recipient = $state<Recipient>();
-  let request = $state<Interaction>();
-  let directory = $state<Directory>();
-  let mode = $state('');
-  let selected = $state('');
-  let busy = $state(true);
-  let error = $state('');
-  let enabled = $state(false);
-  let stale = $state(true);
-  let uncertainResponseId = $state('');
-  let requestId = '';
-  let refreshGeneration = 0;
-  function retainRequest(next: Interaction) {
+  import { createInteractionClient, type Recipient, type Interaction, type Directory, type DeliveryIntent } from '../interactions/index.ts';
+
+  const retainRequest = (next: Interaction) => {
     request = next;
     if (next.response || next.result) {
       uncertainResponseId = '';
       try { sessionStorage.removeItem(`surface:uncertain:${requestId}`); } catch { /* Optional browser storage. */ }
     }
-  }
-  function choose() {
+  };
+
+  const choose = () => {
     if (!client || !recipient || stale || uncertainResponseId) return;
     client.configureDelivery(mode ? { mode: mode as DeliveryIntent['mode'], expectedStatus: recipient.status, expectedTurnId: recipient.turnId } : undefined);
-  }
-  async function refresh() {
+  };
+
+  const refresh = async () => {
     if (!client) return;
     const generation = ++refreshGeneration;
     const currentClient = client;
@@ -51,8 +41,9 @@
       error += `${error ? ' ' : ''}Recipient status unavailable. Refresh before choosing delivery.`;
     }
     busy = false;
-  }
-  async function takeOver() {
+  };
+
+  const takeOver = async () => {
     if (!client || !selected || stale || uncertainResponseId || request?.response) return;
     busy = true; error = '';
     try {
@@ -61,7 +52,21 @@
       const fragment = new URLSearchParams(url.hash.slice(1)); fragment.set('token', next.token); url.hash = fragment.toString();
       location.assign(url.href);
     } catch (cause) { error = cause instanceof Error ? cause.message : String(cause); busy = false; }
-  }
+  };
+
+  let client: ReturnType<typeof createInteractionClient> | undefined;
+  let recipient = $state<Recipient>();
+  let request = $state<Interaction>();
+  let directory = $state<Directory>();
+  let mode = $state('');
+  let selected = $state('');
+  let busy = $state(true);
+  let error = $state('');
+  let enabled = $state(false);
+  let stale = $state(true);
+  let uncertainResponseId = $state('');
+  let requestId = '';
+  let refreshGeneration = 0;
   onMount(() => {
     const url = new URL(location.href);
     if (!url.searchParams.has('request')) { busy = false; return; }
@@ -71,7 +76,7 @@
       ++refreshGeneration;
       client?.configureDelivery(); client = undefined;
       stale = true; mode = ''; recipient = undefined; directory = undefined;
-      try { client = createSurfaceClient(); void refresh(); }
+      try { client = createInteractionClient(); void refresh(); }
       catch (cause) { error = String(cause); busy = false; }
     };
     connect();

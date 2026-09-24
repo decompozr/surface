@@ -1,6 +1,6 @@
-import type { NavigationNode } from './server/navigation';
+import type { NavigationNode } from './lib/server/http/navigation.ts';
 import type { IncomingMessage } from 'node:http';
-import type { RuntimeStatus } from './lib/runtime-status';
+import type { RuntimeStatus } from './lib/runtime-status.ts';
 
 declare global {
   namespace App {

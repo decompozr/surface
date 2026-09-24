@@ -1,5 +1,28 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+
+
+  const api = async (method = 'GET', payload?: string) => {
+    const response = await fetch(`/api/requests/${encodeURIComponent(requestId)}${method === 'POST' ? '/responses' : ''}`, {
+      method, headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: payload, signal: AbortSignal.timeout(90_000),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error ?? 'Unable to reach Surface.');
+    return data as RecordView;
+  };
+
+  const submit = async (event: SubmitEvent) => {
+    event.preventDefault();
+    if (locked) return;
+    sending = true; error = '';
+    // Preserve one payload and ID across an uncertain HTTP retry.
+    savedPayload ??= JSON.stringify({ responseId, data: { option, width, comment } });
+    try { record = await api('POST', savedPayload); }
+    catch (cause) { error = cause instanceof Error ? cause.message : 'Submission failed.'; }
+    finally { sending = false; }
+  };
+
   type RecordView = {
     title: string; closed: boolean;
     response?: { id: string; status: string; error?: string; data: { option: string; width: number; comment: string } };
@@ -17,24 +40,9 @@
   let responseId = '';
   let savedPayload = $state<string | undefined>(undefined);
   const locked = $derived(sending || Boolean(record?.response) || Boolean(record?.closed) || !ready);
-
-  async function api(method = 'GET', payload?: string) {
-    const response = await fetch(`/api/requests/${encodeURIComponent(requestId)}${method === 'POST' ? '/responses' : ''}`, {
-      method, headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      body: payload, signal: AbortSignal.timeout(90_000),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error ?? 'Unable to reach Surface.');
-    return data as RecordView;
-  }
   onMount(() => {
-    requestId = new URLSearchParams(location.search).get('request') ?? '';
-    token = new URLSearchParams(location.hash.slice(1)).get('token') ?? '';
-    responseId = crypto.randomUUID();
-    if (!requestId || !token) return;
-    let stopped = false;
-    let timer: ReturnType<typeof setTimeout>;
-    async function refresh() {
+
+    const refresh = async () => {
       try {
         const next = await api();
         if (stopped) return;
@@ -42,20 +50,17 @@
         if (next.response) ({ option, width, comment } = next.response.data);
       } catch (cause) { if (!stopped) error = cause instanceof Error ? cause.message : 'Connection failed.'; }
       if (!stopped) timer = setTimeout(refresh, 1500);
-    }
+    };
+
+    requestId = new URLSearchParams(location.search).get('request') ?? '';
+    token = new URLSearchParams(location.hash.slice(1)).get('token') ?? '';
+    responseId = crypto.randomUUID();
+    if (!requestId || !token) return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
     void refresh();
     return () => { stopped = true; clearTimeout(timer); };
   });
-  async function submit(event: SubmitEvent) {
-    event.preventDefault();
-    if (locked) return;
-    sending = true; error = '';
-    // Preserve one payload and ID across an uncertain HTTP retry.
-    savedPayload ??= JSON.stringify({ responseId, data: { option, width, comment } });
-    try { record = await api('POST', savedPayload); }
-    catch (cause) { error = cause instanceof Error ? cause.message : 'Submission failed.'; }
-    finally { sending = false; }
-  }
 </script>
 
 <svelte:head><title>{record?.title ?? 'Feedback'} · Surface</title></svelte:head>

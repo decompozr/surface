@@ -25,7 +25,7 @@ bun run singleton mount /absolute/project/panel --project /absolute/project \
   --namespace project-a --name panel --state-dir /absolute/local-state
 ```
 
-Follow the [singleton guide](../singleton/README.md) for source requirements, binding, requests, callbacks, and unmounting. Source edits continue through Vite HMR. Management-shell source edits require rebuilding the Kit application and restarting its wrapper. Opening `build/index.js` directly starts the adapter's separate default server and does not provide this integrated runtime; use `server.ts` above.
+Follow the [singleton guide](../../docs/experiments/legacy-page-runtime.md) for source requirements, binding, requests, callbacks, and unmounting. Source edits continue through Vite HMR. Management-shell source edits require rebuilding the Kit application and restarting its wrapper. Opening `build/index.js` directly starts the adapter's separate default server and does not provide this integrated runtime; use `server.ts` above.
 
 The page/API expose namespace, mount name, status, and component-relative paths. They do not expose source roots, request or management tokens, binding/session IDs, or socket paths. This view does not authorize mutations: the core API still requires its management credential. Host/origin checks apply before the Kit handler. All pages remain trusted local code under a shared browser origin.
 

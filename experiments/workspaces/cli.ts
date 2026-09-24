@@ -1,11 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { projectMain } from '../../apps/surface/src/cli/projects.ts';
+import { projectMain } from '@decompozr/surface-cli/projects';
 import { workspaceDirectory } from './identity.ts';
 
-export { retire } from '../../apps/surface/src/workspaces/retire.ts';
-import { retire } from '../../apps/surface/src/workspaces/retire.ts';
+export { retire } from '@decompozr/surface-app/server/workspaces/retire';
+import { retire } from '@decompozr/surface-app/server/workspaces/retire';
 if (import.meta.main) {
   try {
     const { values, positionals } = parseArgs({ allowPositionals: true, options: { 'state-dir': { type: 'string' }, project: { type: 'string' }, artifact: { type: 'string' }, source: { type: 'string' }, name: { type: 'string' }, workspace: { type: 'string' } } });

@@ -3,24 +3,12 @@
   import { colorShades, Badge, Button, Switch, Toolbar, ToggleButton, IconButton, TextArea, Icon, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
   import Toast from './Toast.svelte';
   import SurfaceShell from './SurfaceShell.svelte';
-  import { composerPlacement, readViewport } from '../comment-experiment/viewport';
-  import { describeTarget, resolveTarget } from '../comment-experiment/selection';
-  import { captureElement } from '../comment-experiment/capture';
-  import { emptyState, readState, writeState, REVISION, type Target, type Comment, type Batch } from '../comment-experiment/model';
-  let { data, children, mounted = false, currentPath = '/experiments/comments', endpoint = '/experiments/comments', storageKey = 'conversation', revision = REVISION }: {
-    data: { recipient: string; label: string; live: boolean; navigation?: import('../../server/navigation').NavigationNode[] };
-    children?: Snippet<[boolean]>; mounted?: boolean; currentPath?: string; endpoint?: string; storageKey?: string; revision?: string;
-  } = $props();
-  const capabilityKey = $derived(mounted ? `surface-comments-connection:${storageKey}` : 'surface-comments-connection');
-  let observedRevision = $state('');
-  let review = $state(emptyState());
-  let connectionKey = $state(''), agentAvailable = $state(false), agentStatus = $state('Checking…');
-  let streamConnected = $state(false);
-  let steer = $state(true);
-  let recipientObservation = $state<{ status: 'active' | 'idle' | 'notLoaded'; turnId?: string }>();
-  let inspecting = $state(false);
-  let inspection = 0;
-  async function refreshRecipient(signal?: AbortSignal) {
+  import { composerPlacement, readViewport } from '../comment-experiment/viewport.ts';
+  import { describeTarget, resolveTarget } from '../comment-experiment/selection.ts';
+  import { captureElement } from '../comment-experiment/capture.ts';
+  import { emptyState, readState, writeState, REVISION, type Target, type Comment, type Batch } from '../comment-experiment/model.ts';
+
+  const refreshRecipient = async (signal?: AbortSignal) => {
     const generation = ++inspection;
     inspecting = true; recipientObservation = undefined; agentAvailable = false;
     try {
@@ -34,30 +22,22 @@
     } catch {
       if (generation === inspection) { agentAvailable = false; agentStatus = 'Agent needs refresh'; }
     } finally { if (generation === inspection) inspecting = false; }
-  }
-  function receive(batch: Batch, result: any) {
+  };
+
+  const receive = (batch: Batch, result: any) => {
     batch.status = result.status === 'delivering' ? 'pending' : result.status;
     batch.receipt = result.receipt; batch.requestId = result.requestId;
     batch.deliveryMode = result.deliveryMode; batch.queuedSubmissionId = result.queuedSubmissionId;
     batch.error = result.error;
     if (result.result) batch.result = result.result;
-  }
-  let toast = $state<{ message: string; tone: 'info' | 'success' | 'warning' } | null>(null);
-  let toastTimer: ReturnType<typeof setTimeout> | undefined;
-  let liveAbort: AbortController | undefined;
-  let connectionPhase: 'initial' | 'connected' | 'disconnected' = 'initial';
-  function notify(message: string, tone: 'info' | 'success' | 'warning') {
+  };
+
+  const notify = (message: string, tone: 'info' | 'success' | 'warning') => {
     clearTimeout(toastTimer); toast = { message, tone };
     toastTimer = setTimeout(() => { toast = null; }, 5000);
-  }
-  let ready = $state(false), mode = $state(false), panel = $state(false), busy = $state(false), sending = $state(false);
-  let notice = $state(''), storageError = $state('');
-  let selected = $state<HTMLElement | null>(null), hovered = $state<HTMLElement | null>(null);
-  let box = $state<{ x: number; y: number; width: number; height: number } | null>(null);
-  let selectionBox = $state<typeof box>(null);
-  let toolsPosition = $state({ x: 12, y: 64 });
-  let selectionToolsWidth = $state(340), selectionToolsHeight = $state(44);
-  function selectionKeyboard(node: HTMLElement) {
+  };
+
+  const selectionKeyboard = (node: HTMLElement) => {
     const buttons = () => Array.from(node.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'));
     const focus = (event: FocusEvent) => {
       for (const button of buttons()) button.tabIndex = button === event.target ? 0 : -1;
@@ -81,29 +61,14 @@
     observer.observe(node, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled'] });
     sync(); node.addEventListener('focusin', focus); node.addEventListener('keydown', key);
     return { destroy() { observer.disconnect(); node.removeEventListener('focusin', focus); node.removeEventListener('keydown', key); } };
-  }
-  let workspace = $state<HTMLElement>(null!);
-  let composer = $state<HTMLTextAreaElement>();
-  let persistQueue: Promise<void> = Promise.resolve();
-  const pending = $derived(review.batches.some(b => b.status === 'pending' || b.status === 'unknown'));
-  const locked = $derived(busy || sending || !ready);
-  let editorOpen = $state(false);
-  $effect(() => {
-    if ((panel || editorOpen) && toast?.message === 'Added to draft') {
-      clearTimeout(toastTimer); toast = null;
-    }
-  });
-  let editorPosition = $state({ x: 16, y: 100, width: 310, maxHeight: 400 });
-  let visibleViewport = $state({ x: 0, y: 0, width: 390, height: 844 });
-  let editorElement: HTMLElement | undefined;
-  let measuredEditorHeight = 280;
-  let positionFrame = 0;
-  const compactEditor = $derived(visibleViewport.height < 460);
-  function schedulePosition() {
+  };
+
+  const schedulePosition = () => {
     if (positionFrame) return;
     positionFrame = requestAnimationFrame(() => { positionFrame = 0; updateBox(); });
-  }
-  function measureEditor(host: HTMLElement) {
+  };
+
+  const measureEditor = (host: HTMLElement) => {
     // The application wrapper observes the rendered component without overriding
     // any package-owned styles or depending on private component class names.
     editorElement = host.firstElementChild as HTMLElement;
@@ -114,8 +79,9 @@
     observer.observe(editorElement);
     schedulePosition();
     return { destroy() { observer.disconnect(); editorElement = undefined; measuredEditorHeight = 280; } };
-  }
-  function revealFocusedInput() {
+  };
+
+  const revealFocusedInput = () => {
     if (!composer || document.activeElement !== composer || !editorElement) return;
     for (let parent = composer.parentElement; parent && parent !== editorElement; parent = parent.parentElement) {
       if (parent.scrollHeight <= parent.clientHeight || !/auto|scroll/.test(getComputedStyle(parent).overflowY)) continue;
@@ -124,19 +90,22 @@
       else if (field.top < area.top) parent.scrollTop -= area.top - field.top + 4;
       break;
     }
-  }
-  function metadata(el: HTMLElement): Target { return { ...describeTarget(el, workspace), revision: observedRevision || revision }; }
-  function restoreTarget(target: Target | null) {
+  };
+
+  const metadata = (el: HTMLElement): Target => { return { ...describeTarget(el, workspace), revision: observedRevision || revision }; };
+
+  const restoreTarget = (target: Target | null) => {
     const element = resolveTarget(target, workspace);
     if (mounted && target && (!element || target.revision !== (observedRevision || revision) || metadata(element).text !== target.text)) {
       notice = 'The saved element context changed. Your text and image are retained; select the current element to start a new comment.';
       return null;
     }
     return element;
-  }
-  function closeEditor() { editorOpen = false; hovered = null; updateBox(); }
-  let reviewScroller: HTMLElement | undefined;
-  function followLatest(node: HTMLElement) {
+  };
+
+  const closeEditor = () => { editorOpen = false; hovered = null; updateBox(); };
+
+  const followLatest = (node: HTMLElement) => {
     const body = node.parentElement!;
     reviewScroller = body;
     let following = true;
@@ -147,32 +116,34 @@
     body.addEventListener('scroll', onScroll, { passive: true });
     void tick().then(scroll);
     return { destroy() { resize.disconnect(); body.removeEventListener('scroll', onScroll); reviewScroller = undefined; } };
-  }
-  $effect(() => {
-    if (panel) void tick().then(() => { if (reviewScroller) reviewScroller.scrollTop = reviewScroller.scrollHeight; });
-  });
-  async function togglePanel() {
+  };
+
+  const togglePanel = async () => {
     panel = !panel;
     if (panel) editorOpen = false;
     await tick();
-  }
-  function updateEditor() {
+  };
+
+  const updateEditor = () => {
     if (!editorOpen) return;
     const anchor = selected?.getBoundingClientRect() ?? { left: editorPosition.x, bottom: editorPosition.y - 10 };
     editorPosition = composerPlacement({ ...visibleViewport, height: Math.min(visibleViewport.height, Math.max(1, window.innerHeight - 44 - visibleViewport.y)) }, anchor, measuredEditorHeight, workspace?.getBoundingClientRect().top ?? 60);
-  }
-  function updateBox() {
-    visibleViewport = readViewport(window);
-    updateEditor();
-    if (!mode || !workspace) { box = null; selectionBox = null; return; }
-    const w = workspace.getBoundingClientRect();
-    function clipped(el: HTMLElement | null) {
+  };
+
+  const updateBox = () => {
+
+    const clipped = (el: HTMLElement | null) => {
       if (!el?.isConnected) return null;
       const r = el.getBoundingClientRect();
       const x = Math.max(r.left, w.left, visibleViewport.x), y = Math.max(r.top, w.top, visibleViewport.y);
       const right = Math.min(r.right, w.right, visibleViewport.x + visibleViewport.width), bottom = Math.min(r.bottom, w.bottom, visibleViewport.y + visibleViewport.height);
       return right > x && bottom > y ? { x, y, width: right - x, height: bottom - y } : null;
-    }
+    };
+
+    visibleViewport = readViewport(window);
+    updateEditor();
+    if (!mode || !workspace) { box = null; selectionBox = null; return; }
+    const w = workspace.getBoundingClientRect();
     selectionBox = clipped(selected);
     box = hovered && hovered !== selected ? clipped(hovered) : selectionBox;
     if (selectionBox) {
@@ -181,23 +152,26 @@
         y: Math.max(visibleViewport.y + 12, w.top + 4, Math.min(selectionBox.y - selectionToolsHeight, visibleViewport.y + visibleViewport.height - selectionToolsHeight - 32)),
       };
     }
-  }
-  $effect(() => { selectionToolsWidth; selectionToolsHeight; schedulePosition(); });
+  };
 
-  function targetFrom(event: Event) {
+
+  const targetFrom = (event: Event) => {
     const raw = event.target instanceof Element ? event.target : null;
     const el = raw?.closest<HTMLElement>('button, a, input, select, textarea, [role="button"]') ?? (raw instanceof HTMLElement ? raw : raw?.closest<HTMLElement>('p, section'));
     return el && el !== workspace && workspace?.contains(el) && !['BR', 'SCRIPT', 'STYLE'].includes(el.tagName) ? el : null;
-  }
-  async function select(el: HTMLElement) {
+  };
+
+  const select = async (el: HTMLElement) => {
     if (locked) return;
     const target = metadata(el);
     if (review.draft.target?.id !== target.id && (review.draft.text.trim() || review.draft.capture) && !addComment(false)) return;
     if (review.draft.target?.id !== target.id) review.draft = { target, text: '' };
     selected = el; hovered = null; editorOpen = false; notice = ''; updateBox();
-  }
-  async function openComment() { editorOpen = true; updateBox(); await tick(); composer?.focus({ preventScroll: true }); }
-  function addComment(clearNotice = true) {
+  };
+
+  const openComment = async () => { editorOpen = true; updateBox(); await tick(); composer?.focus({ preventScroll: true }); };
+
+  const addComment = (clearNotice = true) => {
     const d = review.draft;
     if (!d.target || (!d.text.trim() && !d.capture)) return false;
     if (!d.editing && review.comments.length >= 20) { notice = 'Send the current 20 comments before adding more.'; return false; }
@@ -207,30 +181,35 @@
     review.draft = { target: null, text: '' }; selected = null; hovered = null; editorOpen = false; updateBox();
     if (clearNotice) { notice = ''; notify('Added to draft', 'success'); }
     return true;
-  }
-  async function capture() {
+  };
+
+  const capture = async () => {
     if (!selected || locked) return;
     busy = true; notice = ''; const el = selected;
     try { const image = await captureElement(el); review.draft = { ...review.draft, target: metadata(el), capture: image }; notice = 'Element captured. Review the image before adding your comment.'; }
     catch (error) { notice = error instanceof Error ? error.message : 'Capture failed. Your comment is retained.'; }
     finally { busy = false; }
-  }
-  async function edit(comment: Comment) {
+  };
+
+  const edit = async (comment: Comment) => {
     if (locked) return;
     if ((review.draft.text.trim() || review.draft.capture) && !addComment(false)) return;
     review.draft = { target: structuredClone($state.snapshot(comment.target)), text: comment.text, capture: comment.capture, editing: comment.id };
     selected = restoreTarget(comment.target); mode = true; panel = false; editorOpen = true;
     selected?.scrollIntoView({ block: 'nearest', behavior: 'instant' }); updateBox();
     await tick(); composer?.focus({ preventScroll: true });
-  }
-  async function flush() { await persistQueue; await writeState($state.snapshot(review), storageKey); }
-  async function send() {
+  };
+
+  const flush = async () => { await persistQueue; await writeState($state.snapshot(review), storageKey); };
+
+  const send = async () => {
     if (locked || (data.live && (!agentAvailable || !recipientObservation || inspecting)) || pending || review.draft.text.trim() || review.draft.capture || !review.comments.length) return;
     const batch: Batch = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), page: location.pathname, revision: observedRevision || revision, recipient: data.recipient as Batch['recipient'], comments: $state.snapshot(review.comments), ...(data.live && recipientObservation ? { delivery: { mode: recipientObservation.status === 'active' ? (steer ? 'steer' as const : 'queue' as const) : 'start' as const, expectedStatus: recipientObservation.status, expectedTurnId: recipientObservation.turnId } } : {}), status: 'pending' };
     if (JSON.stringify(batch).length > 7_500_000) { notice = 'This batch is too large. Remove a screenshot before sending.'; return; }
     review.batches.push(batch); review.comments = []; review.draft = { target: null, text: '' }; selected = null; updateBox(); await deliver(batch.id);
-  }
-  async function deliver(id: string) {
+  };
+
+  const deliver = async (id: string) => {
     const batch = review.batches.find(b => b.id === id); if (!batch || sending) return;
     sending = true; notice = '';
     try {
@@ -259,8 +238,9 @@
         : `${error instanceof Error ? error.message : 'Delivery could not be confirmed.'} The batch is retained. Status updates automatically.`;
     }
     finally { sending = false; }
-  }
-  async function watchUpdates(signal: AbortSignal) {
+  };
+
+  const watchUpdates = async (signal: AbortSignal) => {
     if (!data.live || !connectionKey || !endpoint) return;
     while (!signal.aborted) {
       liveAbort = new AbortController();
@@ -302,7 +282,54 @@
         const timer = setTimeout(finish, 2000); signal.addEventListener('abort', finish, { once: true });
       });
     }
-  }
+  };
+
+  let { data, children, mounted = false, currentPath = '/experiments/comments', endpoint = '/experiments/comments', storageKey = 'conversation', revision = REVISION }: {
+    data: { recipient: string; label: string; live: boolean; navigation?: import('../server/http/navigation.ts').NavigationNode[] };
+    children?: Snippet<[boolean]>; mounted?: boolean; currentPath?: string; endpoint?: string; storageKey?: string; revision?: string;
+  } = $props();
+  const capabilityKey = $derived(mounted ? `surface-comments-connection:${storageKey}` : 'surface-comments-connection');
+  let observedRevision = $state('');
+  let review = $state(emptyState());
+  let connectionKey = $state(''), agentAvailable = $state(false), agentStatus = $state('Checking…');
+  let streamConnected = $state(false);
+  let steer = $state(true);
+  let recipientObservation = $state<{ status: 'active' | 'idle' | 'notLoaded'; turnId?: string }>();
+  let inspecting = $state(false);
+  let inspection = 0;
+  let toast = $state<{ message: string; tone: 'info' | 'success' | 'warning' } | null>(null);
+  let toastTimer: ReturnType<typeof setTimeout> | undefined;
+  let liveAbort: AbortController | undefined;
+  let connectionPhase: 'initial' | 'connected' | 'disconnected' = 'initial';
+  let ready = $state(false), mode = $state(false), panel = $state(false), busy = $state(false), sending = $state(false);
+  let notice = $state(''), storageError = $state('');
+  let selected = $state<HTMLElement | null>(null), hovered = $state<HTMLElement | null>(null);
+  let box = $state<{ x: number; y: number; width: number; height: number } | null>(null);
+  let selectionBox = $state<typeof box>(null);
+  let toolsPosition = $state({ x: 12, y: 64 });
+  let selectionToolsWidth = $state(340), selectionToolsHeight = $state(44);
+  let workspace = $state<HTMLElement>(null!);
+  let composer = $state<HTMLTextAreaElement>();
+  let persistQueue: Promise<void> = Promise.resolve();
+  const pending = $derived(review.batches.some(b => b.status === 'pending' || b.status === 'unknown'));
+  const locked = $derived(busy || sending || !ready);
+  let editorOpen = $state(false);
+  $effect(() => {
+    if ((panel || editorOpen) && toast?.message === 'Added to draft') {
+      clearTimeout(toastTimer); toast = null;
+    }
+  });
+  let editorPosition = $state({ x: 16, y: 100, width: 310, maxHeight: 400 });
+  let visibleViewport = $state({ x: 0, y: 0, width: 390, height: 844 });
+  let editorElement: HTMLElement | undefined;
+  let measuredEditorHeight = 280;
+  let positionFrame = 0;
+  const compactEditor = $derived(visibleViewport.height < 460);
+  let reviewScroller: HTMLElement | undefined;
+  $effect(() => {
+    if (panel) void tick().then(() => { if (reviewScroller) reviewScroller.scrollTop = reviewScroller.scrollHeight; });
+  });
+  $effect(() => { selectionToolsWidth; selectionToolsHeight; schedulePosition(); });
   $effect(() => {
     if (!ready) return;
     const snapshot = $state.snapshot(review);

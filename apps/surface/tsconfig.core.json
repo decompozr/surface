@@ -12,14 +12,8 @@
     "skipLibCheck": true
   },
   "include": [
-    "src/adapters/**/*.ts",
-    "src/core/**/*.ts",
-    "src/client/**/*.ts",
-    "src/cli/**/*.ts",
-    "src/installation/**/*.ts",
-    "src/server/**/*.ts",
-    "src/runtime/**/*.ts",
-    "src/workspaces/**/*.ts",
-    "tests/**/*.ts"
+    "src/lib/server/**/*.ts",
+    "tests/**/*.ts",
+    ".svelte-kit/ambient.d.ts"
   ]
 }

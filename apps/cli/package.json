@@ -1,0 +1,25 @@
+{
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "name": "@decompozr/surface-cli",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "bin": {
+    "surface": "./src/index.ts"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "@types/bun": "1.4.2"
+  },
+  "scripts": {
+    "check": "tsc --noEmit -p tsconfig.json",
+    "start": "bun src/index.ts",
+    "reply": "bun src/reply.ts"
+  },
+  "dependencies": {
+    "@decompozr/surface-app": "workspace:*",
+    "@decompozr/surface-installer": "workspace:*"
+  }
+}

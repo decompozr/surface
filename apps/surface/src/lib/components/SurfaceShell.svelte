@@ -1,11 +1,30 @@
 <script lang="ts">
   import '@decompozr/design-system/fonts.css';
   import { onMount, tick, type Snippet } from 'svelte';
-  import type { NavigationNode } from '../../server/navigation';
+  import type { NavigationNode } from '../contracts/navigation.ts';
   import SurfaceLogo from '../comment-experiment/SurfaceLogo.svelte';
   import { AppShell, AppHeader, Brand, Button, Icon, Text, Breadcrumbs } from '@decompozr/design-system';
   import NavigationTree from './NavigationTree.svelte';
   import RecipientPanel from './RecipientPanel.svelte';
+
+  const skipToContent = async (event: MouseEvent) => {
+    event.preventDefault();
+    navigationOpen = false;
+    await tick();
+    pageContent.focus();
+  };
+
+  const toggle = () => { navigationOpen = !navigationOpen; if (!overlayNavigation && !mobile) { collapsed = !navigationOpen; try { sessionStorage.setItem('surface-sidebar', String(collapsed)); } catch {} } };
+
+  const trail = (nodes: NavigationNode[], parents: NavigationNode[] = []): NavigationNode[] => {
+    for (const node of nodes) {
+      const nested = trail(node.children, [...parents, node]);
+      if (nested.length) return nested;
+      if (node.href?.replace(/\/$/, '') === currentPath.replace(/\/$/, '')) return [...parents, node];
+    }
+    return [];
+  };
+
   let { navigation = [], currentPath = '/', children, headerTools, surfaceIdentity = false, overlayNavigation = false, showBreadcrumbs = true, panelContent, panelOpen = $bindable(false), status, statusHeight = '0px' }: {
     navigation?: NavigationNode[]; currentPath?: string; children?: Snippet; headerTools?: Snippet;
     surfaceIdentity?: boolean; overlayNavigation?: boolean; showBreadcrumbs?: boolean;
@@ -13,21 +32,6 @@
   } = $props();
   let navigationOpen = $state(false), currentURL = $state(''), mobile = $state(false), collapsed = $state(false);
   let pageContent: HTMLDivElement;
-  async function skipToContent(event: MouseEvent) {
-    event.preventDefault();
-    navigationOpen = false;
-    await tick();
-    pageContent.focus();
-  }
-  function toggle() { navigationOpen = !navigationOpen; if (!overlayNavigation && !mobile) { collapsed = !navigationOpen; try { sessionStorage.setItem('surface-sidebar', String(collapsed)); } catch {} } }
-  function trail(nodes: NavigationNode[], parents: NavigationNode[] = []): NavigationNode[] {
-    for (const node of nodes) {
-      const nested = trail(node.children, [...parents, node]);
-      if (nested.length) return nested;
-      if (node.href?.replace(/\/$/, '') === currentPath.replace(/\/$/, '')) return [...parents, node];
-    }
-    return [];
-  }
   const breadcrumbs = $derived(trail(navigation));
   onMount(() => {
     currentURL = location.href;

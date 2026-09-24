@@ -18,9 +18,9 @@ Environment: macOS arm64, Bun 1.4.2, Google Chrome 153.0.8010.53, Playwright hea
 | Command | Actual result |
 | --- | --- |
 | `bun run --cwd apps/surface build` | Passed; empty env chunk informational message |
-| `bun apps/surface/scripts/verify-skip-link.ts` | First run failed on nested route; corrected fixture runs passed, including final complete capability fragment |
-| `bun apps/surface/scripts/verify-navigation.ts` | Passed parent SSR, worktree separation, nested routes/folder index, breadcrumbs, desktop collapse, mobile drawer and Escape |
-| `bun apps/surface/scripts/verify-recipients.ts` | Passed queue, per-tab choice, explicit fixture takeover, no replay, stale-state rejection and desktop/mobile |
+| `bun tests/e2e/surface/verify-skip-link.ts` | First run failed on nested route; corrected fixture runs passed, including final complete capability fragment |
+| `bun tests/e2e/surface/verify-navigation.ts` | Passed parent SSR, worktree separation, nested routes/folder index, breadcrumbs, desktop collapse, mobile drawer and Escape |
+| `bun tests/e2e/surface/verify-recipients.ts` | Passed queue, per-tab choice, explicit fixture takeover, no replay, stale-state rejection and desktop/mobile |
 | `bun run check` | Passed |
 | `bun run --cwd apps/surface check` | Passed, Svelte 0 errors/0 warnings and server/script TypeScript |
 | `git diff --check` | Passed |

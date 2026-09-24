@@ -6,12 +6,14 @@ import { installationHome } from './launcher.ts';
 import { migrate, restore, validateRelease, preferencesFile } from './compatibility.ts';
 import { declaration, backendRuntime } from './server.ts';
 
-function fixture() {
+
+const fixture = () => {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'surface-contract-unit-'))), state = join(root, 'state'), release = join(root, 'release'), source = join(root, 'ui');
   mkdirSync(state); mkdirSync(source); mkdirSync(join(release, 'experiments/server-contract'), { recursive: true });
   writeFileSync(join(release, 'experiments/server-contract/compatibility.json'), JSON.stringify({ version: 1, preferencesReadVersions: [1, 2] }));
   return { root, state, release, source, clean: () => rmSync(root, { recursive: true, force: true }) };
-}
+};
+
 test('installation home precedence and platform paths without creating default homes', () => {
   expect(installationHome('/explicit', { SURFACE_HOME: '/environment' }, 'darwin', '/user')).toBe('/explicit');
   expect(installationHome(undefined, { SURFACE_HOME: '/environment' }, 'darwin', '/user')).toBe('/environment');
@@ -58,7 +60,7 @@ test('backend declarations reject unsupported APIs and paths before evaluating c
 test('inert module factory and duplicate mount lifecycle; failed factory does not poison retry', async () => {
   const f = fixture();
   try {
-    writeFileSync(join(f.root, 'backend.ts'), `export const apiVersion=1; export function createProjectBackend(){return {invoke(){return {ok:true,data:null}},close(){}}}`);
+    writeFileSync(join(f.root, 'backend.ts'), `export const apiVersion=1; export const createProjectBackend = () => {return {invoke(){return {ok:true,data:null}},close(){}}}`);
     const config = { version: 1, api: 1, entry: 'backend.ts', operations: ['read'] };
     writeFileSync(join(f.root, 'surface.backend.json'), JSON.stringify(config));
     const runtime = backendRuntime(f.state), mount = { projectRoot: f.root, source: f.source, namespace: 'project', name: 'view' };
@@ -66,7 +68,7 @@ test('inert module factory and duplicate mount lifecycle; failed factory does no
     expect(existsSync(join(f.root, 'data'))).toBe(false);
     await expect(runtime.openMountResource({ ...mount, name: 'other' })).rejects.toThrow('one active');
     await first.close(); const second = await runtime.openMountResource(mount); await second.close();
-    writeFileSync(join(f.root, 'invalid.ts'), `export const apiVersion=1; export function createProjectBackend(){return {}}`);
+    writeFileSync(join(f.root, 'invalid.ts'), `export const apiVersion=1; export const createProjectBackend = () => {return {}}`);
     writeFileSync(join(f.root, 'surface.backend.json'), JSON.stringify({ ...config, entry: 'invalid.ts' }));
     await expect(runtime.openMountResource(mount)).rejects.toThrow('factory');
     writeFileSync(join(f.root, 'surface.backend.json'), JSON.stringify(config));
@@ -76,7 +78,7 @@ test('inert module factory and duplicate mount lifecycle; failed factory does no
 test('failed asynchronous close keeps project ownership until a successful retry', async () => {
   const f = fixture();
   try {
-    writeFileSync(join(f.root, 'backend.ts'), `export const apiVersion=1; export function createProjectBackend(){let attempts=0;return {invoke(){return {ok:true,data:null}},async close(){if(++attempts===1) throw new Error('close failed')}}}`);
+    writeFileSync(join(f.root, 'backend.ts'), `export const apiVersion=1; export const createProjectBackend = () => {let attempts=0;return {invoke(){return {ok:true,data:null}},async close(){if(++attempts===1) throw new Error('close failed')}}}`);
     writeFileSync(join(f.root, 'surface.backend.json'), JSON.stringify({ version: 1, api: 1, entry: 'backend.ts', operations: ['read'] }));
     const runtime = backendRuntime(f.state), mount = { projectRoot: f.root, source: f.source, namespace: 'project', name: 'view' };
     const first = await runtime.openMountResource(mount);

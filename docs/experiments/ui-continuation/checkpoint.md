@@ -11,7 +11,7 @@ Phase B must write `intake.md` from these records and the inspected WIP **before
 ## Exact WIP
 
 - `apps/surface/src/lib/components/SurfaceShell.svelte`: imports `tick`, binds the existing Page content region, assigns `surface-page-content`, and adds the first shell link, “Skip to content”. Its native fragment target is a fallback; hydrated activation prevents navigation, closes the drawer, waits for the DOM update and focuses the region. Focused link is fixed above the header/drawer with a visible outline; content gets an inset focus-visible outline. Existing tabindex=0 and navigation mechanics are preserved.
-- `apps/surface/scripts/verify-skip-link.ts`: new, unexecuted focused browser verifier. Uses a disposable workspace fixture and rejecting adapter, adds a nested route with a content button and 1800px wide content, and tests home/nested routes at 1440, 390 and 320px. Checks first Tab target, visible link bounds, unique target ID, Enter focus destination, unchanged full URL and document marker, content tab continuation, local overflow, and keyboard traversal to open a mobile drawer followed by skipping out. Saves screenshots before/after skip and with open drawer. Cleanup is nested finally blocks.
+- `tests/e2e/surface/verify-skip-link.ts`: new, unexecuted focused browser verifier. Uses a disposable workspace fixture and rejecting adapter, adds a nested route with a content button and 1800px wide content, and tests home/nested routes at 1440, 390 and 320px. Checks first Tab target, visible link bounds, unique target ID, Enter focus destination, unchanged full URL and document marker, content tab continuation, local overflow, and keyboard traversal to open a mobile drawer followed by skipping out. Saves screenshots before/after skip and with open drawer. Cleanup is nested finally blocks.
 - `docs/experiments/ui-continuation/task.md`: coordinator-created authorization record, present before Phase A.
 - `docs/experiments/ui-continuation/checkpoint.md`: this record.
 
@@ -45,9 +45,9 @@ After intake/WIP inspection, from this worktree:
 
 ```sh
 bun run --cwd apps/surface build
-bun apps/surface/scripts/verify-skip-link.ts
-bun apps/surface/scripts/verify-navigation.ts
-bun apps/surface/scripts/verify-recipients.ts
+bun tests/e2e/surface/verify-skip-link.ts
+bun tests/e2e/surface/verify-navigation.ts
+bun tests/e2e/surface/verify-recipients.ts
 ```
 
 Existing verifiers launch headless local Chrome through Playwright's `channel: 'chrome'`; availability is not yet checked. They create disposable fixture projects and the recipient verifier uses a fixture adapter/socket. They do not themselves build the shared shell. The new screenshots go to `.decompozr/surface/screenshots/ui-continuation/`; existing scripts save navigation/recipient screenshots under `.decompozr/surface/screenshots/`.

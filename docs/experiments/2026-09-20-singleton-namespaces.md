@@ -12,7 +12,7 @@ This follows the user's clarification after the earlier per-project-process expe
 
 ## Experiment
 
-The [executable pilot](../../apps/surface/runtime/README.md) runs one Bun process with one Node-compatible HTTP listener and one Vite middleware instance. Installation spawns short-lived Bun package-manager processes, but mounting never starts another project development server.
+The [executable pilot](legacy-page-runtime.md) runs one Bun process with one Node-compatible HTTP listener and one Vite middleware instance. Installation spawns short-lived Bun package-manager processes, but mounting never starts another project development server.
 
 Two temporary source folders declare Svelte 5.57.1 and different nanoid versions: 4.0.2 and 5.1.5. Neither begins with `node_modules` or a lockfile. Each has an `artifact.json` component-directory/props declaration and a TypeScript Svelte counter. The server is started first; the CLI then creates `design` and `analysis` namespaces and mounts each folder under the same local name, `controls`.
 

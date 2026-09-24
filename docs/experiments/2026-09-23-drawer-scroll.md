@@ -39,7 +39,7 @@ requirement; the concurrently edited findings map is not changed by this patch.
 
 - Production app build passed.
 - App Svelte and TypeScript checks passed, zero Svelte errors/warnings.
-- `bun apps/surface/scripts/verify-drawer-scroll.ts` passed in Chrome with mobile
+- `bun tests/e2e/surface/verify-drawer-scroll.ts` passed in Chrome with mobile
   emulation and in desktop WebKit at a 390px viewport: background frozen at a
   nonzero original offset, sidebar wheel scrolling, no chaining at its boundary,
   Escape/backdrop restoration, restoration of preexisting inline styles and

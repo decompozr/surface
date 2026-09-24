@@ -3,12 +3,12 @@ import {json,error} from '@sveltejs/kit';
 import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {Store} from '../../../../core/store';
-import {Service} from '../../../../core/service';
-import {DeliveryError,type AgentAdapter} from '../../../../adapters/codex';
-import {RecipientWorkflow} from '../../../../core/recipient-workflow';
-const sessions=new Map<string,{root:string;flow:RecipientWorkflow;request:string;offline:boolean;uncertain:boolean;expires:number}>();
-export async function POST({request,url}){
+import {Store} from '../../../../lib/server/services/store.ts';
+import {Service} from '../../../../lib/server/services/service.ts';
+import {DeliveryError,type AgentAdapter} from '../../../../lib/server/agent-adapters/codex.ts';
+import {RecipientWorkflow} from '../../../../lib/server/services/recipient-workflow.ts';
+
+export const POST = async ({request,url}) => {
  if(env.SURFACE_AGENT_PICKER_EXPERIMENT!=='1'||env.SURFACE_AGENT_DIRECTORY_SOCKET)error(404);
  if(!['localhost','127.0.0.1','[::1]'].includes(url.hostname)||request.headers.get('origin')!==url.origin)error(403);
  for(const [id,s] of sessions)if(s.expires<Date.now()){sessions.delete(id);rmSync(s.root,{recursive:true,force:true});}
@@ -35,4 +35,6 @@ export async function POST({request,url}){
   else if(body.operation!=='read')error(400);
   return json({request:session.flow.service.view(session.request),recipient:await session.flow.recipient(session.request)});
  }catch(e){return json({error:e instanceof Error?e.message:'Fixture operation failed'}, {status:409});}
-}
+};
+
+const sessions=new Map<string,{root:string;flow:RecipientWorkflow;request:string;offline:boolean;uncertain:boolean;expires:number}>();

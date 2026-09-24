@@ -3,8 +3,30 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, realpathSync, rmSy
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { AgentAdapter } from '../../apps/surface/src/adapters/codex.ts';
+import type { AgentAdapter } from '@decompozr/surface-app/server/agent-adapters/codex';
 import { startKitFoundation } from './server.ts';
+
+const cli = async (...args: string[]): Promise<any> => {
+  const child = Bun.spawn([process.execPath, join(import.meta.dir, '../../apps/cli/src/runtime.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
+  const [out, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
+  assert(code === 0, `Singleton ${args[0]} failed: ${error}\n${out}`);
+  return JSON.parse(out);
+};
+
+
+const project = (name: string, nanoid: string) => {
+  const root = join(directory, name), source = join(root, 'panels');
+  mkdirSync(join(source, 'src'), { recursive: true });
+  writeFileSync(join(source, 'package.json'), JSON.stringify({ name, private: true, type: 'module', dependencies: { svelte: '5.57.1', nanoid } }));
+  writeFileSync(join(source, 'src/Form.svelte'), form);
+  projects.set(`fixture-${name}`, root);
+  return { root, source, component: join(source, 'src/Form.svelte') };
+};
+
+const assert: (condition: unknown, message: string) => asserts condition = (condition: unknown, message: string): asserts condition => { if (!condition) throw new Error(message); };
+
+const observed = (message: string) => { observations.push(message); console.log(message); };
+
 
 // Automated fixture inputs only. This does not contact a live model session.
 const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-kit-'))), stateDir = join(directory, 'state');
@@ -24,31 +46,15 @@ const adapter: AgentAdapter = {
   async deliver(binding, message) {
     await this.inspect(binding);
     deliveries.push({ threadId: binding.threadId, ...JSON.parse(message.split('\n')[1]!) });
-    assert(message.includes('apps/surface/runtime/cli.ts') && message.includes(stateDir), 'Callback is not routed to the shared interaction core.');
+    assert(message.includes('apps/cli/src/runtime.ts') && message.includes(stateDir), 'Callback is not routed to the shared interaction core.');
     return { mode: 'start', turnId: `fixture-turn-${deliveries.length}` };
   },
 };
-const baseForm = readFileSync(join(import.meta.dir, '../../apps/surface/runtime/fixtures/InteractionForm.svelte'), 'utf8');
+const baseForm = readFileSync(join(import.meta.dir, '../../tests/e2e/runtime/fixtures/InteractionForm.svelte'), 'utf8');
 const form = baseForm.replace('<script lang="ts">', '<script lang="ts">\nimport { nanoid } from "nanoid";\nimport dependency from "../node_modules/nanoid/package.json";\nconst generated = nanoid();').replace('<main>', '<main><p data-testid="dependency">{dependency.version}</p><p data-testid="generated">{generated}</p>');
-function project(name: string, nanoid: string) {
-  const root = join(directory, name), source = join(root, 'panels');
-  mkdirSync(join(source, 'src'), { recursive: true });
-  writeFileSync(join(source, 'package.json'), JSON.stringify({ name, private: true, type: 'module', dependencies: { svelte: '5.57.1', nanoid } }));
-  writeFileSync(join(source, 'src/Form.svelte'), form);
-  projects.set(`fixture-${name}`, root);
-  return { root, source, component: join(source, 'src/Form.svelte') };
-}
 const alpha = project('alpha', '4.0.2'), beta = project('beta', '5.1.5');
 const schemaPath = join(directory, 'schema.json');
 writeFileSync(schemaPath, JSON.stringify({ type: 'object', additionalProperties: false, required: ['label'], properties: { label: { type: 'string', minLength: 1 } } }));
-function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
-function observed(message: string) { observations.push(message); console.log(message); }
-async function cli(...args: string[]): Promise<any> {
-  const child = Bun.spawn([process.execPath, join(import.meta.dir, '../../apps/surface/runtime/cli.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
-  const [out, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
-  assert(code === 0, `Singleton ${args[0]} failed: ${error}\n${out}`);
-  return JSON.parse(out);
-}
 let app: Awaited<ReturnType<typeof startKitFoundation>> | undefined;
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 try {

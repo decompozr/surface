@@ -1,6 +1,6 @@
 # Multiple Surfaces sharing one workspace backend
 
-A bounded experiment, not a supported backend API or production adoption. This directory contains an independent host and backend ownership prototype. The normal `surface` entry and `apps/surface/src/server/backends.ts` retain their existing one-backend-mount restriction.
+A bounded experiment, not a supported backend API or production adoption. This directory contains an independent host and backend ownership prototype. The normal `surface` entry and `apps/surface/src/lib/server/http/backends.ts` retain their existing one-backend-mount restriction.
 
 ## Run
 

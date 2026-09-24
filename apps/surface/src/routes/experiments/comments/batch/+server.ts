@@ -1,4 +1,4 @@
-import { UnsubmittedCommentError } from '../../../../../comments/delivery';
+import { UnsubmittedCommentError } from '../../../../lib/server/comments/delivery.ts';
 import { authorize } from '$lib/server/comment-delivery';
 import { env } from '$env/dynamic/private';
 import { error, json } from '@sveltejs/kit';
@@ -6,8 +6,9 @@ import { createHash } from 'node:crypto';
 import { allowsCommentOrigin } from '$lib/comment-experiment/access';
 import { validateBatch } from '$lib/comment-experiment/validate';
 
+
 // A deterministic local receipt, not an agent adapter or a real conversation.
-export async function POST({ request, url }) {
+export const POST = async ({ request, url }) => {
   if (env.SURFACE_COMMENTS_EXPERIMENT !== '1') error(404);
   if (!allowsCommentOrigin(url, env.SURFACE_COMMENTS_ORIGIN) || request.headers.get('origin') !== url.origin) error(403);
   if (!request.headers.get('content-type')?.startsWith('application/json')) error(415);
@@ -33,9 +34,10 @@ export async function POST({ request, url }) {
   if (!validateBatch(batch)) error(400, 'Invalid comment batch');
   const receipt = createHash('sha256').update(raw).digest('hex').slice(0, 16);
   return json({ batchId: batch.id, receipt: `fixture-${receipt}`, received: batch.comments.length, destination: 'local-fixture', message: 'Local fixture received this batch. No real agent was contacted.' });
-}
+};
 
-export async function GET({ request, url }) {
+
+export const GET = async ({ request, url }) => {
   if (env.SURFACE_COMMENTS_EXPERIMENT !== '1') error(404);
   if (!allowsCommentOrigin(url, env.SURFACE_COMMENTS_ORIGIN)) error(403);
   const bridge = authorize(request);
@@ -43,4 +45,4 @@ export async function GET({ request, url }) {
   if (batchId) return json(bridge.view(batchId));
   try { return json({ available: true, ...await bridge.inspect(), recipient: `codex:${bridge.connection.threadId}` }); }
   catch { return json({ available: false, status: 'unavailable' }); }
-}
+};
