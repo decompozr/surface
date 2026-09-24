@@ -9,7 +9,7 @@ import { CodexRpc } from '@decompozr/surface-app/server/agent-adapters/rpc';
 const assert: (value: unknown, message: string) => asserts value = (value: unknown, message: string): asserts value => { if (!value) throw new Error(message); };
 
 const cli = async (...args: string[]) => {
-  const child = Bun.spawn([process.execPath, join(process.cwd(), 'apps/cli/src/runtime.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
+  const child = Bun.spawn([process.execPath, join(process.cwd(), 'tests/e2e/runtime/control.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
   const [out, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
   if (code) throw new Error(`CLI ${args[0]} failed: ${error} ${out}`); return JSON.parse(out);
 };
@@ -32,10 +32,10 @@ try {
   const initial = `<script>
 import { onMount } from 'svelte';
 import { previewState } from 'virtual:surface-preview';
-import { createSurfaceClient } from 'virtual:surface-client';
+import { createInteractionClient } from 'virtual:surface-interactions';
 const draft = previewState('unrelated-draft', '', 1);
 const responseId = previewState('response-id', crypto.randomUUID(), 1);
-const client = createSurfaceClient();
+const client = createInteractionClient();
 let request = $state(null), failure = $state('');
 const refresh = async () => {try{request=await client.read()}catch(error){failure=String(error)}}
 const submit = async () => {try{request=await client.submit({columns:2,sourcePath:${JSON.stringify(componentPath)},automated:true},$responseId)}catch(error){failure=String(error)}}

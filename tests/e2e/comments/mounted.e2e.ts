@@ -24,8 +24,8 @@ if (installedHome && JSON.parse(readFileSync(join(installedHome, 'e2e-fixture.js
 const state = installedHome ? join(installedHome, 'state') : realpathSync(mkdtempSync(join(tmpdir(), 'surface-loop-')));
 const socket = join(state, 'fixture.sock');
 const http = createServer(); const ws = new WebSocketServer({ server: http });
-const interactionModule = process.env.COMMENTS_E2E_LEGACY_INTERACTIONS === '1' ? 'virtual:surface-client' : 'virtual:surface-interactions';
-const interactionFactory = process.env.COMMENTS_E2E_LEGACY_INTERACTIONS === '1' ? 'createSurfaceClient' : 'createInteractionClient';
+const interactionModule = 'virtual:surface-interactions';
+const interactionFactory = 'createInteractionClient';
 const activeRecipient = process.env.COMMENTS_E2E_ACTIVE !== '0';
 let activeTurn = 'fixture-active-1';
 let deliveries: { method: string; params: any }[] = [];

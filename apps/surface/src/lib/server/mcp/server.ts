@@ -68,7 +68,7 @@ export const createMcpServer = (stateDir: string) => {
   }, input => api('/api/bindings', input));
   register('surface_request', 'Create an interaction for a mounted component. Returns a private preview URL containing the browser request capability; share only with the intended user.', {
     bindingId: id, title: z.string().trim().min(1).max(200), namespace: slug, name: slug,
-    component: z.string().min(1).max(1000), schema: jsonObject.optional(),
+    component: z.string().min(1).max(1000), schema: jsonObject,
   }, input => api('/api/requests', input));
   register('surface_inspect', 'Read saved interaction state without its capability. Accepted delivery is not agent completion.', { requestId: id }, input => api(`/api/requests/${input.requestId}`), true);
   register('surface_send', 'Submit data once to an existing interaction and its exact agent session. Retain responseId for reconciliation; never retry an unknown outcome with a new ID.', {

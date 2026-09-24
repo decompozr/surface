@@ -34,21 +34,6 @@ describe('exact conversation comment delivery using a fake adapter', () => {
     const changed = batch(); changed.comments[0].text = 'Different payload';
     await expect(restored.submit(changed)).rejects.toThrow('already has a submission');
   });
-  test('legacy verbose records reconcile without replay or changing the stored result', async () => {
-    let calls = 0;
-    const { bridge, root, config } = await fixture({ inspect: async () => ({ status: 'idle' }), deliver: async () => { calls++; return { mode: 'start', turnId: 'legacy-turn' }; } });
-    const receipt = await bridge.submit(batch());
-    bridge.service.store.update(state => {
-      const record = state.requests.find(r => r.id === receipt!.requestId)!;
-      Object.assign(record.response!.data, { handling: 'by-the-way', handlingPreference: 'Legacy instructions', imageInstructions: 'Legacy image instructions' });
-      record.result = { message: 'Already done', stage: 'completed' };
-    });
-    const restored = new CommentDelivery(root, config, { inspect: async () => ({ status: 'idle' }), deliver: async () => { throw new Error('Must not replay'); } });
-    expect((await restored.submit(batch()))?.result).toEqual({ message: 'Already done', stage: 'completed' });
-    expect(calls).toBe(1);
-    const changed = batch(); changed.comments[0].text = 'Changed';
-    await expect(restored.submit(changed)).rejects.toThrow('already has a submission');
-  });
   test('preflight shares identical pending batches but rejects changed payloads', async () => {
     let release!: () => void;
     const gate = new Promise<void>(resolve => { release = resolve; });

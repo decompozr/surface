@@ -16,10 +16,11 @@
   "scripts": {
     "check": "tsc --noEmit -p tsconfig.json",
     "start": "bun src/index.ts",
-    "reply": "bun src/reply.ts"
+    "reply": "bun src/reply.ts",
+    "test": "bun test tests"
   },
   "dependencies": {
     "@decompozr/surface-app": "workspace:*",
-    "@decompozr/surface-installer": "workspace:*"
+    "@clack/prompts": "1.8.1"
   }
 }

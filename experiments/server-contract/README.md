@@ -1,5 +1,7 @@
 # First-server contract experiments
 
+Historical record: this installer experiment was retired on September 24. Its executable source is preserved in Git at `492a09a`; the current CLI supports only the Surface host. Commands below describe the earlier experiment and are not current instructions.
+
 Status: implemented and verified; see the [findings](../../docs/experiments/2026-09-21-server-contract.md). Three bounded experiments, not adoption of a production launcher or backend API.
 
 ## Gates

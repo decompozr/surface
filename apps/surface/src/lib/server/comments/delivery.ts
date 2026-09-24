@@ -40,15 +40,9 @@ export class CommentDelivery {
       writeFileSync(imagePath, bytes, { mode: 0o600 });
       return { ...comment, capture: { ...capture, imagePath } };
     });
-    let data: Record<string, unknown> = { batchId: batch.id, page: batch.page, revision: batch.revision, createdAt: batch.createdAt, comments };
+    const data: Record<string, unknown> = { batchId: batch.id, page: batch.page, revision: batch.revision, createdAt: batch.createdAt, comments };
     let request = this.service.store.state.requests.find(item => item.runtimeId === `comments:${batch.id}`);
     if (!request) request = this.service.create({ bindingId: binding.id, title: 'Surface element comments', runtimeId: `comments:${batch.id}`, schema: { type: 'object' } });
-    // Older records retain their original verbose data for audit/deduplication.
-    // An identical old submission can be inspected, never re-delivered.
-    if (request.response) {
-      const { handling: _handling, handlingPreference: _preference, imageInstructions: _images, ...original } = request.response.data;
-      if (isDeepStrictEqual(original, data)) data = request.response.data;
-    }
     const identity = { data, delivery: batch.delivery };
     const pending = this.submissions.get(batch.id);
     if (pending) {

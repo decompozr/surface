@@ -2,15 +2,14 @@
 
 Status: adopted September 24, 2026, revised at the user's direction to remove packages without independent consumers.
 
-The repository has three Bun workspaces under `apps/` and one root lockfile. A distinct responsibility does not by itself justify an independent package. Surface owns its internal implementation; extract a package only when concrete consumers require that boundary.
+The repository has two Bun workspaces under `apps/` and one root lockfile. A distinct responsibility does not by itself justify an independent package. Surface owns its internal implementation; extract a package only when concrete consumers require that boundary.
 
 | Workspace | Responsibility | Dependencies within this repository |
 | --- | --- | --- |
 | `apps/surface` | SvelteKit UI, services, HTTP/MCP, mounted pages and product templates | None |
-| `apps/cli` | Command arguments/output, local maintenance and calls to an existing Surface service | Surface public exports and installer |
-| `apps/installer` | Setup, installation, activation, owned process lifecycle and rollback | None |
+| `apps/cli` | Commands, calls to Surface, setup, installation, activation, process lifecycle and rollback | Surface public exports |
 
-Cross-workspace imports use declared exports and `workspace:*` dependencies. Surface and installer cannot import other apps. The dependency graph must remain acyclic. Do not create a parallel root `packages/` tree.
+Cross-workspace imports use declared exports and `workspace:*` dependencies. Surface cannot import CLI. Installation is an internal CLI module under `src/installation`, not an independent application. The dependency graph must remain acyclic. Do not create a parallel root `packages/` tree.
 
 ## Surface modules
 
@@ -28,7 +27,7 @@ Cross-workspace imports use declared exports and `workspace:*` dependencies. Sur
 | `templates` | Complete project scaffold assets |
 | `src/lib/server/templates` | Local template generation and overwrite protection |
 
-Use `createInteractionClient` from `virtual:surface-interactions` in new mounted pages. Existing `createSurfaceClient`, `createArtifactClient` and virtual module aliases remain compatible. Generated standalone projects receive `src/interactions.ts`. The root `./client` export remains a compatibility alias; new consumers use `./interactions`.
+Use `createInteractionClient` from `virtual:surface-interactions` in new mounted pages. Generated standalone projects receive `src/interactions.ts`. The root package exports `./interactions`.
 
 The CLI's `src/surface-api.ts` exposes its management transport. CLI and standalone stdio MCP share the Surface-owned `server/http/project-client` implementation for authenticated local requests, response validation and no-retry behavior. This narrow transport reuse does not require a separate client workspace. Browser interactions never import it or receive management credentials.
 
@@ -40,14 +39,14 @@ Templates stay app-owned and can be generated with the service stopped. CLI call
 
 ## Tests and repository tooling
 
-App-owned unit and integration tests live in each app's `tests/`; agent adapter tests belong to Surface. Root `tests/e2e` owns cross-app browser, MCP and installed lifecycle verification. Root `tests/unit` enforces repository dependency boundaries. Root `scripts/` contains only repository-wide release and documentation tools.
+App-owned unit and integration tests live in each app's `tests/`; agent adapter tests belong to Surface, and installation tests belong to CLI. Root `tests/e2e` owns cross-app browser, MCP and installed lifecycle verification. Root `tests/unit` enforces repository dependency boundaries. Root `scripts/` contains only repository-wide release and documentation tools.
 
-Historical `experiments/` source is excluded from production workspaces, imports and default commands. Installer fallback paths intentionally support previous releases and rollback.
+Historical `experiments/` source is excluded from production workspaces, imports and default commands. Installation resolves only the current Surface and CLI layout.
 
 ## Verification
 
-Use an isolated source export, frozen workspace dependencies and the exact selected design-system package. Run types, SvelteKit checks, app/installer tests, MCP verifiers, the full comments matrix and installed upgrade/rollback acceptance. Exercise the new interaction API and preserved aliases. Verify direct service operations share shutdown admission and the management client remains inaccessible from mounted pages.
+Use an isolated source export, frozen workspace dependencies and the exact selected design-system package. Run types, SvelteKit checks, app/CLI tests, MCP verifiers, the full comments matrix and installed upgrade/rollback acceptance. Exercise the current interaction API. Verify direct service operations share shutdown admission and the management client remains inaccessible from mounted pages.
 
 The earlier seven-workspace migration and its bounded acceptance are summarized in [history](../history/2026-09-24-workspace-boundaries.md). Those results do not validate the revised layout. Current consolidation evidence is retained under `.decompozr/surface/module-consolidation-20260924/`.
 
-The three-app candidate passed source checks, 111 tests, actual CLI/MCP/browser flows, the immutable comments matrix and installed upgrade/rollback. See the [dated acceptance and limits](../history/2026-09-24-workspace-boundaries.md#three-app-consolidation-acceptance). Browser SDK aliases preserve older mounted projects; new fixtures exercise `virtual:surface-interactions`.
+The three-app candidate passed source checks, 111 tests, actual CLI/MCP/browser flows, the immutable comments matrix and installed upgrade/rollback. See the [dated acceptance and limits](../history/2026-09-24-workspace-boundaries.md#three-app-consolidation-acceptance). That historical candidate retained browser SDK aliases; the current development contract removes them.

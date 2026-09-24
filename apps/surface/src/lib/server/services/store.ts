@@ -1,22 +1,21 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { RuntimeDefinition } from './runtime.ts';
 import type { Binding, Receipt, DeliveryIntent } from '../agent-adapters/codex.ts';
 
 export type PreviewScope = { namespace: string; name: string; source: string; projectRoot: string; component: string };
 export type RequestRecord = {
   id: string; bindingId: string; title: string; token: string; schema: Record<string, unknown>;
   recipientSelection?: boolean; replaces?: string; replacedBy?: string;
-  previewScope?: PreviewScope; runtimeId?: string; previewPath?: string; createdAt: string; closed: boolean; response?: ResponseRecord; result?: Record<string, unknown>;
+  previewScope?: PreviewScope; runtimeId?: string; createdAt: string; closed: boolean; response?: ResponseRecord; result?: Record<string, unknown>;
 };
 export type ResponseRecord = {
   id: string; data: Record<string, unknown>; createdAt: string;
   status: 'delivering' | 'accepted' | 'failed' | 'unknown';
   receipt?: Receipt; error?: string; delivery?: DeliveryIntent;
 };
-export type State = { version: 1; bindings: Binding[]; requests: RequestRecord[]; runtimes: RuntimeDefinition[] };
+export type State = { version: 1; bindings: Binding[]; requests: RequestRecord[] };
 
-/** Single-server prototype store. The server holds an exclusive lock for this directory. */
+/** Durable interaction store. The server holds an exclusive lock for this directory. */
 export class Store {
   state: State;
   private listeners = new Set<() => void>();
@@ -26,13 +25,11 @@ export class Store {
     try { this.state = JSON.parse(readFileSync(file, 'utf8')); }
     catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-      this.state = { version: 1, bindings: [], requests: [], runtimes: [] };
+      this.state = { version: 1, bindings: [], requests: [] };
     }
     if (this.state.version !== 1 || !Array.isArray(this.state.bindings) || !Array.isArray(this.state.requests)) {
       throw new Error('Unsupported or invalid Surface state file.');
     }
-    this.state.runtimes ??= [];
-    if (!Array.isArray(this.state.runtimes)) throw new Error('Invalid runtime registry.');
     this.update(state => {
       for (const request of state.requests) {
         if (request.response?.status === 'delivering') {

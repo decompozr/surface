@@ -1,13 +1,13 @@
 <script lang="ts">
 import { onMount } from 'svelte';
-import { createSurfaceClient } from 'virtual:surface-client';
+import { createInteractionClient } from 'virtual:surface-interactions';
 import { previewState } from 'virtual:surface-preview';
 
 const refresh = async () => { try { interaction = await client.read(); } catch (error) { failure = String(error); } };
 
 const submit = async () => { try { interaction = await client.submit({ label: $draft }, $responseId); } catch (error) { failure = String(error); } };
 
-const client = createSurfaceClient();
+const client = createInteractionClient();
 const draft = previewState('draft', '', 1);
 const responseId = previewState('response-id', crypto.randomUUID(), 1);
 let interaction = $state<any>(null);

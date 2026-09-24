@@ -22,7 +22,7 @@ export const startSurfaceApp = async (options: { stateDir: string; port?: number
   const stateDir = resolve(options.stateDir);
   if (existsSync(join(stateDir, 'workspace-migration.pending.json'))) throw new Error('Workspace migration is incomplete.');
   if (existsSync(join(stateDir, 'server.lock'))) throw new Error('Surface state is locked.');
-  if (existsSync(join(stateDir, 'project-bindings.json'))) throw new Error('Legacy project bindings require explicit workspace migration.');
+  if (existsSync(join(stateDir, 'project-bindings.json'))) throw new Error('Unsupported project binding format. Preserve this state and reconcile it explicitly before starting.');
   const configuration = join(stateDir, 'workspace-host.json');
   const saved = existsSync(configuration) ? JSON.parse(readFileSync(configuration, 'utf8')) : undefined;
   const dataRoot = resolve(options.dataRoot ?? saved?.dataRoot ?? join(dirname(stateDir), 'project-data'));

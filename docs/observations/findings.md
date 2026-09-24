@@ -172,7 +172,7 @@ Follow-up: user feedback removed the redundant Workspace tag from the header. Th
 
 ### By-the-way comment preference — September 23
 
-The user selected immediate Steer as conversational input: acknowledge promptly, retain the original task and let the agent state its processing order. Queue remains an alternative. This is adopted for the comment experiment in [agent interaction](../requirements/agent-interaction.md#by-the-way-comments-user-selected-follow-up). Transport delivery, agent acknowledgement and completed output remain separate. Browser/provider-fixture evidence is recorded in [the follow-up](../experiments/2026-09-23-by-the-way-comments.md); model behavior and physical-device acceptance are separate gates.
+The user selected immediate Steer as conversational input: acknowledge promptly, retain the original task and let the agent state its processing order. Queue remains an alternative. This is adopted for the comment experiment in [agent interaction](../requirements/agent-interaction.md#contextual-comment-batches--experimental). Transport delivery, agent acknowledgement and completed output remain separate. Browser/provider-fixture evidence is recorded in [the follow-up](../experiments/2026-09-23-by-the-way-comments.md); model behavior and physical-device acceptance are separate gates.
 
 ### September 24: comment feedback correction
 

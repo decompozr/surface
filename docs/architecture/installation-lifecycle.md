@@ -35,7 +35,7 @@ Surface metadata is a separate decision. If SQLite is later chosen for the servi
 
 ## Worktree follow-up
 
-The [workspace experiment](../experiments/2026-09-21-workspaces.md) now demonstrates one shared service with worktree-scoped resources. It avoids per-worktree service state and keeps lazy domain data outside disposable roots. Source merges through Git; runtime retirement preserves history and data rather than migrating a whole workspace into main. The public entry now includes this host and a stopped-only migration that preserves legacy namespaces and interaction records.
+The [workspace experiment](../experiments/2026-09-21-workspaces.md) now demonstrates one shared service with worktree-scoped resources. It avoids per-worktree service state and keeps lazy domain data outside disposable roots. Source merges through Git; runtime retirement preserves history and data rather than migrating a whole workspace into main. The public entry includes only the current workspace host.
 
 ## Remaining implementation decisions
 

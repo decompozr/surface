@@ -49,7 +49,7 @@ const transport = new StdioClientTransport({ command: process.execPath, args: [j
 let stderr = ''; transport.stderr?.on('data', chunk => { stderr += chunk.toString(); });
 const client = new Client({ name: 'surface-mcp-verifier', version: '0.1.0' });
 const observations: Record<string, unknown> = {};
-const cliPath = join(root, 'apps/cli/src/runtime.ts');
+const cliPath = join(root, 'tests/e2e/runtime/control.ts');
 const cli = (...args: string[]) => cliCode(0, ...args);
 const scope = { namespace: 'mcp', name: 'panel' };
 const schema = { type: 'object', required: ['label'], additionalProperties: false, properties: { label: { type: 'string' } } };

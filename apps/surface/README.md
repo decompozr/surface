@@ -74,11 +74,11 @@ Project operations at `/api/v1/projects/operations` now use the existing Git wor
 Use the existing public CLI with `SURFACE_STATE_DIR` pointing to this app's explicit state directory. From a Git project root with a Surface project manifest:
 
 ```sh
-SURFACE_STATE_DIR=/tmp/surface-app-development bun /absolute/path/to/surface/src/cli/index.ts project register
-SURFACE_STATE_DIR=/tmp/surface-app-development bun /absolute/path/to/surface/src/cli/index.ts project mount --artifact ARTIFACT_UUID
+SURFACE_STATE_DIR=/tmp/surface-app-development bun /absolute/path/to/surface/apps/cli/src/index.ts project register
+SURFACE_STATE_DIR=/tmp/surface-app-development bun /absolute/path/to/surface/apps/cli/src/index.ts project mount --artifact ARTIFACT_UUID
 ```
 
-`--data-root PATH` selects the external location reserved for future workspace data; its default is `project-data` beside the state directory. The choice is persisted, but the directory and SQLite files are not allocated by registration or mounting. Changing it or adopting legacy single-root bindings requires explicit migration. Branch renames and detached HEAD preserve identity; independent clones with copied project UUIDs are rejected.
+`--data-root PATH` selects the external location reserved for future workspace data; its default is `project-data` beside the state directory. The choice is persisted, but the directory and SQLite files are not allocated by registration or mounting. Changing it or reconciling unsupported single-root bindings requires a separately scoped explicit data operation. Branch renames and detached HEAD preserve identity; independent clones with copied project UUIDs are rejected.
 
 Run `bun run verify:workspaces` to exercise two disposable real Git worktrees, namespace isolation, clone conflict, restart and data-root guards. Existing user worktrees are never involved.
 
@@ -89,14 +89,14 @@ The host forwards an optional typed `AgentAdapter` to the existing interaction s
 The project-owned examples include `routes/feedback/+page.svelte` and `feedback.schema.json`. For an explicitly selected conversation, use the existing development CLI (from the repository root):
 
 ```sh
-bun apps/cli/src/runtime.ts bind --project /absolute/project-root --thread EXACT_THREAD_ID --socket /absolute/control.sock --state-dir /tmp/surface-app-development
-bun apps/cli/src/runtime.ts request --binding BINDING_ID --namespace WORKSPACE_NAMESPACE --name MOUNT_NAME --component routes/feedback/+page.svelte --title 'Choose a label' --schema-file examples/feedback.schema.json --state-dir /tmp/surface-app-development
+bun apps/cli/src/index.ts bind --project /absolute/project-root --thread EXACT_THREAD_ID --socket /absolute/control.sock --state-dir /tmp/surface-app-development
+bun apps/cli/src/index.ts request --binding BINDING_ID --namespace WORKSPACE_NAMESPACE --name MOUNT_NAME --component routes/feedback/+page.svelte --title 'Choose a label' --schema-file examples/feedback.schema.json --state-dir /tmp/surface-app-development
 ```
 
 Open the returned `previewUrl`. Opening or editing the form sends no agent message; pressing **Send feedback** submits `{ "label": "..." }`. The request capability cannot publish agent results or cross workspace namespaces. The agent receives the request/response identity and an explicit result command targeting this state directory:
 
 ```sh
-bun apps/cli/src/runtime.ts result --request REQUEST_ID --data '{"message":"Reviewed choice"}' --state-dir /tmp/surface-app-development
+bun apps/cli/src/index.ts result --request REQUEST_ID --data '{"message":"Reviewed choice"}' --state-dir /tmp/surface-app-development
 ```
 
 These are trusted local components sharing one origin, not a hostile-code sandbox. An accepted response means transport delivery was accepted, not that the agent completed the task. A delivery marked `unknown` remains uncertain and is not automatically resent. Duplicate submissions with the same response identity and data do not deliver twice. Unmount revokes browser access while preserving the original interaction record; restart preserves results without replaying responses.
@@ -124,7 +124,7 @@ The app exposes `/workspace/{project-name}/{worktree-name}/{mounted-folder}/{pag
 
 Project names and folder names become lowercase URL slugs. The primary checkout is `main`; linked worktrees use their folder name. The alias is captured on first mount and persisted with the internal UUID binding, so branch switches and restarts do not rename URLs. Collisions are rejected, including aliases reserved by unmounted records. Explicit alias renaming is not yet implemented.
 
-The source manifest declares `"components": "routes", "routes": "routes"`. Static nested paths and a root `+page.svelte` are supported. This is mounted Svelte page discovery, not full SvelteKit routing: layouts, dynamic parameters, server load functions and form actions are not implemented. Legacy `/n/` component previews remain available for existing clients. Interaction URLs use the readable page path plus request identity/capability; the internal API remains UUID-scoped.
+The source manifest declares `"components": "routes", "routes": "routes"`. Static nested paths and a root `+page.svelte` are supported. This is mounted Svelte page discovery, not full SvelteKit routing: layouts, dynamic parameters, server load functions and form actions are not implemented. The workspace host requires route-based sources; component-catalog URLs are not public project page aliases. Interaction URLs use the readable page path plus request identity/capability; the internal API remains UUID-scoped.
 
 
 ## Shared workspace shell

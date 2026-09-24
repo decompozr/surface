@@ -23,7 +23,7 @@ From the clean, committed checkout:
 
 The command installs frozen root dependencies, runs checks, builds/installs the committed revision into `~/.decompozr/surface`, creates or verifies `PROVIDER_SKILLS/surface -> CHECKOUT/skills/surface`, starts the installed service and verifies health/identity. Use `--port` for an intentional alternative. The script reports the executable, URL, selected release and real link target as JSON. It never copies a skill or alters provider MCP configuration.
 
-Repeating setup against the same running version verifies health and all selected skill links without rebuilding or restarting. New provider links can be added on a repeat run. A stopped matching version is started without rebuilding. A different version is installed after checks pass, then started. An explicit port change restarts the selected service without rebuilding. `refresh` is a compatibility alias for setup. A file, real directory, foreign link or dangling link at the skill destination is preserved. Inspect and resolve that specific conflict with the user; do not force-replace it.
+Repeating setup against the same running version verifies health and all selected skill links without rebuilding or restarting. New provider links can be added on a repeat run. A stopped matching version is started without rebuilding. A different version is installed after checks pass, then started. An explicit port change restarts the selected service without rebuilding. A file, real directory, foreign link or dangling link at the skill destination is preserved. Inspect and resolve that specific conflict with the user; do not force-replace it.
 
 ## Test
 

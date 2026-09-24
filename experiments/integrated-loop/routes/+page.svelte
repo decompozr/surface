@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { createSurfaceClient, type Interaction } from 'virtual:surface-client';
+  import { createInteractionClient, type Interaction } from 'virtual:surface-interactions';
   import { selection } from '../selection.ts';
 
 
@@ -44,7 +44,7 @@
 
 
   type Payload = { experiment: string; title: string; density: string };
-  let client: ReturnType<typeof createSurfaceClient>;
+  let client: ReturnType<typeof createInteractionClient>;
   let record = $state<Interaction>();
   let title = $state('我的 Surface 完整流程');
   let density = $state('comfortable');
@@ -71,7 +71,7 @@
         density = pending.data.density;
         attempted = true;
       }
-      client = createSurfaceClient();
+      client = createInteractionClient();
     } catch (cause) {
       error = String(cause);
       return;

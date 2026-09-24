@@ -13,7 +13,7 @@ const segment = (value: string) => {
 /** Names are captured on first mount; UUIDs remain the authoritative identities. */
 export const readableMountPath = async (mount: { projectRoot: string; source: string }) => {
   const sourceManifest = join(mount.source, 'artifact.json');
-  if (!existsSync(sourceManifest) || !JSON.parse(readFileSync(sourceManifest, 'utf8')).routes) return undefined;
+  if (!existsSync(sourceManifest) || !JSON.parse(readFileSync(sourceManifest, 'utf8')).routes) throw new Error('Mounted project pages must declare routes in artifact.json.');
   const manifest = JSON.parse(readFileSync(join(mount.projectRoot, 'artifact.project.json'), 'utf8'));
   const git = await inspectGit(mount.projectRoot);
   return `/workspace/${segment(manifest.name)}/${git.gitDir === git.commonDir ? 'main' : segment(basename(git.root))}/${segment(basename(mount.source))}`;

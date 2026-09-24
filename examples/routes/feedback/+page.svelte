@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { createSurfaceClient } from 'virtual:surface-client';
+  import { createInteractionClient } from 'virtual:surface-interactions';
   import { previewState } from 'virtual:surface-preview';
 
   const refresh = async () => {
@@ -15,7 +15,7 @@
     finally { submitting = false; }
   };
 
-  const client = createSurfaceClient();
+  const client = createInteractionClient();
   const draft = previewState('feedback-draft', '', 1);
   const responseId = previewState('feedback-response-id', crypto.randomUUID(), 1);
   let interaction = $state<{ closed: boolean; response?: { status: string }; result?: { message?: string } } | null>(null);

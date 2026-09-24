@@ -51,11 +51,11 @@ The installed workspace host produces:
 
 Project names and folder names are normalized to lowercase slugs. The canonical Git checkout is called `main` regardless of its current branch; linked worktrees use their directory basename. The last segment comes from the mounted source folder basename, not the artifact display name. Names are captured when the readable alias is assigned; UUIDs remain authoritative. Do not fabricate URLs or rename identities to resolve collisions: use the returned mount metadata.
 
-`routes/+page.svelte` supplies the mount index; `routes/history/+page.svelte` supplies `/history`. Use only these clean URLs for browsing. For historical compatibility, the runtime still serves sources without `routes` through the legacy `/n/.../?component=...` catalog. Existing mounts are not automatically migrated by documentation changes; add route wrappers and remount only within an authorized project task, retaining its artifact ID. Verify the resulting URL and rendering.
+`routes/+page.svelte` supplies the mount index; `routes/history/+page.svelte` supplies `/history`. Use only these clean URLs for browsing. Mounted project sources must declare routes. Add route wrappers and remount only within an authorized project task, retaining its artifact ID. Verify the returned readable URL and rendering.
 
 ## Interaction requests
 
-Read-only browsing needs no conversation binding or request. For agent submission, use the exact discovered source-relative component (for example `routes/history/+page.svelte`) with `surface request --component`, plus the returned namespace/mount and explicit schema. Open the exact request `previewUrl`, including its query and capability fragment; do not replace it with a clean browsing URL or strip credentials. Current interaction URLs can retain the legacy component form. Binding, actual delivery and result rendering must be verified separately.
+Read-only browsing needs no conversation binding or request. For agent submission, use the exact discovered source-relative component (for example `routes/history/+page.svelte`) with `surface request --component`, plus the returned namespace/mount and explicit schema. Open the exact request `previewUrl`, including its query and capability fragment; do not replace it with a clean browsing URL or strip credentials. Binding, actual delivery and result rendering must be verified separately.
 
 ## Remote browser access
 
@@ -77,3 +77,7 @@ Mounted component pages provide shared selection, element capture and comment re
 Sending uses the existing exact page request URL and its `#token` capability. A plain readable page can retain a draft but cannot send until opened with an explicitly bound request. Drafts are separate for each page/request; an unbound draft is not silently transferred to a newly bound request. For an active recipient the Switch selects Steer (on) or Queue (off); results arrive automatically without resending. Comment batches do not consume the original form submission.
 
 Reply to the typed `surface.comments` event using its exact `requestId` and `replyTo`, as described in the Surface skill. The callback directory is specific to that parent request. Never select another page's latest record. Component-file revision and observed element text help identify stale context; HMR is marked unverified until reload. These tools do not guarantee canvas, cross-origin image, iframe, shadow-root or native-device capture fidelity.
+
+## Local scaffold
+
+`surface init --directory /absolute/project/ui` creates the current Svelte route template locally, without a service. It includes `artifact.json`, `routes/+page.svelte`, `src/interactions.ts` and the response schema. Install its dependencies explicitly, then register/add/mount it using the project workflow. Nonempty directories are preserved. There is no framework selector or standalone per-runtime server scaffold.

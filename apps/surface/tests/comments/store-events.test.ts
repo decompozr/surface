@@ -9,7 +9,7 @@ test('durable store changes notify subscribers and disconnect removes them', () 
   try {
     const store = new Store(join(directory, 'state.json'));
     let calls = 0;
-    const stop = store.subscribe(() => { calls++; expect(store.state.runtimes).toEqual([]); });
+    const stop = store.subscribe(() => { calls++; expect(store.state.requests).toEqual([]); });
     store.subscribe(() => { throw new Error('broken observer'); });
     store.update(() => {});
     expect(calls).toBe(1);

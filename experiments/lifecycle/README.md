@@ -1,5 +1,7 @@
 # Repository installation and lifecycle experiment
 
+Historical record: this installer experiment was retired on September 24. Its executable source is preserved in Git at `492a09a`; the current CLI supports only the Surface host. Commands below describe the earlier experiment and are not current instructions.
+
 This prototype installs a pinned local Git revision into an isolated home and manages its actual singleton or SvelteKit host. It does not modify the user's global CLI, skills, shell profile, login items, or launchd configuration.
 
 ## Verify

@@ -6,6 +6,15 @@ import { Store } from '../src/lib/server/services/store.ts';
 import { Service } from '../src/lib/server/services/service.ts';
 import { DeliveryError, type AgentAdapter, type Binding } from '../src/lib/server/agent-adapters/codex.ts';
 
+const feedbackSchema = {
+  type: 'object', additionalProperties: false, required: ['option', 'width', 'comment'],
+  properties: {
+    option: { type: 'string', enum: ['A', 'B'] },
+    width: { type: 'integer', minimum: 80, maximum: 240 },
+    comment: { type: 'string', maxLength: 1000 },
+  },
+};
+
 const fixture = (deliver?: AgentAdapter['deliver']) => {
   const dir = mkdtempSync(join(tmpdir(), 'surface-service-')); directories.push(dir);
   const file = join(dir, 'state.json');
@@ -16,8 +25,8 @@ const fixture = (deliver?: AgentAdapter['deliver']) => {
   const service = new Service(store, {
     inspect: async () => ({ status: 'idle' }),
     deliver: async (...args) => { calls.push(args[0]); return deliver ? deliver(...args) : { mode: 'start', turnId: 'one-turn' }; },
-  }, '/path/to/surface/src/cli/index.ts');
-  const request = service.create({ bindingId: binding.id, title: 'Choose an option' });
+  }, '/path/to/surface/apps/cli/src/index.ts');
+  const request = service.create({ bindingId: binding.id, title: 'Choose an option', schema: feedbackSchema });
   return { service, store, request, calls, file };
 };
 
@@ -85,7 +94,7 @@ test('takeover is opt-in, exact-worktree, atomic and never replays submissions',
   const { service, store, request, calls } = fixture();
   store.update(state => state.bindings.push({ ...state.bindings[0]!, id: 'next-binding', threadId: 'next-thread' }));
   await expect(service.takeOver(request.id, { threadId: 'next-thread' })).rejects.toThrow('not enabled');
-  const enabled = service.create({ bindingId: request.bindingId, title: 'Select', recipientSelection: true });
+  const enabled = service.create({ bindingId: request.bindingId, title: 'Select', schema: feedbackSchema, recipientSelection: true });
   await expect(service.takeOver(enabled.id, { threadId: 'foreign' })).rejects.toThrow('exact worktree');
   const next = await service.takeOver(enabled.id, { threadId: 'next-thread' });
   expect(service.get(enabled.id)).toMatchObject({ closed: true, replacedBy: next.id });
@@ -104,4 +113,9 @@ test('preflight blocks close and takeover and revalidates the mount before reser
   await expect(pending).rejects.toThrow('mount unavailable');
   expect(service.get(request.id).response).toBeUndefined();
   expect(calls).toHaveLength(0);
+});
+
+test('requests require an explicit page-owned schema', () => {
+  const { service, request } = fixture();
+  expect(() => service.create({ bindingId: request.bindingId, title: 'Missing schema' })).toThrow('Expected a JSON object');
 });

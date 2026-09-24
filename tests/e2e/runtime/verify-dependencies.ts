@@ -21,7 +21,7 @@ const project = (name: string, version: string) => {
 const manifest = (source: string, prebundle: string[]) => { writeFileSync(join(source, 'artifact.json'), JSON.stringify({ framework: 'svelte', components: 'src', prebundle })); };
 
 const cli = async (...args: string[]) => {
-  const child = Bun.spawn([process.execPath, join(process.cwd(), 'apps/cli/src/runtime.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
+  const child = Bun.spawn([process.execPath, join(process.cwd(), 'tests/e2e/runtime/control.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
   const [out, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
   const result = JSON.parse(out || '{}');
   if (code && result.status !== 'failed') throw new Error(`${args[0]}: ${error}`);

@@ -72,7 +72,7 @@ test('request body completing after closure cannot create a request or start bin
   } finally { body.resolve({}); await app.stop(); rmSync(stateDir, { recursive: true, force: true }); }
 });
 
-test('singleton CLI forwards state-dir both before and after requests command', async () => {
+test('public CLI forwards state-dir both before and after requests command', async () => {
   const stateDir = temporary();
   const paths: string[] = [];
   const server = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch(request) {
@@ -82,7 +82,7 @@ test('singleton CLI forwards state-dir both before and after requests command', 
   writeFileSync(join(stateDir, 'connection.json'), JSON.stringify({ origin: server.url.origin, token: 'fixture-token' }));
   try {
     for (const args of [['requests', '--state-dir', stateDir], ['--state-dir', stateDir, 'requests']]) {
-      const child = Bun.spawn([process.execPath, join(process.cwd(), 'apps/cli/src/runtime.ts'), ...args], { stdout: 'pipe', stderr: 'pipe' });
+      const child = Bun.spawn([process.execPath, join(process.cwd(), 'apps/cli/src/index.ts'), ...args], { stdout: 'pipe', stderr: 'pipe' });
       const [out, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
       expect(error).toBe(''); expect(code).toBe(0); expect(JSON.parse(out)).toEqual([]);
     }
