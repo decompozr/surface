@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
-  import { Badge, Button, Switch, Toolbar, ToggleButton, Tag, IconButton, TextArea, Slider, Icon, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
+  import { colorShades, Badge, Button, Switch, Toolbar, ToggleButton, Tag, IconButton, TextArea, Slider, Icon, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
   import Toast from '$lib/components/Toast.svelte';
   import SurfaceShell from '$lib/components/SurfaceShell.svelte';
   import { composerPlacement, readViewport } from '$lib/comment-experiment/viewport';
@@ -372,8 +372,6 @@
 {#if mode && selected && box && !editorOpen}
   <div class="selection-tools" bind:clientWidth={selectionToolsWidth} bind:clientHeight={selectionToolsHeight} style:left={`${Math.max(12, Math.min(box.x, innerWidth - selectionToolsWidth - 12))}px`} style:top={`${Math.max(64, Math.min(box.y + box.height + 8, innerHeight - selectionToolsHeight - 32))}px`}>
     <SurfaceCard padding="0"><Toolbar label="Selected element actions">
-    <strong class="selection-label">{metadata(selected).selector}</strong>
-      {#if selected?.parentElement && selected.parentElement !== workspace}<IconButton size="compact" icon="chevron-up" label="Select parent element" title="Select parent element" disabled={locked} onclick={() => { const parent = selected?.parentElement; if (parent && workspace.contains(parent) && parent !== workspace) { selected = parent; review.draft = { ...review.draft, target: metadata(parent), capture: undefined }; hovered = null; updateBox(); } }} />{/if}
     <IconButton size="compact" icon="camera" label="Capture selected element" title="Screenshot" disabled={locked} onclick={async () => { await capture(); editorOpen = true; updateBox(); }} />
     <IconButton size="compact" icon="message-square" label="Comment on selected element" title="Comment" disabled={locked} onclick={openComment} />
     <IconButton size="compact" icon="close" label="Clear selection" title="Clear selection" disabled={locked} onclick={() => { selected = null; hovered = null; updateBox(); }} />
@@ -403,7 +401,15 @@
   </FloatingComposer>
   </div>
 {/if}
-{#if box}<div class="selection-outline"><SelectionOutline {...box} state={hovered && hovered !== selected ? 'hover' : 'selected'} label={(hovered ?? selected) ? metadata((hovered ?? selected)!).selector : ''} /></div>{/if}
+{#if box}
+  <div class="selection-outline"><SelectionOutline {...box} state={hovered && hovered !== selected ? 'hover' : 'selected'} /></div>
+  <div class="element-label" style:left={`${Math.max(12, Math.min(box.x, innerWidth - 220))}px`} style:top={`${box.y}px`} style:--label-background={colorShades.sage.base} style:--label-color={colorShades.neutral.white}>
+    <span>{(hovered ?? selected) ? metadata((hovered ?? selected)!).selector : ''}</span>
+    {#if !editorOpen && selected && (!hovered || hovered === selected)}
+{#if selected?.parentElement && selected.parentElement !== workspace}<IconButton size="compact" icon="chevron-up" label="Select parent element" title="Select parent element" disabled={locked} onclick={() => { const parent = selected?.parentElement; if (parent && workspace.contains(parent) && parent !== workspace) { selected = parent; review.draft = { ...review.draft, target: metadata(parent), capture: undefined }; hovered = null; updateBox(); } }} />{/if}
+    {/if}
+  </div>
+{/if}
 
 {#if toast}<Toast message={toast.message} tone={toast.tone} dismiss={() => { toast = null; clearTimeout(toastTimer); }} />{/if}
 </SurfaceShell>
@@ -454,7 +460,10 @@
 
 .reply-wait { display:flex; align-items:center; gap:.5rem; font-size:.875rem; padding-top:.75rem; }
 .reply-spinner { width:14px; height:14px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:reply-spin .8s linear infinite; }
-.selection-label { max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-left:.5rem; }
+.element-label { position:fixed; z-index:61; display:flex; align-items:center; max-width:min(340px, calc(100vw - 24px)); transform:translateY(-100%); border-radius:.1875rem .1875rem 0 0; background:var(--label-background); color:var(--label-color); padding:0 .4375rem; }
+.element-label > span { min-width:0; overflow-wrap:anywhere; font:.625rem/1.5 ui-monospace,monospace; }
+.element-label :global(button) { color:inherit; }
+.element-label :global(.icon-button) { flex-shrink:0; }
 @keyframes reply-spin { to { transform:rotate(360deg); } }
 @media(prefers-reduced-motion:reduce) { .reply-spinner { animation:none; } }
 </style>
