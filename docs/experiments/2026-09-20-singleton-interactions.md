@@ -82,6 +82,6 @@ Graceful draining does not establish crash-safe delivery completion. An abrupt s
 
 ## Reproduce and inspect
 
-The [singleton guide](../../packages/page-runtime/README.md#connect-a-mounted-component-to-an-agent) documents mounting, binding, request creation, client imports, administrative inspection/publication, and lifecycle semantics. The [Artifact skill](../../skills/surface/SKILL.md) routes agents to this workflow and keeps the older per-process workflow separately discoverable.
+The [singleton guide](legacy-page-runtime.md#connect-a-mounted-component-to-an-agent) documents mounting, binding, request creation, client imports, administrative inspection/publication, and lifecycle semantics. The [Artifact skill](../../skills/surface/SKILL.md) routes agents to this workflow and keeps the older per-process workflow separately discoverable.
 
 Keep private interaction links, request capabilities, session receipts, logs, and screenshots in ignored `.artifact/` evidence folders. Version the scripts and summary observations, not private state.

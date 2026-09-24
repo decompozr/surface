@@ -141,7 +141,7 @@ The [resource experiment](../experiments/2026-09-21-lifecycle-resources.md) foun
 
 ## Reproduction and evidence retention
 
-- [Singleton commands and verification](../../packages/page-runtime/README.md#reproduce-the-experiment): install root/experiment dependencies, run the experiment type check and `bun run verify:singleton`.
+- [Singleton commands and verification](../experiments/legacy-page-runtime.md#reproduce-the-experiment): install root/experiment dependencies, run the experiment type check and `bun run verify:singleton`.
 - [Singleton interaction verification](../experiments/2026-09-20-singleton-interactions.md): `bun run verify:singleton-interactions`, using deterministic fixtures separately from live-session checks.
 - [External workflow](../experiments/legacy-workflow.md): earlier CLI/skill setup and `bun run verify:external`.
 - [Original live proof](../experiments/original-prototype.md): exact-session setup, delivery limits, and recorded live outcomes. Automated fixture suites do not contact a model session.
@@ -155,7 +155,7 @@ The current comments prototype was preserved in commit `f5daafc` before integrat
 
 ### Application consolidation
 
-The user requested completing the move into apps/surface. Root production source/tests/templates and the adopted singleton/MCP/comment modules moved into the application, with imports, command paths, setup/release tooling and source links updated. The application boundary test passes. Core, host/runtime/comment tests, desktop/mobile navigation and isolated full-loop browser checks are the acceptance gates. Existing shared installation and unrelated working-tree changes are preserved. See [ownership](../architecture/components.md#surface-application-ownership-september-23-consolidation).
+The user requested completing the move into apps/surface. Root production source/tests/templates and the adopted singleton/MCP/comment modules moved into the application, with imports, command paths, setup/release tooling and source links updated. The application boundary test passes. Core, host/runtime/comment tests, desktop/mobile navigation and isolated full-loop browser checks are the acceptance gates. Existing shared installation and unrelated working-tree changes are preserved. See [ownership](../architecture/components.md#surface-application-ownership-september-24-correction).
 
 Final consolidation validation passed: 78 core tests and 20 host/runtime/comment tests; root, application core and Svelte checks; production build; real browser navigation; MCP transport and project lifecycle verification; isolated desktop/mobile full-loop comment delivery and SSE replies; and three-profile interaction checks (desktop Chromium, touch Chromium, mobile WebKit). No fixture was sent to a real conversation. The private preview was restarted from an immutable build snapshot. No commit or shared installation update was performed. Physical-device acceptance remains separate.
 

@@ -86,4 +86,4 @@ The isolated [element-comments experiment](docs/experiments/2026-09-23-element-c
 
 ## Application development layout
 
-Production source, core tests, scaffold templates, shared runtime, MCP and the comment bridge are owned by `apps/surface/`. Run `bun run --cwd apps/surface check`, `bun run --cwd apps/surface check:core` and `bun run --cwd apps/surface test`. Root commands remain convenience entrypoints; root `src/`, `tests/` and `templates/` no longer exist. See [component ownership](docs/architecture/components.md#surface-application-ownership-september-23-consolidation).
+Production source, core tests, scaffold templates, shared runtime, MCP and the comment bridge are owned by `apps/surface/`. Run `bun run --cwd apps/surface check`, `bun run --cwd apps/surface check:core` and `bun run --cwd apps/surface test`. Root commands remain convenience entrypoints; root `src/`, `tests/` and `templates/` no longer exist. See [component ownership](docs/architecture/components.md#surface-application-ownership-september-24-correction).

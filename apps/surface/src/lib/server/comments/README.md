@@ -60,7 +60,7 @@ The September 23 user request authorized private Tailscale access to this experi
 
 Run the built preview with `HOST=127.0.0.1 PORT=4387 ORIGIN=YOUR_HTTPS_ORIGIN SURFACE_COMMENTS_ORIGIN=YOUR_HTTPS_ORIGIN SURFACE_COMMENTS_EXPERIMENT=1 BODY_SIZE_LIMIT=8M bun build/index.js` from `apps/surface` after building. Use a verified unused Serve port; inspect existing mappings before configuring it. Machine-specific PID, origin and target are recorded in ignored `.decompozr/surface/comments-preview/preview.json`, alongside `server.log`. This detached review process has no login or reboot startup registration. Retire only its verified PID and unchanged owned Serve mapping when review ends.
 
-The original development process was no longer listening when the user requested a remote URL. The follow-up verified HTTPS page access and all HTTP verifier cases through the private origin from the hosting Mac. Five model/access tests and a production build passed. Another device's browser rendering, screenshot fidelity and human acceptance remain unverified. See the [source evidence record](../../docs/experiments/2026-09-23-element-comments.md).
+The original development process was no longer listening when the user requested a remote URL. The follow-up verified HTTPS page access and all HTTP verifier cases through the private origin from the hosting Mac. Five model/access tests and a production build passed. Another device's browser rendering, screenshot fidelity and human acceptance remain unverified. See the [source evidence record](../../../../../../docs/experiments/2026-09-23-element-comments.md).
 
 
 ## V2 review and live connection
@@ -73,7 +73,7 @@ Open the private link with `#connect=TOKEN` to enable live interaction. A distin
 
 `delivery.ts` wraps the existing Surface Service/Store/CodexAdapter. Each batch becomes one request; duplicate payloads keep their response identity, and unknown outcomes remain explicit. PNG files are stored under the private state directory and referenced in the delivered data. The agent publishes its result using `result.ts` and the callback command in the delivered message. The UI polls for receipt/result updates without resending.
 
-Run `bun test apps/surface/comments` for all nine model/access and fake-adapter tests. The HTTP verifier still sends only `local-fixture` payloads even when the private live connection is configured. Never change it to submit fixtures to a real thread. Detailed status and remaining human gates are recorded in [the v2 source record](../../docs/experiments/2026-09-23-element-comments.md#v2-user-review-and-exact-conversation-binding).
+Run `bun test apps/surface/comments` for all nine model/access and fake-adapter tests. The HTTP verifier still sends only `local-fixture` payloads even when the private live connection is configured. Never change it to submit fixtures to a real thread. Detailed status and remaining human gates are recorded in [the v2 source record](../../../../../../docs/experiments/2026-09-23-element-comments.md#v2-user-review-and-exact-conversation-binding).
 
 ## Push results and short replies
 

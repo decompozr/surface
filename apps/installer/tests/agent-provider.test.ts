@@ -1,5 +1,5 @@
 import {test,expect} from 'bun:test';
-import {selectSkills} from '../../installer/src/setup/provider.ts';
+import {selectSkills} from '../src/setup/provider.ts';
 const base={mode:'setup',userHome:'/user',env:{},exists:()=>false,interactive:false};
 test('detects both providers and selects both by default',async()=>{
  expect(await selectSkills({...base,exists:()=>true})).toEqual(['/user/.codex/skills','/user/.claude/skills']);

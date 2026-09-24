@@ -5,7 +5,7 @@
 This guide retains the earlier per-runtime topology. New Git/worktree projects should use the [public shared-service entry](../architecture/workspace-service.md).
 Status: earlier per-project-process exploration. For the preferred singleton/namespace direction, use the separate [singleton experiment](../../packages/page-runtime/README.md). This workflow still describes the existing `surface` CLI. These steps reproduce an experiment; successful checks do not freeze the architecture or establish production readiness.
 
-Surface now mounts trusted external frontend projects and connects their pages to an exact existing agent conversation. The service and CLI use Bun; a mounted project retains its own package manager, source files, dependencies, and lockfile. Svelte and vanilla HTML/TypeScript starters are included. This earlier entry point has no MCP adapter; the later [singleton MCP experiment](../../apps/surface/src/lib/server/mcp/README.md) supplies that interface for the preferred host.
+Surface now mounts trusted external frontend projects and connects their pages to an exact existing agent conversation. The service and CLI use Bun; a mounted project retains its own package manager, source files, dependencies, and lockfile. Svelte and vanilla HTML/TypeScript starters are included. This earlier entry point has no MCP adapter; the later [singleton MCP experiment](legacy-mcp-package.md) supplies that interface for the preferred host.
 
 ## Install the local CLI and skill
 

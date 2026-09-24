@@ -16,9 +16,10 @@
     "apps/installer/src/**/*.ts",
     "apps/surface/src/lib/server/**/*.ts",
     "packages/*/src/**/*.ts",
-    "apps/surface/tests/**/*.ts",
+    "apps/*/tests/**/*.ts",
     "tests/**/*.ts",
     "scripts/**/*.ts",
-    "apps/surface/.svelte-kit/ambient.d.ts"
+    "apps/surface/.svelte-kit/ambient.d.ts",
+    "packages/*/tests/**/*.ts"
   ]
 }

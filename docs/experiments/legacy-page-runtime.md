@@ -4,7 +4,7 @@ For current installed usage, start with the [Surface page workflow](../../skills
 
 An executable experiment for the preferred direction: start one server, create a namespace, then mount component folders into it. One HTTP listener and one Vite instance serve every mount. Installation uses short-lived Bun subprocesses; no per-project development server is launched.
 
-This does not replace the previous `surface serve` implementation. Use the separate commands below to reproduce and compare the designs. The host now connects mounted components to the existing interaction service and exact-session adapter. A separate [MCP adapter](../mcp/README.md) now exposes this same running service. The [SvelteKit wrapper](../sveltekit/README.md), [installation manager](../lifecycle/README.md), and [project artifact manager](../projects/README.md) are additional experimental entry points. The interaction integration is an experiment; its verification outcomes are recorded separately from the earlier rendering checks.
+This does not replace the previous `surface serve` implementation. Use the separate commands below to reproduce and compare the designs. The host now connects mounted components to the existing interaction service and exact-session adapter. A separate [MCP adapter](legacy-mcp-package.md) now exposes this same running service. The [SvelteKit wrapper](../../experiments/sveltekit/README.md), [installation manager](../../experiments/lifecycle/README.md), and [project artifact manager](../../experiments/projects/README.md) are additional experimental entry points. The interaction integration is an experiment; its verification outcomes are recorded separately from the earlier rendering checks.
 
 ## Run
 
@@ -125,7 +125,7 @@ async function submitMessage(message: string, responseId: string) {
 // After submission, waitForResult({ timeoutMs: 120_000 }) polls without resending.
 ```
 
-Read before enabling submission. Do not send on page load, resend after reload, or generate a new ID to retry an uncertain delivery. One request accepts one submission. The client polls for a result without resubmitting. Use `previewState` below for unsent drafts and retained response IDs across component HMR; durable request status comes from `read()`, not from that preview-session store. Copy [preview.d.ts](preview.d.ts) for both virtual modules' TypeScript declarations.
+Read before enabling submission. Do not send on page load, resend after reload, or generate a new ID to retry an uncertain delivery. One request accepts one submission. The client polls for a result without resubmitting. Use `previewState` below for unsent drafts and retained response IDs across component HMR; durable request status comes from `read()`, not from that preview-session store. Copy [preview.d.ts](../../packages/page-runtime/src/preview.d.ts) for both virtual modules' TypeScript declarations.
 
 The bound agent receives the actual submitted data and an absolute callback command using this singleton CLI and state directory. It continues or is steered within that existing conversation, performs the work, and publishes an actual result:
 
@@ -174,7 +174,7 @@ Svelte 5 component HMR reconstructs local component state in this tested version
 <button onclick={() => $count++}>Count {$count}</button>
 ```
 
-Copy [preview.d.ts](preview.d.ts) into the mounted project's included declarations for TypeScript/editor support. Keys are scoped to the browser document's namespace/mount/component URL. Multiple instances in the same preview must choose distinct keys when their state should be independent.
+Copy [preview.d.ts](../../packages/page-runtime/src/preview.d.ts) into the mounted project's included declarations for TypeScript/editor support. Keys are scoped to the browser document's namespace/mount/component URL. Multiple instances in the same preview must choose distinct keys when their state should be independent.
 
 The helper uses a module-level store registry, retained in `import.meta.hot.data`. It preserves opted-in state across component/template edits, CSS updates, compiler-error recovery, and reactive host-prop updates. No localStorage or server persistence is implied. Bumping a key's version replaces that store with its supplied initial value; it does not reset other keys. This explicit version is the component author's compatibility decision, not automatic schema inference.
 
@@ -204,7 +204,7 @@ bun run verify:singleton-interactions
 bun run test:singleton
 ```
 
-It uses a deterministic adapter and the reusable [interaction form fixture](fixtures/InteractionForm.svelte), with two namespaces, HMR/error recovery, scoped request authorization, deduplication, unavailable/closed/unmounted outcomes, and restart restoration. It stores local evidence in ignored `.decompozr/surface/singleton-interaction-proof/`. See the [interaction experiment record](../../docs/experiments/2026-09-20-singleton-interactions.md) for its verification status and the separate live idle/active callback observations. Running the deterministic command does not contact a live model session.
+It uses a deterministic adapter and the reusable [interaction form fixture](../../tests/e2e/runtime/fixtures/InteractionForm.svelte), with two namespaces, HMR/error recovery, scoped request authorization, deduplication, unavailable/closed/unmounted outcomes, and restart restoration. It stores local evidence in ignored `.decompozr/surface/singleton-interaction-proof/`. See the [interaction experiment record](../../docs/experiments/2026-09-20-singleton-interactions.md) for its verification status and the separate live idle/active callback observations. Running the deterministic command does not contact a live model session.
 
 ## Resource boundary
 

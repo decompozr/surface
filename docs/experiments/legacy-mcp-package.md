@@ -4,7 +4,7 @@ A thin stdio MCP adapter connects to the **existing** singleton HTTP service. It
 
 ## Run
 
-From the repository root, install the root and singleton dependencies as described in [the singleton experiment](../singleton/README.md), then:
+From the repository root, install the root and singleton dependencies as described in [the singleton experiment](legacy-page-runtime.md), then:
 
 ```sh
 bun install --cwd apps/surface/mcp --frozen-lockfile
