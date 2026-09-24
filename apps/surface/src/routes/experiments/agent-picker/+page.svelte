@@ -1,5 +1,13 @@
 <script lang="ts">
   import {onMount} from 'svelte';
+
+  const exercise = async (operation:string) => {
+    const send=(op:string)=>fetch('/experiments/agent-picker/lifecycle',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+token},body:JSON.stringify({operation:op,draft,responseId})});
+    if(!token){const initial=await send('create');token=(await initial.json()).token;}
+    const result=await send(operation);lifecycle=JSON.stringify(await result.json(),null,2);
+    if(operation==='reset'){token='';responseId=crypto.randomUUID();}
+  };
+
   let {data}=$props();
   let selected=$state(''),draft=$state(''),notice=$state('');
   const key='surface:experiment:demo:main:agent-picker';
@@ -7,12 +15,6 @@
   onMount(()=>{try{const saved=JSON.parse(sessionStorage.getItem(key)??'{}');selected=saved.selected??'';draft=saved.draft??'';}catch{}ready=true;});
   $effect(()=>{if(ready)try{sessionStorage.setItem(key,JSON.stringify({selected,draft}));}catch{}});
   let token=$state(''),lifecycle=$state(''),responseId=crypto.randomUUID();
-  async function exercise(operation:string){
-    const send=(op:string)=>fetch('/experiments/agent-picker/lifecycle',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+token},body:JSON.stringify({operation:op,draft,responseId})});
-    if(!token){const initial=await send('create');token=(await initial.json()).token;}
-    const result=await send(operation);lifecycle=JSON.stringify(await result.json(),null,2);
-    if(operation==='reset'){token='';responseId=crypto.randomUUID();}
-  }
   const recipient=$derived([...data.agents.worktree,...data.agents.project].find(a=>a.id===selected));
 </script>
 <svelte:head><title>Surface · Recipient experiment</title></svelte:head>

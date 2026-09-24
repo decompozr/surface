@@ -1,6 +1,6 @@
 import { loadPrompts } from './prompts.ts';
-export type MenuChoice = {label:string; detail:string; detected?:boolean};
-export async function terminalSelect(choices:MenuChoice[],initial:number[]):Promise<number[]> {
+
+export const terminalSelect = async (choices:MenuChoice[],initial:number[]):Promise<number[]> => {
  if(!process.stdin.isTTY||!process.stdout.isTTY)throw new Error('Interactive menu requires a terminal. Use --provider or --skills-dir.');
  const ui=await loadPrompts();
  const selected=await ui.multiselect({
@@ -10,4 +10,6 @@ export async function terminalSelect(choices:MenuChoice[],initial:number[]):Prom
  });
  if(ui.isCancel(selected))throw new Error('Setup cancelled. No installation changes made.');
  return selected;
-}
+};
+
+export type MenuChoice = {label:string; detail:string; detected?:boolean};

@@ -1,6 +1,6 @@
 import type { Batch } from './model.ts';
-const string = (v: unknown, max: number) => typeof v === 'string' && v.length > 0 && v.length <= max;
-export function validateBatch(value: unknown, recipient = 'local-fixture'): value is Batch {
+
+export const validateBatch = (value: unknown, recipient = 'local-fixture'): value is Batch => {
   if (!value || typeof value !== 'object') return false;
   const b = value as Batch;
   return string(b.id, 100) && string(b.createdAt, 100) && string(b.page, 500) && string(b.revision, 100)
@@ -19,4 +19,6 @@ export function validateBatch(value: unknown, recipient = 'local-fixture'): valu
         && Number.isFinite(c.capture.height) && c.capture.height > 0 && c.capture.height <= 10000
         && string(c.capture.capturedAt, 100) && c.capture.method === 'dom-render'
         && c.capture.bounds && ['x', 'y', 'width', 'height'].every(k => Number.isFinite(c.capture!.bounds[k as keyof typeof c.capture.bounds])))));
-}
+};
+
+const string = (v: unknown, max: number) => typeof v === 'string' && v.length > 0 && v.length <= max;

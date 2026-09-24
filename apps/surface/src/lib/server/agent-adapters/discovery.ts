@@ -2,9 +2,8 @@ import {realpathSync} from 'node:fs';
 import {basename} from 'node:path';
 import {inspectGit} from './git.ts';
 import {CodexRpc,type Rpc} from './rpc.ts';
-export type AgentRow={id:string;title:string;provider:string;workspaceId:string;projectRoot:string;status:string};
-type Thread={id:string;name?:string;cwd:string;status?:{type:string};archived?:boolean};
-export async function discoverAgents(root:string,socket:string,connect:(p:string)=>Promise<Rpc>=CodexRpc.connect) {
+
+export const discoverAgents = async (root:string,socket:string,connect:(p:string)=>Promise<Rpc>=CodexRpc.connect) => {
  const git=await inspectGit(root),roots=new Map<string,string>();
  for(const candidate of git.roots)try{const verified=await inspectGit(candidate);if(verified.commonDir===git.commonDir)roots.set(verified.root,verified.gitDir===git.commonDir?'main':basename(verified.root));}catch{}
  const rpc=await connect(socket),worktree:AgentRow[]=[],project:AgentRow[]=[];const seen=new Set<string>(),cursors=new Set<string>();
@@ -24,4 +23,7 @@ export async function discoverAgents(root:string,socket:string,connect:(p:string
   }
   throw Error('Provider directory exceeded the bounded page limit.');
  }finally{rpc.close();}
-}
+};
+
+export type AgentRow={id:string;title:string;provider:string;workspaceId:string;projectRoot:string;status:string};
+type Thread={id:string;name?:string;cwd:string;status?:{type:string};archived?:boolean};

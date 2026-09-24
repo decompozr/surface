@@ -2,7 +2,7 @@
 declare module 'virtual:surface-preview' {
   import type { Writable } from 'svelte/store';
   /** Preview-session state. Same key/version survives component HMR; full navigation resets it. */
-  export function previewState<T>(key: string, initial: T, version?: number | string): Writable<T>;
+  export const previewState: <T>(key: string, initial: T, version?: number | string) => Writable<T>;
 }
 
 /** The singleton host supplies this module; do not add it as a package dependency. */
@@ -24,15 +24,41 @@ declare module 'virtual:surface-client' {
     result?: Record<string, unknown>;
   };
   /** Reads the request capability and mount scope from the returned interaction preview URL. */
-  export function createSurfaceClient(options?: { api: string; requestId: string; token: string }): {
+  export const createSurfaceClient: (options?: {
+    api: string;
+    requestId: string;
+    token: string;
+}) => {
     read(): Promise<Interaction>;
     recipient(): Promise<Recipient>;
     configureDelivery(intent?: DeliveryIntent): void;
-    directory(): Promise<{ available: boolean; worktree: { id: string; title: string; status: string; workspaceId: string; projectRoot: string }[]; project: { id: string; title: string; status: string; workspaceId: string; projectRoot: string }[]; checkedAt: string }>;
-    takeOver(threadId: string): Promise<Interaction & { token: string }>;
+    directory(): Promise<{
+        available: boolean;
+        worktree: {
+            id: string;
+            title: string;
+            status: string;
+            workspaceId: string;
+            projectRoot: string;
+        }[];
+        project: {
+            id: string;
+            title: string;
+            status: string;
+            workspaceId: string;
+            projectRoot: string;
+        }[];
+        checkedAt: string;
+    }>;
+    takeOver(threadId: string): Promise<Interaction & {
+        token: string;
+    }>;
     submit(data: Record<string, unknown>, responseId: string, delivery?: DeliveryIntent): Promise<Interaction>;
-    waitForResult(options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<Record<string, unknown>>;
-  };
+    waitForResult(options?: {
+        timeoutMs?: number;
+        signal?: AbortSignal;
+    }): Promise<Record<string, unknown>>;
+};
   export const createArtifactClient: typeof createSurfaceClient;
 }
 

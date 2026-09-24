@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { workspaceDirectory } from './identity.ts';
 
-export async function retire(stateDir: string, id: string) {
+
+export const retire = async (stateDir: string, id: string) => {
   const config = JSON.parse(readFileSync(join(stateDir, 'workspace-host.json'), 'utf8'));
   const directory = workspaceDirectory(stateDir, config.dataRoot), previous = directory.get(id);
   if (previous.status === 'retired') return { workspace: previous, runtimeRetired: true, dataPreserved: true };
@@ -23,4 +24,4 @@ export async function retire(stateDir: string, id: string) {
   const requests = await api('/api/requests') as { previewScope?: { namespace: string }; response?: { status: string }; result?: unknown }[];
   if (requests.some(r => r.previewScope?.namespace === workspace.namespace && r.response && ['accepted', 'delivering', 'unknown'].includes(r.response.status) && r.result === undefined)) throw new Error('Unresolved workspace interaction; reconcile its original session before removing the worktree. Workspace remains retiring.');
   return { workspace: directory.transition(id, 'retired'), runtimeRetired: true, dataPreserved: true, sourceDeleted: false };
-}
+};

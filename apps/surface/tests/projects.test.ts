@@ -5,10 +5,12 @@ import { join } from 'node:path';
 import { createProjectService, projectManifestName, projectArtifactScope } from '../src/lib/server/services/projects.ts';
 import { projectOperations, type ProjectRuntime, type ProjectMount, type ProjectOperationInput, type ProjectOutcome } from '../src/lib/contracts/projects.ts';
 
-const directories: string[] = [];
-afterEach(() => { for (const path of directories.splice(0)) rmSync(path, { recursive: true, force: true }); });
-function assertOK(outcome: ProjectOutcome): any { expect(outcome).toMatchObject({ version: 1, ok: true, status: 'ok' }); return outcome.data; }
-function fixture() {
+const assertOK = (outcome: ProjectOutcome): any => { expect(outcome).toMatchObject({ version: 1, ok: true, status: 'ok' }); return outcome.data; };
+
+const fixture = () => {
+
+  const setup = async () => { const manifest = assertOK(await execute({ operation: 'init' })); const artifact = assertOK(await execute({ operation: 'add', source: 'artifacts/panel', name: 'Controls' })); return { manifest, artifact }; };
+
   const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-project-core-'))); directories.push(directory);
   const root = join(directory, 'project'), stateDir = join(directory, 'state'), source = join(root, 'artifacts/panel');
   mkdirSync(source, { recursive: true });
@@ -24,9 +26,12 @@ function fixture() {
   };
   const service = createProjectService({ stateDir, runtime });
   const execute = (input: Omit<ProjectOperationInput, 'projectRoot'> & { projectRoot?: string }) => service.execute({ projectRoot: root, ...input });
-  async function setup() { const manifest = assertOK(await execute({ operation: 'init' })); const artifact = assertOK(await execute({ operation: 'add', source: 'artifacts/panel', name: 'Controls' })); return { manifest, artifact }; }
   return { directory, root, stateDir, source, runtime, mounts, calls, service, execute, setup, manifestFile: join(root, projectManifestName) };
-}
+};
+
+
+const directories: string[] = [];
+afterEach(() => { for (const path of directories.splice(0)) rmSync(path, { recursive: true, force: true }); });
 
 test('factory is inert and invalid operations reject before filesystem or runtime work', async () => {
   const f = fixture();

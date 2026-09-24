@@ -6,7 +6,8 @@ import { inspectGit, workspaceDirectory } from '../src/lib/server/workspaces/ide
 import { planMigration, migrate, rollbackMigration } from '../src/lib/server/workspaces/migrate.ts';
 import { installationHome, serviceState } from '@decompozr/surface-installer/paths';
 
-async function legacy() {
+
+const legacy = async () => {
   const f=await fixture();mkdirSync(f.state);
   unlinkSync(join(f.main,'surface.backend.json'));
   const namespace=`p-${f.manifest.projectId}`,name=`a-${f.manifest.artifacts[0]!.id}`;
@@ -15,7 +16,8 @@ async function legacy() {
   const interactions=JSON.stringify({version:1,bindings:[{id:'original-binding',projectRoot:f.main,threadId:'fixture-original'}],requests:[{id:crypto.randomUUID(),bindingId:'original-binding',closed:true,previewScope:{namespace,name,projectRoot:f.main,source:join(f.main,'ui'),component:'src/Form.svelte'},response:{status:'accepted'}}],runtimes:[]})+'\n';
   writeFileSync(join(f.state,'project-bindings.json'),ledger);writeFileSync(join(f.state,'registry.json'),registry);writeFileSync(join(f.state,'interactions.json'),interactions);
   return {...f,ledger,registry,interactions,namespace};
-}
+};
+
 test('public service selection is shared and explicit selectors override environment',()=>{
   expect(serviceState({home:'/chosen'},{SURFACE_STATE_DIR:'/other'})).toBe('/chosen/state');
   expect(serviceState({'state-dir':'/chosen'},{SURFACE_HOME:'/other'})).toBe('/chosen');

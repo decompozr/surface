@@ -4,17 +4,21 @@ import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { projectOperation } from '../src/lib/server/http/project-client.ts';
 
+const temporary = () => { const directory = mkdtempSync(join(tmpdir(), 'surface-access-')); directories.push(directory); return directory; };
+
+const fixture = (handler: (request: Request) => Response | Promise<Response>) => {
+  const server = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch: handler }); servers.push(server); return server;
+};
+
+const connect = (state: string, origin: string, token = 'private-management-token') => { writeFileSync(join(state, 'connection.json'), JSON.stringify({ origin, token })); };
+
+
 const directories: string[] = [];
 const servers: ReturnType<typeof Bun.serve>[] = [];
 afterEach(() => {
   for (const server of servers.splice(0)) server.stop(true);
   for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true });
 });
-function temporary() { const directory = mkdtempSync(join(tmpdir(), 'surface-access-')); directories.push(directory); return directory; }
-function fixture(handler: (request: Request) => Response | Promise<Response>) {
-  const server = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch: handler }); servers.push(server); return server;
-}
-function connect(state: string, origin: string, token = 'private-management-token') { writeFileSync(join(state, 'connection.json'), JSON.stringify({ origin, token })); }
 const command = { operation: 'list' as const, projectRoot: '/fixture/project' };
 
 describe('project management transport', () => {
@@ -89,6 +93,13 @@ describe('project management transport', () => {
   });
 
   test('CLI emits the server outcome, sets failure exit code and never changes project files', async () => {
+
+    const cli = async (...args: string[]) => {
+      const child = Bun.spawn([process.execPath, resolve(process.cwd(), 'apps/cli/src/index.ts'), 'project', ...args, '--project', projectRoot, '--state-dir', state], { stdout: 'pipe', stderr: 'pipe' });
+      const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
+      expect(stderr).toBe(''); return { code, outcome: JSON.parse(stdout) };
+    };
+
     const state = temporary(), projectRoot = temporary();
     const marker = join(projectRoot, 'keep.txt'); writeFileSync(marker, 'user source');
     const received: unknown[] = [];
@@ -98,11 +109,6 @@ describe('project management transport', () => {
         ? Response.json({ version: 1, ok: false, status: 'rejected', error: { code: 'invalid_input', message: 'Fixture rejection.' } }, { status: 400 })
         : Response.json({ version: 1, ok: true, status: 'ok', data: { projectRoot } });
     }); connect(state, server.url.origin);
-    async function cli(...args: string[]) {
-      const child = Bun.spawn([process.execPath, resolve(process.cwd(), 'apps/cli/src/index.ts'), 'project', ...args, '--project', projectRoot, '--state-dir', state], { stdout: 'pipe', stderr: 'pipe' });
-      const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
-      expect(stderr).toBe(''); return { code, outcome: JSON.parse(stdout) };
-    }
     expect((await cli('list')).code).toBe(0);
     const beforeCommand = Bun.spawn([process.execPath, resolve(process.cwd(), 'apps/cli/src/index.ts'), '--state-dir', state, 'project', 'list', '--project', projectRoot], { stdout: 'pipe', stderr: 'pipe' });
     const [beforeCode, beforeOutput, beforeError] = await Promise.all([beforeCommand.exited, new Response(beforeCommand.stdout).text(), new Response(beforeCommand.stderr).text()]);

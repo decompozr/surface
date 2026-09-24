@@ -5,17 +5,19 @@ import { createHash } from 'node:crypto';
 import { Installation } from '@decompozr/surface-installer/manager';
 import { validateRelease } from '@decompozr/surface-installer/compatibility';
 import { inventory } from '@decompozr/surface-installer/bundle';
+
+const command = async (args:string[],cwd?:string) => {
+  const child=Bun.spawn(args,{cwd,stdout:'pipe',stderr:'pipe'});
+  const [code,stdout,stderr]=await Promise.all([child.exited,new Response(child.stdout).text(),new Response(child.stderr).text()]);
+  if(code)throw new Error(stderr+stdout);return stdout.trim();
+};
+
 const {values}=parseArgs({options:{version:{type:'string'},ref:{type:'string'},out:{type:'string'},'design-system-package':{type:'string'}}});
 const version=values.version;
 if(!version||!/^\d+\.\d+\.\d+-[a-z0-9.-]+$/.test(version))throw new Error('Specify an experimental --version, e.g. 0.1.0-experiment.1');
 if(process.platform!=='darwin'||process.arch!=='arm64')throw new Error('This first release experiment only supports native macOS arm64 builds.');
 const root=resolve(import.meta.dir,'../..'),out=resolve(values.out??join(root,'dist'));
 const temp=realpathSync(mkdtempSync('/tmp/surface-build-'));
-async function command(args:string[],cwd?:string) {
-  const child=Bun.spawn(args,{cwd,stdout:'pipe',stderr:'pipe'});
-  const [code,stdout,stderr]=await Promise.all([child.exited,new Response(child.stdout).text(),new Response(child.stderr).text()]);
-  if(code)throw new Error(stderr+stdout);return stdout.trim();
-}
 try {
   const manifest=await new Installation(join(temp,'prepare'),validateRelease, {
     designSystemPackage: values['design-system-package'] && resolve(values['design-system-package']),

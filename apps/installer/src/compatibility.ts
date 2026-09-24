@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-export async function validateRelease(directory: string, stateDir: string) {
+
+export const validateRelease = async (directory: string, stateDir: string) => {
   const current = join(directory,'apps/installer/src/compatibility.json');
   const previous = join(directory, 'apps/surface/src/installation/compatibility.json');
   const descriptor = existsSync(current) ? current : existsSync(previous) ? previous : join(directory,'src/installation/compatibility.json'); // Pre-consolidation releases.
@@ -12,4 +13,4 @@ export async function validateRelease(directory: string, stateDir: string) {
     const saved = JSON.parse(readFileSync(path,'utf8')); if (!versions.includes(saved.version)) throw new Error(`Release cannot read ${name} schema ${saved.version}. Restore compatible state explicitly before rollback.`);
   }
   if (existsSync(join(stateDir,'state.json'))) throw new Error('Earlier per-runtime service state requires separate reconciliation; it is not a singleton workspace store.');
-}
+};

@@ -5,13 +5,15 @@ import { createServer } from 'node:net';
 import { resolve, join } from 'node:path';
 import { materializeDesignSystem } from '@decompozr/surface-installer/design-system';
 import { verifyBundle } from '@decompozr/surface-installer/bundle';
+
+const run = async (args: string[], env: Record<string, string> = {}) => {
+  const child = Bun.spawn(args, { cwd: root, env: { ...process.env, ...env }, stdout: 'inherit', stderr: 'inherit' });
+  if (await child.exited !== 0) throw new Error(`Failed: ${args.join(' ')}. Evidence: ${output}`);
+};
+
 const root = process.cwd();
 const output = resolve(process.env.COMMENTS_E2E_OUTPUT ?? `.decompozr/surface/comments-e2e/${Date.now()}`);
 mkdirSync(output, { recursive: true });
-async function run(args: string[], env: Record<string, string> = {}) {
-  const child = Bun.spawn(args, { cwd: root, env: { ...process.env, ...env }, stdout: 'inherit', stderr: 'inherit' });
-  if (await child.exited !== 0) throw new Error(`Failed: ${args.join(' ')}. Evidence: ${output}`);
-}
 await run(['bun', 'test', 'apps/surface/tests/comments/delivery.test.ts', 'apps/surface/tests/comments/mounted.test.ts']);
 const prepared = process.env.COMMENTS_E2E_PREPARED_RELEASE && resolve(process.env.COMMENTS_E2E_PREPARED_RELEASE);
 const bundle = prepared ? verifyBundle(prepared) : undefined;
@@ -23,6 +25,15 @@ if (prepared && bundle) {
   for (const [path, sha256] of Object.entries(bundle.files)) manifest.push({ path, sha256 });
   writeFileSync(join(output, 'prepared-release.json'), JSON.stringify({ directory: prepared, commit: bundle.commit, version: bundle.version }, null, 2));
 } else {
+
+const hashTree = (directory: string) => {
+  for (const entry of readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) hashTree(path);
+    else if (entry.isFile()) manifest.push({ path: path.slice(snapshot.length + 1), sha256: createHash('sha256').update(readFileSync(path)).digest('hex') });
+  }
+};
+
 await run(['bun', 'run', '--cwd', 'apps/surface', 'check']);
 await run(['bun', 'run', '--cwd', 'apps/surface', 'build']);
 const releaseRoot = join(output, 'release'); mkdirSync(releaseRoot);
@@ -30,13 +41,6 @@ for (const directory of ['apps', 'node_modules']) cpSync(resolve(directory), joi
 cpSync(resolve('package.json'), join(releaseRoot, 'package.json'));
 materializeDesignSystem(root, releaseRoot);
 snapshot = join(releaseRoot, 'apps/surface'); appSnapshot = snapshot;
-function hashTree(directory: string) {
-  for (const entry of readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) hashTree(path);
-    else if (entry.isFile()) manifest.push({ path: path.slice(snapshot.length + 1), sha256: createHash('sha256').update(readFileSync(path)).digest('hex') });
-  }
-}
 hashTree(snapshot);
 }
 writeFileSync(join(output, 'snapshot-manifest.json'), JSON.stringify(manifest, null, 2));

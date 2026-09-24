@@ -7,25 +7,30 @@ import { requireCompatibleBun } from './bun-version.ts';
 import { verifyBundle } from './bundle.ts';
 import { materializeDesignSystem } from './design-system.ts';
 
-export type Host = 'singleton' | 'sveltekit' | 'contract' | 'surface';
-type Release = { version: 1; release: string; commit: string; host: Host; bun: string; installedAt: string };
-type Owner = { version: 1; release: string; commit: string; host: Host; pid: number; nonce: string; secret: string; instanceId: string; origin: string };
-const read = <T>(path: string): T => JSON.parse(readFileSync(path, 'utf8'));
-function requireBun(directory: string, prepared?: Release) {
+const requireBun = (directory: string, prepared?: Release) => {
   const pkg = read<{ packageManager?: string }>(join(directory, 'package.json'));
   requireCompatibleBun(pkg.packageManager, Bun.version, prepared?.bun);
-}
-function atomic(path: string, data: unknown) { writeFileSync(path + '.tmp', JSON.stringify(data, null, 2) + '\n', { mode: 0o600 }); renameSync(path + '.tmp', path); }
-async function command(args: string[], cwd?: string) {
+};
+
+const atomic = (path: string, data: unknown) => { writeFileSync(path + '.tmp', JSON.stringify(data, null, 2) + '\n', { mode: 0o600 }); renameSync(path + '.tmp', path); };
+
+const command = async (args: string[], cwd?: string) => {
   const child = Bun.spawn(args, { cwd, stdout: 'pipe', stderr: 'pipe' });
   const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
   if (code !== 0) throw new Error(`Command failed (${code}): ${args[0]} ${args.slice(1, 4).join(' ')}\n${stderr.slice(-8000)}${stdout.slice(-8000)}`);
   return stdout.trim();
-}
-function alive(pid: number) {
+};
+
+const alive = (pid: number) => {
   if (!Number.isInteger(pid) || pid < 1) throw new Error('Invalid owned PID metadata.');
   try { process.kill(pid, 0); return true; } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ESRCH') return false; throw error; }
-}
+};
+
+
+export type Host = 'singleton' | 'sveltekit' | 'contract' | 'surface';
+type Release = { version: 1; release: string; commit: string; host: Host; bun: string; installedAt: string };
+type Owner = { version: 1; release: string; commit: string; host: Host; pid: number; nonce: string; secret: string; instanceId: string; origin: string };
+const read = <T>(path: string): T => JSON.parse(readFileSync(path, 'utf8'));
 
 export class Installation {
   readonly home: string;

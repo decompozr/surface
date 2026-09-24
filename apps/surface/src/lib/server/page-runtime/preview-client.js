@@ -1,13 +1,6 @@
 import { writable, fromStore } from 'svelte/store';
 
-// Explicit preview-session state: survives component HMR, not document reloads.
-// Bump the version when changing the shape/meaning of a stored value.
-const records = import.meta.hot?.data.records ?? new Map();
-if (import.meta.hot) {
-  import.meta.hot.data.records = records;
-  import.meta.hot.accept();
-}
-export function previewState(key, initial, version = 1) {
+export const previewState = (key, initial, version = 1) => {
   const scope = location.pathname + '?component=' + (new URL(location.href).searchParams.get('component') ?? '');
   const identity = scope + ':' + key;
   let record = records.get(identity);
@@ -16,12 +9,9 @@ export function previewState(key, initial, version = 1) {
     records.set(identity, record);
   }
   return record.store;
-}
+};
 
-const metadata = document.getElementById('artifact-preview-context');
-const context = metadata ? JSON.parse(metadata.textContent) : null;
-const hostProps = writable(context?.props ?? {});
-export function previewProps() {
+export const previewProps = () => {
   const current = fromStore(hostProps);
   return new Proxy({}, {
     get: (_, key) => current.current[key],
@@ -29,16 +19,23 @@ export function previewProps() {
     ownKeys: () => Reflect.ownKeys(current.current),
     getOwnPropertyDescriptor: () => ({ enumerable: true, configurable: true }),
   });
+};
+
+
+// Explicit preview-session state: survives component HMR, not document reloads.
+// Bump the version when changing the shape/meaning of a stored value.
+const records = import.meta.hot?.data.records ?? new Map();
+if (import.meta.hot) {
+  import.meta.hot.data.records = records;
+  import.meta.hot.accept();
 }
+
+const metadata = document.getElementById('artifact-preview-context');
+const context = metadata ? JSON.parse(metadata.textContent) : null;
+const hostProps = writable(context?.props ?? {});
 if (context && import.meta.hot) {
-  let revision = 0;
-  let pendingRevision;
-  const own = (file = '') => {
-    const clean = file.replace(/^\/@fs/, '').replace(/\\/g, '/');
-    return clean.startsWith(context.source + '/') || clean.includes('/mounts/' + context.namespace + '/' + context.name + '/') || clean.includes('virtual:artifact-component/' + context.namespace + '/' + context.name + '/');
-  };
-  const clear = () => document.getElementById('artifact-compiler-error')?.remove();
-  function show(error) {
+
+  const show = (error) => {
     revision++;
     clear();
     const panel = document.createElement('aside');
@@ -52,7 +49,15 @@ if (context && import.meta.hot) {
     detail.textContent = error.message + '\n' + (error.frame ?? '');
     panel.append(title, detail);
     document.body.append(panel);
-  }
+  };
+
+  let revision = 0;
+  let pendingRevision;
+  const own = (file = '') => {
+    const clean = file.replace(/^\/@fs/, '').replace(/\\/g, '/');
+    return clean.startsWith(context.source + '/') || clean.includes('/mounts/' + context.namespace + '/' + context.name + '/') || clean.includes('virtual:artifact-component/' + context.namespace + '/' + context.name + '/');
+  };
+  const clear = () => document.getElementById('artifact-compiler-error')?.remove();
   import.meta.hot.on('vite:error', ({ err }) => {
     if (own(err.id ?? err.loc?.file ?? '')) show(err);
   });

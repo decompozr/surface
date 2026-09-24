@@ -10,6 +10,19 @@ import { mountedComments } from '../../src/lib/server/comments/mounted.ts';
 import type { AgentAdapter } from '../../src/lib/server/agent-adapters/codex.ts';
 
 for (const change of ['close', 'unmount'] as const) test(`mounted comments revalidate ${change} after asynchronous preflight`, async () => {
+
+  const call = async (operation: string, data?: unknown, token = parent.token, path = base) => {
+    const req = Readable.from(data === undefined ? [] : [JSON.stringify(data)]) as IncomingMessage;
+    req.method = data === undefined ? 'GET' : 'POST';
+    req.headers = { authorization: `Bearer ${token}`, origin: 'http://localhost', 'content-type': 'application/json' };
+    let result: any, status = 200;
+    await bridge.route(req, {} as ServerResponse, new URL(`http://localhost${path}/${operation}`), (value, code) => { result = value; status = code ?? 200; }, () => {
+      if (!mounted) throw new InputError('Unmounted.', 409);
+      return { publicPath: '/project', pages: { '': scope.component } };
+    });
+    return { result, status };
+  };
+
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'surface-mounted-guard-')));
   const socketPath = join(root, 'fixture.sock');
   const socket = Bun.listen({ unix: socketPath, socket: { data() {} } });
@@ -28,17 +41,6 @@ for (const change of ['close', 'unmount'] as const) test(`mounted comments reval
   const bridge = mountedComments(root, service, adapter);
   const batch = { id: 'batch', status: 'pending', recipient: 'codex:fixture', page: '/project/', revision: 'fixture', createdAt: 'fixture', delivery: { mode: 'start', expectedStatus: 'idle' }, comments: [{ id: 'comment', text: 'Fixture', target: { id: 'h', label: 'h1', selector: 'h1', text: 'Fixture', revision: 'fixture' } }] };
   const base = `/api/n/fixture/page/requests/${parent.id}/comments`;
-  async function call(operation: string, data?: unknown, token = parent.token, path = base) {
-    const req = Readable.from(data === undefined ? [] : [JSON.stringify(data)]) as IncomingMessage;
-    req.method = data === undefined ? 'GET' : 'POST';
-    req.headers = { authorization: `Bearer ${token}`, origin: 'http://localhost', 'content-type': 'application/json' };
-    let result: any, status = 200;
-    await bridge.route(req, {} as ServerResponse, new URL(`http://localhost${path}/${operation}`), (value, code) => { result = value; status = code ?? 200; }, () => {
-      if (!mounted) throw new InputError('Unmounted.', 409);
-      return { publicPath: '/project', pages: { '': scope.component } };
-    });
-    return { result, status };
-  }
   try {
     await expect(call('batch', undefined, 'wrong')).rejects.toMatchObject({ status: 401 });
     await expect(call('batch', undefined, parent.token, base.replace('/fixture/page/', '/fixture/other/'))).rejects.toMatchObject({ status: 403 });

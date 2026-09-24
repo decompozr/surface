@@ -6,20 +6,23 @@ import { createServer } from 'node:net';
 import { InputError, object, text } from './service.ts';
 import type { Store } from './store.ts';
 
-export type RuntimeDefinition = { id: string; projectRoot: string; directory: string; command: string[]; createdAt: string };
-export type RuntimeStatus = 'starting' | 'ready' | 'failed' | 'stopped';
-type Live = { status: RuntimeStatus; process?: ChildProcess; exited?: Promise<void>; origin?: string; error?: string; log: string; start?: Promise<unknown>; stopping?: Promise<void> };
-export function within(root: string, directory: string) {
+export const within = (root: string, directory: string) => {
   const path = relative(root, directory);
   return path === '' || (!path.startsWith('..' + '/') && path !== '..' && !isAbsolute(path));
-}
-async function availablePort() {
+};
+
+const availablePort = async () => {
   const listener = createServer();
   await new Promise<void>((resolve, reject) => { listener.once('error', reject); listener.listen(0, '127.0.0.1', resolve); });
   const port = (listener.address() as { port: number }).port;
   await new Promise<void>((resolve, reject) => listener.close(error => error ? reject(error) : resolve()));
   return port;
-}
+};
+
+
+export type RuntimeDefinition = { id: string; projectRoot: string; directory: string; command: string[]; createdAt: string };
+export type RuntimeStatus = 'starting' | 'ready' | 'failed' | 'stopped';
+type Live = { status: RuntimeStatus; process?: ChildProcess; exited?: Promise<void>; origin?: string; error?: string; log: string; start?: Promise<unknown>; stopping?: Promise<void> };
 
 /** One owned process group per trusted local project. This is not a sandbox. */
 export class Runtimes {

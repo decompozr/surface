@@ -8,6 +8,46 @@ import { DeliveryError, type AgentAdapter, type Binding } from '@decompozr/surfa
 import type { RequestRecord } from '@decompozr/surface-app/server/services/store';
 import { startSingleton } from '@decompozr/surface-app/server/host/runtime';
 
+const project = (name: string) => {
+  const root = join(directory, name), source = join(root, 'panels');
+  mkdirSync(join(source, 'src'), { recursive: true });
+  writeFileSync(join(source, 'package.json'), JSON.stringify({ name, private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
+  // Existing mounted sources keep working through compatibility aliases.
+  const sourceForm = name === 'beta' ? form.replaceAll('virtual:surface-', 'virtual:artifact-').replaceAll('createSurfaceClient', 'createArtifactClient') : form;
+  writeFileSync(join(source, 'src/Form.svelte'), sourceForm);
+  projects.set(`fixture-${name}`, root);
+  return { root, source, component: join(source, 'src/Form.svelte') };
+};
+
+const assert: (condition: unknown, message: string) => asserts condition = (condition: unknown, message: string): asserts condition => { if (!condition) throw new Error(message); };
+
+const observed = (message: string) => { observations.push(message); console.log(message); };
+
+const cli = async (...args: string[]): Promise<any> => {
+  const process = Bun.spawn([processExec(), join(globalThis.process.cwd(), 'apps/cli/src/runtime.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
+  const [out, error, code] = await Promise.all([new Response(process.stdout).text(), new Response(process.stderr).text(), process.exited]);
+  if (code !== 0) throw new Error(`Singleton ${args[0]} failed (${code}): ${error}\n${out}`);
+  return JSON.parse(out);
+};
+
+const processExec = () => { return Bun.which('bun')!; };
+
+const request = async (bindingId: string, namespace = 'design'): Promise<Created> => {
+  return cli('request', '--binding', bindingId, '--namespace', namespace, '--name', 'panel', '--component', 'src/Form.svelte', '--title', 'Fixture custom feedback', '--schema-file', schemaPath);
+};
+
+const status = async (page: Page, value: string) => {
+  await page.waitForFunction(expected => document.querySelector('[data-testid="status"]')?.textContent === expected, value);
+};
+
+const api = async (record: Created, path = '', data?: unknown, scope = 'design', token = record.token) => {
+  return fetch(`${app!.origin}/api/n/${scope}/panel/requests/${record.id}${path}`, {
+    method: data === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: data === undefined ? undefined : JSON.stringify(data),
+  });
+};
+
+
 // No live model calls: this regression proves singleton wiring, not provider behavior.
 const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-interaction-')));
 const stateDir = join(directory, 'state');
@@ -39,43 +79,12 @@ const adapter: AgentAdapter = {
   },
 };
 const form = readFileSync(join(import.meta.dir, 'fixtures/InteractionForm.svelte'), 'utf8');
-function project(name: string) {
-  const root = join(directory, name), source = join(root, 'panels');
-  mkdirSync(join(source, 'src'), { recursive: true });
-  writeFileSync(join(source, 'package.json'), JSON.stringify({ name, private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
-  // Existing mounted sources keep working through compatibility aliases.
-  const sourceForm = name === 'beta' ? form.replaceAll('virtual:surface-', 'virtual:artifact-').replaceAll('createSurfaceClient', 'createArtifactClient') : form;
-  writeFileSync(join(source, 'src/Form.svelte'), sourceForm);
-  projects.set(`fixture-${name}`, root);
-  return { root, source, component: join(source, 'src/Form.svelte') };
-}
 const alpha = project('alpha'), beta = project('beta');
 const schemaPath = join(directory, 'schema.json');
 writeFileSync(schemaPath, JSON.stringify({ type: 'object', additionalProperties: false, required: ['label'], properties: { label: { type: 'string', minLength: 1 } } }));
-function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
-function observed(message: string) { observations.push(message); console.log(message); }
-async function cli(...args: string[]): Promise<any> {
-  const process = Bun.spawn([processExec(), join(globalThis.process.cwd(), 'apps/cli/src/runtime.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
-  const [out, error, code] = await Promise.all([new Response(process.stdout).text(), new Response(process.stderr).text(), process.exited]);
-  if (code !== 0) throw new Error(`Singleton ${args[0]} failed (${code}): ${error}\n${out}`);
-  return JSON.parse(out);
-}
-function processExec() { return Bun.which('bun')!; }
 type Created = RequestRecord & { previewUrl: string };
-async function request(bindingId: string, namespace = 'design'): Promise<Created> {
-  return cli('request', '--binding', bindingId, '--namespace', namespace, '--name', 'panel', '--component', 'src/Form.svelte', '--title', 'Fixture custom feedback', '--schema-file', schemaPath);
-}
-async function status(page: Page, value: string) {
-  await page.waitForFunction(expected => document.querySelector('[data-testid="status"]')?.textContent === expected, value);
-}
 let app: Awaited<ReturnType<typeof startSingleton>> | undefined;
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
-async function api(record: Created, path = '', data?: unknown, scope = 'design', token = record.token) {
-  return fetch(`${app!.origin}/api/n/${scope}/panel/requests/${record.id}${path}`, {
-    method: data === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-    body: data === undefined ? undefined : JSON.stringify(data),
-  });
-}
 try {
   app = await startSingleton({ stateDir, port: 0, adapter });
   await cli('namespace', 'design'); await cli('namespace', 'analysis');

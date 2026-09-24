@@ -1,1 +1,1 @@
-export * from '@decompozr/surface-app/server/core/recipient-workflow';
+export * from '@decompozr/surface-app/server/services/recipient-workflow';

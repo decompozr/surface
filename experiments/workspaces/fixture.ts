@@ -1,15 +1,8 @@
 import { mkdtempSync, realpathSync, mkdirSync, writeFileSync, readFileSync, copyFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-export async function command(args: string[], cwd?: string, env?: Record<string,string>) {
-  const child = Bun.spawn(args, { cwd, env: { ...process.env, GIT_AUTHOR_NAME: 'Surface Workspace Fixture', GIT_AUTHOR_EMAIL: 'surface@example.invalid', GIT_COMMITTER_NAME: 'Surface Workspace Fixture', GIT_COMMITTER_EMAIL: 'surface@example.invalid', ...env }, stdout: 'pipe', stderr: 'pipe' });
-  const [code, out, err] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
-  return { code, out: out.trim(), err: err.trim() };
-}
-export async function git(root: string, ...args: string[]) {
-  const result = await command(['git', '-C', root, ...args]); if (result.code !== 0) throw new Error(`git ${args.join(' ')}: ${result.err}`); return result.out;
-}
-export async function fixture() {
+
+export const fixture = async () => {
   const directory = realpathSync(mkdtempSync('/tmp/surface-workspaces-')), main = join(directory, 'main'), a = join(directory, 'branch-a'), b = join(directory, 'branch-b');
   mkdirSync(join(main, 'ui/src'), { recursive: true });
   const projectId = crypto.randomUUID(), artifactId = crypto.randomUUID();
@@ -26,4 +19,16 @@ export async function fixture() {
   await git(main, 'add', '.'); await git(main, 'commit', '-qm', 'Initial project and reusable Surface source');
   await git(main, 'worktree', 'add', '-qb', 'experiment-a', a); await git(main, 'worktree', 'add', '-qb', 'experiment-b', b);
   return { directory, main, a, b, manifest, state: join(directory, 'shared-service'), data: join(directory, 'persistent-project-data') };
-}
+};
+
+
+
+export const command = async (args: string[], cwd?: string, env?: Record<string,string>) => {
+  const child = Bun.spawn(args, { cwd, env: { ...process.env, GIT_AUTHOR_NAME: 'Surface Workspace Fixture', GIT_AUTHOR_EMAIL: 'surface@example.invalid', GIT_COMMITTER_NAME: 'Surface Workspace Fixture', GIT_COMMITTER_EMAIL: 'surface@example.invalid', ...env }, stdout: 'pipe', stderr: 'pipe' });
+  const [code, out, err] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
+  return { code, out: out.trim(), err: err.trim() };
+};
+
+export const git = async (root: string, ...args: string[]) => {
+  const result = await command(['git', '-C', root, ...args]); if (result.code !== 0) throw new Error(`git ${args.join(' ')}: ${result.err}`); return result.out;
+};

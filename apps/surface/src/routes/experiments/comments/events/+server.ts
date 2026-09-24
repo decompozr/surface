@@ -3,7 +3,8 @@ import { error } from '@sveltejs/kit';
 import { authorize } from '$lib/server/comment-delivery';
 import { allowsCommentOrigin } from '$lib/comment-experiment/access';
 
-export async function GET({ request, url }) {
+
+export const GET = async ({ request, url }) => {
   if (env.SURFACE_COMMENTS_EXPERIMENT !== '1') error(404);
   if (!allowsCommentOrigin(url, env.SURFACE_COMMENTS_ORIGIN)) error(403);
   const bridge = authorize(request);
@@ -35,4 +36,4 @@ export async function GET({ request, url }) {
     cancel() { cleanup(); }
   });
   return new Response(stream, { headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-cache, no-transform', 'x-accel-buffering': 'no' } });
-}
+};

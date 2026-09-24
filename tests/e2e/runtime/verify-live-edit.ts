@@ -5,6 +5,15 @@ import { existsSync, mkdirSync, writeFileSync, readFileSync, realpathSync } from
 import { createHash } from 'node:crypto';
 import { startSingleton } from '@decompozr/surface-app/server/host/runtime';
 import { CodexRpc } from '@decompozr/surface-app/server/agent-adapters/rpc';
+
+const assert: (value: unknown, message: string) => asserts value = (value: unknown, message: string): asserts value => { if (!value) throw new Error(message); };
+
+const cli = async (...args: string[]) => {
+  const child = Bun.spawn([process.execPath, join(process.cwd(), 'apps/cli/src/runtime.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
+  const [out, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
+  if (code) throw new Error(`CLI ${args[0]} failed: ${error} ${out}`); return JSON.parse(out);
+};
+
 const { values } = parseArgs({ options: { live: { type: 'boolean' }, project: { type: 'string' }, thread: { type: 'string' }, socket: { type: 'string' } } });
 if (!values.live || !values.project || !values.thread || !values.socket) throw new Error('Explicit live gate: --live --project CANONICAL_PROJECT --thread EXISTING_THREAD --socket EXISTING_SOCKET. This sends one authorized source-edit request to that exact session.');
 const project = realpathSync(resolve(values.project)), threadId = values.thread, socketPath = resolve(values.socket);
@@ -15,12 +24,6 @@ const fixture = join(project, '.decompozr/surface/live-edit-proof'), source = jo
 const stateDir = join(evidence, 'state'), componentPath = join(source, 'src/Layout.svelte');
 const rpc = await CodexRpc.connect(socketPath);
 let app: Awaited<ReturnType<typeof startSingleton>> | undefined, browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
-function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
-async function cli(...args: string[]) {
-  const child = Bun.spawn([process.execPath, join(process.cwd(), 'apps/cli/src/runtime.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
-  const [out, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
-  if (code) throw new Error(`CLI ${args[0]} failed: ${error} ${out}`); return JSON.parse(out);
-}
 try {
   const { thread } = await rpc.call<any>('thread/read', { threadId, includeTurns: false });
   assert(thread.id === threadId && realpathSync(thread.cwd) === project, 'Session project identity mismatch.');
@@ -34,8 +37,8 @@ const draft = previewState('unrelated-draft', '', 1);
 const responseId = previewState('response-id', crypto.randomUUID(), 1);
 const client = createSurfaceClient();
 let request = $state(null), failure = $state('');
-async function refresh(){try{request=await client.read()}catch(error){failure=String(error)}}
-async function submit(){try{request=await client.submit({columns:2,sourcePath:${JSON.stringify(componentPath)},automated:true},$responseId)}catch(error){failure=String(error)}}
+const refresh = async () => {try{request=await client.read()}catch(error){failure=String(error)}}
+const submit = async () => {try{request=await client.submit({columns:2,sourcePath:${JSON.stringify(componentPath)},automated:true},$responseId)}catch(error){failure=String(error)}}
 onMount(()=>{void refresh();const timer=setInterval(refresh,300);return()=>clearInterval(timer)});
 </script>
 <main><h1>Live agent layout edit</h1><div class="cards" data-testid="cards"><section><h2>Unrelated draft</h2><input aria-label="Keep this draft" bind:value={$draft}/></section><section><h2>Requested layout</h2><p>Ask the bound agent to change this source to two equal columns.</p><button disabled={!request||!!request.response} onclick={submit}>Request two columns</button></section></div><p data-testid="status">{request?.response?.status ?? 'pending'}</p><p data-testid="result">{request?.result?.message ?? ''}</p><p>{failure}</p></main>

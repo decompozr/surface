@@ -2,13 +2,16 @@
 import { onMount } from 'svelte';
 import { createSurfaceClient } from 'virtual:surface-client';
 import { previewState } from 'virtual:surface-preview';
+
+const refresh = async () => { try { interaction = await client.read(); } catch (error) { failure = String(error); } };
+
+const submit = async () => { try { interaction = await client.submit({ label: $draft }, $responseId); } catch (error) { failure = String(error); } };
+
 const client = createSurfaceClient();
 const draft = previewState('draft', '', 1);
 const responseId = previewState('response-id', crypto.randomUUID(), 1);
 let interaction = $state<any>(null);
 let failure = $state('');
-async function refresh() { try { interaction = await client.read(); } catch (error) { failure = String(error); } }
-async function submit() { try { interaction = await client.submit({ label: $draft }, $responseId); } catch (error) { failure = String(error); } }
 onMount(() => { void refresh(); const timer = setInterval(refresh, 150); return () => clearInterval(timer); });
 </script>
 <main><h1>Singleton feedback</h1><label>Draft<input aria-label="Draft" bind:value={$draft}/></label>

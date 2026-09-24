@@ -5,31 +5,30 @@ import { join, relative, sep, isAbsolute } from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
 import { InputError } from '../../contracts/errors.ts';
 
-const prefix = 'virtual:artifact-dependency/';
-const builtins = new Set(builtinModules.map(name => name.replace(/^node:/, '')));
-const hash = (value: string) => createHash('sha256').update(value).digest('hex').slice(0, 24);
-function inside(root: string, path: string) { const part = relative(root, path); return part === '' || (part !== '..' && !part.startsWith('..' + sep) && !isAbsolute(part)); }
-type Bundle = { source: string; code: string; entry: string; specifier: string; id: string };
-type Source = { selected: Set<string>; bundles: Map<string, Bundle>; lock: string };
+const inside = (root: string, path: string) => { const part = relative(root, path); return part === '' || (part !== '..' && !part.startsWith('..' + sep) && !isAbsolute(part)); };
+
 
 /** Bounded opt-in pilot: JS package entries only, rebuilt at mount preparation. */
-export function scopedDependencies(isActive: (source: string) => boolean) {
-  const sources = new Map<string, Source>();
-  const bundles = new Map<string, Bundle>();
-  let server: ViteDevServer;
-  function check(id: string) {
+export const scopedDependencies = (isActive: (source: string) => boolean) => {
+
+  const check = (id: string) => {
     const record = bundles.get(id);
     if (!record || !isActive(record.source) || sources.get(record.source)?.bundles.get(record.specifier)?.id !== id) throw new InputError('Dependency bundle is not mounted.', 403);
     return record;
-  }
-  function release(source: string) {
+  };
+
+  const release = (source: string) => {
     sources.delete(source);
     for (const [id, record] of bundles) if (record.source === source) {
       const module = server?.environments.client.moduleGraph.getModuleById(id);
       if (module) server.environments.client.moduleGraph.invalidateModule(module);
       bundles.delete(id);
     }
-  }
+  };
+
+  const sources = new Map<string, Source>();
+  const bundles = new Map<string, Bundle>();
+  let server: ViteDevServer;
   const plugin: Plugin = {
     name: 'surface-scoped-dependencies', enforce: 'pre',
     configureServer(value) { server = value; },
@@ -80,4 +79,11 @@ export function scopedDependencies(isActive: (source: string) => boolean) {
       if (pathname.startsWith('/@id/__x00__' + prefix)) check('\0' + decodeURIComponent(pathname.slice('/@id/__x00__'.length)));
     },
   };
-}
+};
+
+
+const prefix = 'virtual:artifact-dependency/';
+const builtins = new Set(builtinModules.map(name => name.replace(/^node:/, '')));
+const hash = (value: string) => createHash('sha256').update(value).digest('hex').slice(0, 24);
+type Bundle = { source: string; code: string; entry: string; specifier: string; id: string };
+type Source = { selected: Set<string>; bundles: Map<string, Bundle>; lock: string };

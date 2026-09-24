@@ -15,18 +15,20 @@ cpSync(join(import.meta.dir, '../../../examples'), source, {
 let app: Awaited<ReturnType<typeof startSurfaceApp>> | undefined;
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 try {
-  app = await startSurfaceApp({ stateDir, port: 0 });
-  const instanceId = app.instanceId;
-  const vite = app.vite;
-  const { token } = JSON.parse(readFileSync(join(stateDir, 'connection.json'), 'utf8'));
-  async function management(path: string, body: unknown) {
+
+  const management = async (path: string, body: unknown) => {
     const response = await fetch(app!.origin + path, {
       method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
       body: JSON.stringify(body), signal: AbortSignal.timeout(120_000),
     });
     assert.equal(response.ok, true, `Management operation failed: ${path}`);
     return response.json();
-  }
+  };
+
+  app = await startSurfaceApp({ stateDir, port: 0 });
+  const instanceId = app.instanceId;
+  const vite = app.vite;
+  const { token } = JSON.parse(readFileSync(join(stateDir, 'connection.json'), 'utf8'));
   await management('/api/namespaces', { name: 'fixture' });
   const mount = await management('/api/mounts', { namespace: 'fixture', name: 'counter', source });
   assert.equal(mount.status, 'ready');

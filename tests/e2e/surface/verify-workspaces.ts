@@ -8,15 +8,17 @@ import { git, workspaceFixture } from './workspace-fixture.ts';
 const f = await workspaceFixture();
 let app: Awaited<ReturnType<typeof startSurfaceApp>> | undefined;
 try {
-  app = await startSurfaceApp({ ...f, port: 0 });
-  async function project(projectRoot: string, operation: string) {
+
+  const project = async (projectRoot: string, operation: string) => {
     const { token } = JSON.parse(readFileSync(join(f.stateDir, 'connection.json'), 'utf8'));
     const response = await fetch(app!.origin + '/api/v1/projects/operations', {
       method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
       body: JSON.stringify({ projectRoot, operation, ...(['mount', 'unmount'].includes(operation) ? { artifactId: f.artifactId } : {}) }),
     });
     return response.json();
-  }
+  };
+
+  app = await startSurfaceApp({ ...f, port: 0 });
   const main = await project(f.main, 'register'), linked = await project(f.linked, 'register');
   assert.equal(main.ok, true, JSON.stringify(main)); assert.equal(linked.ok, true, JSON.stringify(linked));
   assert.notEqual(main.data.workspaceId, linked.data.workspaceId);

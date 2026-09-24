@@ -6,6 +6,28 @@ import { createRequire } from 'node:module';
 import { mkdirSync, mkdtempSync, realpathSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join, resolve, basename } from 'node:path';
 import { parseArgs } from 'node:util';
+
+const command = async (args: string[], cwd = home) => {
+  const child = Bun.spawn(args, { cwd, env, stdout: 'pipe', stderr: 'pipe' });
+  const [code, out, err] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
+  if (code) throw new Error(`${args[0]}: ${err}${out}`);
+  return out.trim();
+};
+
+const extract = async (file: string) => {
+  const archive = resolve(file), digest = createHash('sha256').update(readFileSync(archive)).digest('hex');
+  expect(digest).toBe(readFileSync(archive + '.sha256', 'utf8').split(/\s/)[0]);
+  await command(['tar', '-xzf', archive, '-C', output]);
+  const directory = join(output, basename(archive).replace(/\.tar\.gz$/, ''));
+  return { archive, digest, directory, metadata: JSON.parse(readFileSync(join(directory, 'surface-release.json'), 'utf8')) };
+};
+
+const installed = async (...args: string[]) => { return JSON.parse(await command([launcher, ...args], project)); };
+
+const start = async () => { const result = await installed('start', '--port', String(port)); running = true; return result; };
+
+const stop = async () => { await installed('stop'); running = false; };
+
 const { values } = parseArgs({ options: { previous: { type: 'string' }, candidate: { type: 'string' }, output: { type: 'string' } } });
 if (!values.previous || !values.candidate || !values.output) throw new Error('Use --previous ARCHIVE --candidate ARCHIVE --output NEW_DIRECTORY');
 const output = resolve(values.output); mkdirSync(output);
@@ -16,19 +38,6 @@ delete env.SURFACE_STATE_DIR;
 const reservation = createServer(); await new Promise<void>(r => reservation.listen(0, '127.0.0.1', r));
 const port = (reservation.address() as { port: number }).port; await new Promise<void>(r => reservation.close(() => r()));
 let running = false;
-async function command(args: string[], cwd = home) {
-  const child = Bun.spawn(args, { cwd, env, stdout: 'pipe', stderr: 'pipe' });
-  const [code, out, err] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
-  if (code) throw new Error(`${args[0]}: ${err}${out}`);
-  return out.trim();
-}
-async function extract(file: string) {
-  const archive = resolve(file), digest = createHash('sha256').update(readFileSync(archive)).digest('hex');
-  expect(digest).toBe(readFileSync(archive + '.sha256', 'utf8').split(/\s/)[0]);
-  await command(['tar', '-xzf', archive, '-C', output]);
-  const directory = join(output, basename(archive).replace(/\.tar\.gz$/, ''));
-  return { archive, digest, directory, metadata: JSON.parse(readFileSync(join(directory, 'surface-release.json'), 'utf8')) };
-}
 const previous = await extract(values.previous), candidate = await extract(values.candidate);
 writeFileSync(join(output, 'intake.json'), JSON.stringify({ home, project, port, previous, candidate }, null, 2));
 mkdirSync(join(project, 'ui/routes'), { recursive: true });
@@ -41,11 +50,31 @@ const installationHome = home + '-install';
 // Keep the fixture home short enough for the lifecycle Unix socket.
 env.SURFACE_HOME = installationHome;
 const launcher = join(installationHome, 'bin/surface');
-async function installed(...args: string[]) { return JSON.parse(await command([launcher, ...args], project)); }
-async function start() { const result = await installed('start', '--port', String(port)); running = true; return result; }
-async function stop() { await installed('stop'); running = false; }
 const browser = await chromium.launch();
 try {
+
+  // Populate durable accepted comment and independent domain results on the previous version.
+  const comments = async (releaseId: string, scenario: 'idle' | 'active', folder: string) => {
+    const app = join(installationHome, 'releases', releaseId, 'apps/surface');
+    const child = Bun.spawn([process.execPath, resolve('tests/e2e/comments/mounted.e2e.ts')], {
+      env: { ...process.env, COMMENTS_E2E_LEGACY_INTERACTIONS: folder === 'previous-idle' ? '1' : '0', COMMENTS_E2E_INSTALLED_HOME: installationHome, COMMENTS_E2E_INSTALLED_PORT: String(port), COMMENTS_E2E_APP_DIR: app, COMMENTS_E2E_ACTIVE: scenario === 'active' ? '1' : '0', COMMENTS_E2E_OUTPUT: join(output, folder) },
+      stdout: Bun.file(join(output, folder + '.log')), stderr: 'inherit',
+    });
+    if (await child.exited) throw new Error('Installed comment flow failed: ' + folder);
+  };
+
+  const retained = async (label: string) => {
+    await page.goto(preview, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: /Open comments/ }).click();
+    await expect(page.getByText('Preserve this draft through upgrade and rollback.', { exact: true })).toBeVisible();
+    for (const record of stored) expect(readFileSync(record.path, 'utf8')).toBe(record.value);
+    expect(readFileSync(join(project, 'ui/routes/+page.svelte'), 'utf8')).toBe(source);
+    const workspaces = await installed('workspace', 'list');
+    expect(JSON.stringify(workspaces)).toContain(registered.data.workspaceId);
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: join(output, label + '.png') });
+  };
+
   const old = JSON.parse(await command([join(previous.directory, 'install'), '--home', installationHome]));
   writeFileSync(join(installationHome, 'e2e-fixture.json'), JSON.stringify({ purpose: 'isolated-release-verification' }));
   // Template generation is local and must work before any service is started.
@@ -76,31 +105,11 @@ try {
   await page.getByRole('button', { name: 'Add comment to draft' }).click();
   const workspaceBefore = await installed('workspace', 'list');
   await stop();
-  // Populate durable accepted comment and independent domain results on the previous version.
-  async function comments(releaseId: string, scenario: 'idle' | 'active', folder: string) {
-    const app = join(installationHome, 'releases', releaseId, 'apps/surface');
-    const child = Bun.spawn([process.execPath, resolve('tests/e2e/comments/mounted.e2e.ts')], {
-      env: { ...process.env, COMMENTS_E2E_LEGACY_INTERACTIONS: folder === 'previous-idle' ? '1' : '0', COMMENTS_E2E_INSTALLED_HOME: installationHome, COMMENTS_E2E_INSTALLED_PORT: String(port), COMMENTS_E2E_APP_DIR: app, COMMENTS_E2E_ACTIVE: scenario === 'active' ? '1' : '0', COMMENTS_E2E_OUTPUT: join(output, folder) },
-      stdout: Bun.file(join(output, folder + '.log')), stderr: 'inherit',
-    });
-    if (await child.exited) throw new Error('Installed comment flow failed: ' + folder);
-  }
   await comments(old.release, 'idle', 'previous-idle');
   const state = join(installationHome, 'state');
   const records = [join(state, 'interactions.json'), ...readdirSync(join(state, 'mounted-comments')).map(id => join(state, 'mounted-comments', id, 'interactions.json'))];
   const stored = records.map(path => ({ path, value: readFileSync(path, 'utf8') }));
   const source = readFileSync(join(project, 'ui/routes/+page.svelte'), 'utf8');
-  async function retained(label: string) {
-    await page.goto(preview, { waitUntil: 'networkidle' });
-    await page.getByRole('button', { name: /Open comments/ }).click();
-    await expect(page.getByText('Preserve this draft through upgrade and rollback.', { exact: true })).toBeVisible();
-    for (const record of stored) expect(readFileSync(record.path, 'utf8')).toBe(record.value);
-    expect(readFileSync(join(project, 'ui/routes/+page.svelte'), 'utf8')).toBe(source);
-    const workspaces = await installed('workspace', 'list');
-    expect(JSON.stringify(workspaces)).toContain(registered.data.workspaceId);
-    await page.waitForTimeout(300);
-    await page.screenshot({ path: join(output, label + '.png') });
-  }
   const next = JSON.parse(await command([join(candidate.directory, 'install'), '--home', installationHome]));
   const candidateTemplate = join(home, 'candidate-template');
   await installed('init', '--directory', candidateTemplate, '--framework', 'svelte');

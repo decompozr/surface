@@ -6,6 +6,16 @@ import { createServer } from 'node:http';
 import { existsSync, realpathSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+
+const installedCLI = async (...args: string[]) => {
+  const env: Record<string, string | undefined> = { ...process.env, PATH: '/usr/bin:/bin:/usr/sbin:/sbin', SURFACE_HOME: installedHome };
+  delete env.SURFACE_STATE_DIR;
+  const child = Bun.spawn([join(installedHome!, 'bin/surface'), ...args], { cwd: project, env, stdout: 'pipe', stderr: 'pipe' });
+  const [code, out, err] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
+  if (code) throw new Error(err + out);
+  return JSON.parse(out);
+};
+
 const root = process.cwd();
 const output = resolve(process.env.COMMENTS_E2E_OUTPUT ?? '.decompozr/surface/comments-full-e2e'); mkdirSync(output, { recursive: true });
 const project = realpathSync(mkdtempSync(join(tmpdir(), 'surface-mounted-project-')));
@@ -38,7 +48,7 @@ writeFileSync(join(project, 'ui/artifact.json'), JSON.stringify({ framework: 'sv
 writeFileSync(join(project, 'ui/routes/+page.svelte'), `<script>
 import { ${interactionFactory} as createInteractionClient } from '${interactionModule}';
 let count = $state(0), domainMessage = $state(''), domainReply = $state('');
-async function sendDomain() {
+const sendDomain = async () => {
  const client = createInteractionClient();
  const result = await client.submit({ domainChoice: 'keep' }, crypto.randomUUID());
  domainMessage = result.response?.status;
@@ -57,16 +67,14 @@ const artifactId = crypto.randomUUID();
 writeFileSync(join(project, 'artifact.project.json'), JSON.stringify({ version: 1, projectId: crypto.randomUUID(), name: `Mounted comments ${project.slice(-6)}`, artifacts: [{ id: artifactId, name: 'Review', source: 'ui', archived: false }] }));
 const git = Bun.spawn(['git', 'init', '-q', project]); if (await git.exited) throw new Error('Fixture Git init failed');
 const release = resolve(process.env.COMMENTS_E2E_APP_DIR!);
-async function installedCLI(...args: string[]) {
-  const env: Record<string, string | undefined> = { ...process.env, PATH: '/usr/bin:/bin:/usr/sbin:/sbin', SURFACE_HOME: installedHome };
-  delete env.SURFACE_STATE_DIR;
-  const child = Bun.spawn([join(installedHome!, 'bin/surface'), ...args], { cwd: project, env, stdout: 'pipe', stderr: 'pipe' });
-  const [code, out, err] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
-  if (code) throw new Error(err + out);
-  return JSON.parse(out);
-}
 let app: { origin: string; stop(): Promise<unknown> } | undefined;
 try {
+
+const api = async (path: string, data?: unknown) => {
+  const response = await fetch(origin + path, { method: data === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${management}`, 'content-type': 'application/json' }, body: data === undefined ? undefined : JSON.stringify(data) });
+  const value = await response.json(); expect(response.ok, JSON.stringify(value)).toBe(true); return value;
+};
+
 if (installedHome) {
   const selected = JSON.parse(readFileSync(join(installedHome, 'active.json'), 'utf8'));
   expect(realpathSync(release)).toBe(realpathSync(join(installedHome, 'releases', selected.release, 'apps/surface')));
@@ -79,10 +87,6 @@ if (installedHome) {
 if (!app) throw new Error("Fixture host did not start.");
 const origin = app.origin;
 const management = JSON.parse(readFileSync(join(state, 'connection.json'), 'utf8')).token;
-async function api(path: string, data?: unknown) {
-  const response = await fetch(origin + path, { method: data === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${management}`, 'content-type': 'application/json' }, body: data === undefined ? undefined : JSON.stringify(data) });
-  const value = await response.json(); expect(response.ok, JSON.stringify(value)).toBe(true); return value;
-}
 if (installedHome) await installedCLI('project', 'register');
 else await api('/api/v1/projects/operations', { operation: 'register', projectRoot: project });
 const mount = (installedHome ? await installedCLI('project', 'mount', '--artifact', artifactId) : await api('/api/v1/projects/operations', { operation: 'mount', projectRoot: project, artifactId })).data;

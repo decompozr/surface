@@ -1,14 +1,16 @@
 // Keep the project's process group tied to the manager's stdin pipe, even if
 // the manager is killed. Only this newly created group is ever signalled.
 import { spawn } from 'node:child_process';
-const command = JSON.parse(process.argv[2]!) as string[];
-let stopping = false;
-function stop(code: number) {
+
+const stop = (code: number) => {
   if (stopping) return;
   stopping = true;
   try { process.kill(-process.pid, 'SIGTERM'); } catch { /* group already gone */ }
   setTimeout(() => { try { process.kill(-process.pid, 'SIGKILL'); } catch { process.exit(code); } }, 300);
-}
+};
+
+const command = JSON.parse(process.argv[2]!) as string[];
+let stopping = false;
 process.on('SIGTERM', () => stop(0));
 process.on('SIGINT', () => stop(0));
 process.stdin.on('end', () => stop(0));

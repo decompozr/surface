@@ -7,17 +7,18 @@ type Project = { id: string; commonDir: string; workspaces: Workspace[] };
 type Ledger = { version: 1; dataRoot: string; projects: Project[] };
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const inside = (parent: string, child: string) => { const path = relative(parent, child); return !path || (path !== '..' && !path.startsWith('..') && !isAbsolute(path)); };
-function canonicalCandidate(path: string) {
+import { inspectGit } from '../agent-adapters/git.ts';
+
+const canonicalCandidate = (path: string) => {
   path = resolve(path); let ancestor = path;
   while (!existsSync(ancestor)) ancestor = dirname(ancestor);
   if (realpathSync(ancestor) !== ancestor) throw new Error('Data root must use a canonical path without symlink indirection.');
   return path;
-}
-import { inspectGit } from '../agent-adapters/git.ts';
-export { inspectGit } from '../agent-adapters/git.ts';
-export function workspaceDirectory(stateDir: string, suppliedDataRoot: string) {
-  stateDir = resolve(stateDir); const dataRoot = canonicalCandidate(suppliedDataRoot), file = join(stateDir, 'workspaces.json');
-  function read(): Ledger {
+};
+
+export const workspaceDirectory = (stateDir: string, suppliedDataRoot: string) => {
+
+  const read = (): Ledger => {
     if (!existsSync(file)) return { version: 1, dataRoot, projects: [] };
     if (!lstatSync(file).isFile()) throw new Error('Workspace ledger must be a regular file.');
     const value: Ledger = JSON.parse(readFileSync(file, 'utf8'));
@@ -32,8 +33,9 @@ export function workspaceDirectory(stateDir: string, suppliedDataRoot: string) {
       }
     }
     return value;
-  }
-  function update<T>(action: (ledger: Ledger) => T): T {
+  };
+
+  const update = <T>(action: (ledger: Ledger) => T): T => {
     mkdirSync(stateDir, { recursive: true, mode: 0o700 });
     const lock = join(stateDir, 'workspaces.lock'); let fd: number;
     try { fd = openSync(lock, 'wx', 0o600); } catch { throw new Error('Workspace ledger is locked; inspect its owner before recovery.'); }
@@ -41,8 +43,9 @@ export function workspaceDirectory(stateDir: string, suppliedDataRoot: string) {
     const temporary = file + '.' + crypto.randomUUID() + '.tmp';
     try { const ledger = read(), result = action(ledger); writeFileSync(temporary, JSON.stringify(ledger, null, 2) + '\n', { mode: 0o600, flag: 'wx' }); renameSync(temporary, file); return result; }
     finally { if (existsSync(temporary)) unlinkSync(temporary); closeSync(fd); unlinkSync(lock); }
-  }
-  async function locate(root: string, manifest: ProjectManifest, register = false, allowRetiring = false): Promise<Workspace> {
+  };
+
+  const locate = async (root: string, manifest: ProjectManifest, register = false, allowRetiring = false): Promise<Workspace> => {
     const git = await inspectGit(root);
     if (git.roots.some(path => inside(existsSync(path) ? realpathSync(path) : resolve(path), dataRoot)) || inside(dataRoot, git.root)) throw new Error('Persistent project data root must be outside every Git worktree and cannot contain a worktree.');
     const inspect = (ledger: Ledger) => {
@@ -77,7 +80,9 @@ export function workspaceDirectory(stateDir: string, suppliedDataRoot: string) {
       return workspace;
     };
     return register ? update(inspect) : inspect(read());
-  }
+  };
+
+  stateDir = resolve(stateDir); const dataRoot = canonicalCandidate(suppliedDataRoot), file = join(stateDir, 'workspaces.json');
   const identity: ProjectIdentityResolver = async (root, manifest, operation) => {
     const w = await locate(root, manifest, operation === 'register', operation === 'unmount' || operation === 'list');
     return { namespace: w.namespace, workspaceId: w.id };
@@ -94,4 +99,6 @@ export function workspaceDirectory(stateDir: string, suppliedDataRoot: string) {
       });
     },
   };
-}
+};
+
+export { inspectGit } from '../agent-adapters/git.ts';

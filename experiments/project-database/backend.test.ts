@@ -7,6 +7,13 @@ import { pathToFileURL } from 'node:url';
 import type { createProjectBackend } from './fixtures/backend.ts';
 
 test('failed first acquisition closes SQLite and a later explicit operation can recover', async () => {
+
+  const handles = async () => {
+    const process = Bun.spawn(['/usr/sbin/lsof', '-nP', '-p', String(globalThis.process.pid), '-Fn'], { stdout: 'pipe', stderr: 'pipe' });
+    const output = await new Response(process.stdout).text(); await process.exited;
+    return output.split('\n').filter(line => line === 'n' + path || line.startsWith('n' + path + '-'));
+  };
+
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'surface-db-acquisition-')));
   const path = join(root, 'data/scenarios.sqlite');
   mkdirSync(join(root, 'data'));
@@ -15,11 +22,6 @@ test('failed first acquisition closes SQLite and a later explicit operation can 
   seed.exec('CREATE TABLE scenarios (wrong_column TEXT); PRAGMA user_version=1'); seed.close(true);
   const module = await import(pathToFileURL(join(root, 'backend.ts')).href) as { createProjectBackend: typeof createProjectBackend };
   const backend = module.createProjectBackend();
-  async function handles() {
-    const process = Bun.spawn(['/usr/sbin/lsof', '-nP', '-p', String(globalThis.process.pid), '-Fn'], { stdout: 'pipe', stderr: 'pipe' });
-    const output = await new Response(process.stdout).text(); await process.exited;
-    return output.split('\n').filter(line => line === 'n' + path || line.startsWith('n' + path + '-'));
-  }
   try {
     expect(backend.inspect()).toEqual({ databaseOpen: false, opens: 0 });
     expect(backend.invoke('listScenarios', {})).toMatchObject({ ok: false, code: 'database_unavailable' });

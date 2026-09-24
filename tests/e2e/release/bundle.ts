@@ -3,6 +3,15 @@ import { mkdtempSync, realpathSync, mkdirSync, readFileSync, writeFileSync, rena
 import { resolve, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
+
+const command = async (args:string[],cwd=base) => {
+  const child=Bun.spawn(args,{cwd,env,stdout:'pipe',stderr:'pipe'});
+  const [code,out,err]=await Promise.all([child.exited,new Response(child.stdout).text(),new Response(child.stderr).text()]);
+  if(code)throw new Error(err+out);return out.trim();
+};
+
+const cli = async (...args:string[]) => {return JSON.parse(await command([cliPath,...args],project));};
+
 const archive=resolve(process.argv[2]??'');
 assert(archive.endsWith('.tar.gz'),'Pass the downloaded release archive.');
 const checksum=readFileSync(archive+'.sha256','utf8').split(/\s/)[0];
@@ -12,14 +21,8 @@ const base=realpathSync(mkdtempSync('/tmp/surface-release-')),home=defaultHome?j
 const env: Record<string,string|undefined>={...process.env,PATH:'/usr/bin:/bin:/usr/sbin:/sbin',SURFACE_HOME:home};
 delete env.SURFACE_STATE_DIR;
 if(defaultHome){env.HOME=base;delete env.SURFACE_HOME;}
-async function command(args:string[],cwd=base) {
-  const child=Bun.spawn(args,{cwd,env,stdout:'pipe',stderr:'pipe'});
-  const [code,out,err]=await Promise.all([child.exited,new Response(child.stdout).text(),new Response(child.stderr).text()]);
-  if(code)throw new Error(err+out);return out.trim();
-}
 let running=false;
 const cliPath=join(home,'bin/surface');
-async function cli(...args:string[]) {return JSON.parse(await command([cliPath,...args],project));}
 try {
   await command(['tar','-xzf',archive,'-C',base]);
   let bundle=join(base,archive.split('/').at(-1)!.replace(/\.tar\.gz$/,''));

@@ -7,43 +7,41 @@ import { Service, InputError, text } from '../services/service.ts';
 import { Store, type PreviewScope } from '../services/store.ts';
 import { CodexAdapter, type AgentAdapter } from '../agent-adapters/codex.ts';
 
-// Namespace paths scope capabilities and prevent accidental cross-mount routing.
-// They do not isolate hostile scripts sharing this server's browser origin.
-export type InteractionMount = { namespace: string; name: string; source: string; projectRoot: string; status: string; components: string[]; publicPath?: string; pages?: Record<string, string> };
-export function createInteractions(options: {
+export const createInteractions = (options: {
   stateDir: string; adapter?: AgentAdapter;
   find(namespace: string, name: string): InteractionMount;
-}) {
-  let closing = false;
-  const operations = new Set<Promise<unknown>>();
-  function requireOpen() { if (closing) throw new InputError('Server is closing.', 503); }
-  async function track<T>(operation: () => Promise<T>) {
+}) => {
+
+  const requireOpen = () => { if (closing) throw new InputError('Server is closing.', 503); };
+
+  const track = async <T>(operation: () => Promise<T>) => {
     requireOpen();
     const task = operation(); operations.add(task);
     try { return await task; } finally { operations.delete(task); }
-  }
-  const store = new Store(join(options.stateDir, 'interactions.json'));
-  const service = new Service(store, options.adapter ?? new CodexAdapter(), join(import.meta.dir, '../../../../../cli/src/runtime.ts'), options.stateDir);
-  const comments = mountedComments(options.stateDir, service, options.adapter ?? new CodexAdapter());
-  function mounted(scope: PreviewScope) {
+  };
+
+  const mounted = (scope: PreviewScope) => {
     const mount = options.find(scope.namespace, scope.name);
     if (mount.status !== 'ready' || mount.source !== scope.source || mount.projectRoot !== scope.projectRoot || !mount.components.includes(scope.component)) {
       throw new InputError('Interaction preview is unavailable. Remount its original source/component to restore access.', 409);
     }
     if (canonical(mount.source) !== scope.source || canonical(mount.projectRoot) !== scope.projectRoot) throw new InputError('Interaction source identity changed.', 409);
     return mount;
-  }
-  function checkPage(id: string, namespace: string, name: string, component: string) {
+  };
+
+  const checkPage = (id: string, namespace: string, name: string, component: string) => {
     const scope = service.get(id).previewScope;
     if (!scope || scope.namespace !== namespace || scope.name !== name || scope.component !== component) throw new InputError('Interaction belongs to a different preview.', 403);
     mounted(scope);
-  }
-  function equal(left: string, right: string) {
+  };
+
+  const equal = (left: string, right: string) => {
     const a = Buffer.from(left), b = Buffer.from(right);
     return a.length === b.length && timingSafeEqual(a, b);
-  }
-  async function route(req: IncomingMessage, res: ServerResponse, url: URL, admin: boolean,
-    body: () => Promise<Record<string, unknown>>, json: (value: unknown, status?: number) => void): Promise<boolean> {
+  };
+
+  const route = async (req: IncomingMessage, res: ServerResponse, url: URL, admin: boolean,
+    body: () => Promise<Record<string, unknown>>, json: (value: unknown, status?: number) => void): Promise<boolean> => {
     if (url.pathname.includes('/comments/') && await track(() => comments.route(req, res, url, json, record => { requireOpen(); return mounted(record.previewScope!); }))) return true;
     const requireAdmin = () => { if (!admin) throw new InputError('Management authorization required.', 401); };
     if (url.pathname === '/api/bindings' && req.method === 'POST') {
@@ -105,10 +103,21 @@ export function createInteractions(options: {
     else if (req.method === 'POST' && operation === 'close') { requireOpen(); service.close(id); json({ closed: true }); }
     else throw new InputError('Method not allowed.', 405);
     return true;
-  }
+  };
+
+  let closing = false;
+  const operations = new Set<Promise<unknown>>();
+  const store = new Store(join(options.stateDir, 'interactions.json'));
+  const service = new Service(store, options.adapter ?? new CodexAdapter(), join(import.meta.dir, '../../../../../cli/src/runtime.ts'), options.stateDir);
+  const comments = mountedComments(options.stateDir, service, options.adapter ?? new CodexAdapter());
   return { route, checkPage, commentContext(id: string) {
     const record = service.get(id);
     const binding = store.state.bindings.find(item => item.id === record.bindingId)!;
     return { recipient: `codex:${binding.threadId}`, label: record.title, live: true };
   }, async stop() { closing = true; comments.stop(); await Promise.allSettled([...operations]); } };
-}
+};
+
+
+// Namespace paths scope capabilities and prevent accidental cross-mount routing.
+// They do not isolate hostile scripts sharing this server's browser origin.
+export type InteractionMount = { namespace: string; name: string; source: string; projectRoot: string; status: string; components: string[]; publicPath?: string; pages?: Record<string, string> };

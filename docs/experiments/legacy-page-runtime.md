@@ -115,7 +115,7 @@ const client = createSurfaceClient();
 const current = await client.read(); // Restore the persisted receipt/result after reload.
 
 // Call only from an explicit form action. Generate and retain responseId before calling.
-async function submitMessage(message: string, responseId: string) {
+const submitMessage = async (message: string, responseId: string) => {
   const latest = await client.read();
   if (latest.closed || latest.response) return latest;
   return client.submit({ message }, responseId);

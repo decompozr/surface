@@ -8,26 +8,11 @@ import { InputError, type Service } from '../services/service.ts';
 import type { RequestRecord } from '../services/store.ts';
 import type { AgentAdapter } from '../agent-adapters/codex.ts';
 
+
 /** One comment conversation per existing page request. Never changes its domain response/schema. */
-export function mountedComments(stateDir: string, service: Service, adapter: AgentAdapter) {
-  const bridges = new Map<string, CommentDelivery>();
-  const streams = new Set<() => void>();
-  const equal = (a: string, b: string) => {
-    const left = Buffer.from(a), right = Buffer.from(b);
-    return left.length === right.length && timingSafeEqual(left, right);
-  };
-  async function body(req: IncomingMessage, limit = 8_000_000) {
-    if (req.headers['content-type']?.split(';')[0] !== 'application/json') throw new InputError('Expected JSON.', 415);
-    const chunks: Buffer[] = []; let size = 0;
-    for await (const chunk of req) {
-      size += Buffer.byteLength(chunk);
-      if (size > limit) throw new InputError('Comment payload too large.', 413);
-      chunks.push(Buffer.from(chunk));
-    }
-    try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); }
-    catch { throw new InputError('Invalid JSON.'); }
-  }
-  function bridgeFor(record: RequestRecord, url: URL) {
+export const mountedComments = (stateDir: string, service: Service, adapter: AgentAdapter) => {
+
+  const bridgeFor = (record: RequestRecord, url: URL) => {
     let bridge = bridges.get(record.id);
     if (bridge) return bridge;
     const binding = service.store.state.bindings.find(item => item.id === record.bindingId)!;
@@ -46,7 +31,27 @@ export function mountedComments(stateDir: string, service: Service, adapter: Age
     bridge = new CommentDelivery(directory, connection, adapter);
     bridges.set(record.id, bridge);
     return bridge;
-  }
+  };
+
+
+  const body = async (req: IncomingMessage, limit = 8_000_000) => {
+    if (req.headers['content-type']?.split(';')[0] !== 'application/json') throw new InputError('Expected JSON.', 415);
+    const chunks: Buffer[] = []; let size = 0;
+    for await (const chunk of req) {
+      size += Buffer.byteLength(chunk);
+      if (size > limit) throw new InputError('Comment payload too large.', 413);
+      chunks.push(Buffer.from(chunk));
+    }
+    try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); }
+    catch { throw new InputError('Invalid JSON.'); }
+  };
+
+  const bridges = new Map<string, CommentDelivery>();
+  const streams = new Set<() => void>();
+  const equal = (a: string, b: string) => {
+    const left = Buffer.from(a), right = Buffer.from(b);
+    return left.length === right.length && timingSafeEqual(left, right);
+  };
   return {
     async route(req: IncomingMessage, res: ServerResponse, url: URL, json: (data: unknown, status?: number) => void,
       check: (record: RequestRecord) => { publicPath?: string; pages?: Record<string, string> }) {
@@ -110,4 +115,4 @@ export function mountedComments(stateDir: string, service: Service, adapter: Age
     },
     stop() { for (const close of streams) close(); },
   };
-}
+};

@@ -12,22 +12,23 @@ import { workspaceDirectory } from '@decompozr/surface-app/server/workspaces/ide
 import { retire } from '@decompozr/surface-app/server/workspaces/retire';
 import { planMigration, publicPlan, migrate, rollbackMigration } from '@decompozr/surface-app/server/workspaces/migrate';
 
-export const root=fileURLToPath(new URL('../../..',import.meta.url));
-async function currentProject(explicit?:string) {
+const currentProject = async (explicit?:string) => {
   if(explicit)return resolve(explicit);
   const env=Object.fromEntries(Object.entries(process.env).filter(([name])=>!name.startsWith('GIT_')));
   const child=Bun.spawn(['git','rev-parse','--show-toplevel'],{cwd:process.cwd(),env,stdout:'pipe',stderr:'pipe'});
   const [code,out]=await Promise.all([child.exited,new Response(child.stdout).text(),new Response(child.stderr).text()]);
   if(code!==0)throw new Error('Run from a Git worktree or specify --project ROOT.');return resolve(out.trim());
-}
-async function api(stateDir:string,path:string,data?:unknown) {
+};
+
+const api = async (stateDir:string,path:string,data?:unknown) => {
   const connection=JSON.parse(readFileSync(join(stateDir,'connection.json'),'utf8')),url=new URL(connection.origin);
   if(url.protocol!=='http:'||url.hostname!=='127.0.0.1'||url.href!==url.origin+'/'||url.username||url.password||typeof connection.token!=='string')throw new Error('Expected a local Surface connection.');
   const response=await fetch(new URL(path,url),{method:data===undefined?'GET':'POST',redirect:'error',headers:{authorization:`Bearer ${connection.token}`,'content-type':'application/json'},body:data===undefined?undefined:JSON.stringify(data),signal:AbortSignal.timeout(120_000)});
   const value=await response.json();if(!response.ok)throw new Error(typeof value.error==='string'?value.error:JSON.stringify(value));
   if(value.status==='failed'||['failed','unknown'].includes(value.response?.status))process.exitCode=1;return value;
-}
-export async function main(args=process.argv.slice(2)) {
+};
+
+export const main = async (args=process.argv.slice(2)) => {
   const {values,positionals,tokens}=parseArgs({args,allowPositionals:true,tokens:true,options:cliOptions});
   const command=positionals[0],stateDir=serviceState(values);
   const print=(value:unknown)=>console.log(JSON.stringify(value,null,2));
@@ -114,5 +115,8 @@ Migration without --apply prints a plan. Existing data requires explicit project
     case 'close':print(await api(stateDir,`/api/requests/${encodeURIComponent(required('request'))}/close`,{}));break;
     default:throw new Error('Unknown command. Use surface --help.');
   }
-}
+};
+
+
+export const root=fileURLToPath(new URL('../../..',import.meta.url));
 if(import.meta.main)main().catch(error=>{console.error(error instanceof Error?error.message:String(error));process.exitCode=1;});

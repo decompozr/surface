@@ -2,7 +2,7 @@
 declare module 'virtual:surface-preview' {
   import type { Writable } from 'svelte/store';
   /** Preview-session state. Same key/version survives component HMR; full navigation resets it. */
-  export function previewState<T>(key: string, initial: T, version?: number | string): Writable<T>;
+  export const previewState: <T>(key: string, initial: T, version?: number | string) => Writable<T>;
 }
 
 /** The singleton host supplies this module; do not add it as a package dependency. */

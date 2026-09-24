@@ -6,6 +6,24 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { startSingleton } from '@decompozr/surface-app/server/host/runtime';
 import type { createProjectBackend } from './fixtures/backend.ts';
 
+const reply = (res: ServerResponse, status: number, value: unknown) => { res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(value)); };
+
+const equal = (a: string, b: string) => { const x = Buffer.from(a), y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); };
+
+const body = async (req: IncomingMessage) => {
+  if (req.headers['content-type']?.split(';')[0] !== 'application/json') throw new Error('Expected JSON.');
+  let text = '';
+  for await (const part of req) { text += part.toString(); if (text.length > 8192) throw new Error('Payload too large.'); }
+  return JSON.parse(text);
+};
+
+const stop = async () => {
+  if (stopping) return; stopping = true;
+  try { await app.stop(); if (entries.size) throw new Error('Project connections remain open.'); process.exit(0); }
+  catch (error) { console.error(error); process.exit(1); }
+};
+
+
 type Backend = ReturnType<typeof createProjectBackend>;
 type Config = { stateDir: string; projects: { root: string; namespace: string; name: string; backend?: boolean }[] };
 type Entry = { backend: Backend; token: string };
@@ -14,14 +32,6 @@ const entries = new Map<string, Entry>();
 const projects = config.projects.map(project => ({ ...project, root: realpathSync(project.root) }));
 const identity = (namespace: string, name: string) => `${namespace}/${name}`;
 if (new Set(projects.map(p => p.root)).size !== projects.length || new Set(projects.map(p => identity(p.namespace, p.name))).size !== projects.length) throw new Error('One unique mount per canonical project is required.');
-function reply(res: ServerResponse, status: number, value: unknown) { res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(value)); }
-function equal(a: string, b: string) { const x = Buffer.from(a), y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); }
-async function body(req: IncomingMessage) {
-  if (req.headers['content-type']?.split(';')[0] !== 'application/json') throw new Error('Expected JSON.');
-  let text = '';
-  for await (const part of req) { text += part.toString(); if (text.length > 8192) throw new Error('Payload too large.'); }
-  return JSON.parse(text);
-}
 const app = await startSingleton({
   stateDir: config.stateDir, port: 0,
   async openMountResource(mount) {
@@ -65,11 +75,6 @@ const app = await startSingleton({
   },
 });
 let stopping = false;
-async function stop() {
-  if (stopping) return; stopping = true;
-  try { await app.stop(); if (entries.size) throw new Error('Project connections remain open.'); process.exit(0); }
-  catch (error) { console.error(error); process.exit(1); }
-}
 process.on('SIGTERM', () => void stop());
 process.on('SIGINT', () => void stop());
 console.log(JSON.stringify({ ready: true, origin: app.origin, pid: process.pid }));

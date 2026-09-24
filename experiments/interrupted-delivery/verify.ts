@@ -3,25 +3,54 @@ import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, openSync, closeSync, readFileSync, realpathSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-const evidence = resolve('.decompozr/surface/interrupted-delivery', new Date().toISOString().replaceAll(':', '-'));
-mkdirSync(evidence, { recursive: true });
-const hash = (data: string | Uint8Array) => createHash('sha256').update(data).digest('hex');
-const cases = ['before-acceptance', 'accepted-no-ack', 'completed-no-ack'] as const;
-const observations: Record<string, unknown>[] = [];
-async function until(predicate: () => boolean, label: string) {
+const until = async (predicate: () => boolean, label: string) => {
   const deadline = Date.now() + 10000;
   while (!predicate()) {
     if (Date.now() > deadline) throw new Error(`Timed out: ${label}`);
     await Bun.sleep(25);
   }
-}
-async function command(args: string[]) {
+};
+
+const command = async (args: string[]) => {
   const child = Bun.spawn([process.execPath, ...args], { stdout: 'pipe', stderr: 'pipe' });
   const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
   assert.equal(code, 0, stderr);
   return JSON.parse(stdout);
-}
+};
+
+
+const evidence = resolve('.decompozr/surface/interrupted-delivery', new Date().toISOString().replaceAll(':', '-'));
+mkdirSync(evidence, { recursive: true });
+const hash = (data: string | Uint8Array) => createHash('sha256').update(data).digest('hex');
+const cases = ['before-acceptance', 'accepted-no-ack', 'completed-no-ack'] as const;
+const observations: Record<string, unknown>[] = [];
 for (const scenario of cases) {
+
+  const launch = async () => {
+    const log = openSync(join(evidence, `${scenario}-host-${pids.length}.log`), 'a');
+    try { host = Bun.spawn([process.execPath, join(import.meta.dir, 'host.ts'), root], { stdout: log, stderr: log }); }
+    finally { closeSync(log); }
+    pids.push(host.pid);
+    await until(() => {
+      if (host!.exitCode !== null) throw new Error('Fixture host exited before ready');
+      if (!existsSync(join(stateDir, 'connection.json'))) return false;
+      connection = JSON.parse(readFileSync(join(stateDir, 'connection.json'), 'utf8'));
+      return connection.pid === host!.pid && existsSync(join(root, 'ready.json'))
+        && JSON.parse(readFileSync(join(root, 'ready.json'), 'utf8')).pid === host!.pid;
+    }, 'owned fixture host ready');
+  };
+
+
+  const api = async (path: string, body?: unknown, expected = 200) => {
+    const response = await fetch(connection.origin + path, {
+      method: body === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${connection.token}`, 'content-type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(10000),
+    });
+    const value = await response.json();
+    assert.equal(response.status, expected, JSON.stringify(value));
+    return value;
+  };
+
   const root = realpathSync(mkdtempSync('/tmp/surface-cut-'));
   const projectRoot = join(root, 'project'), stateDir = join(root, 'state');
   mkdirSync(join(projectRoot, 'routes'), { recursive: true });
@@ -73,28 +102,6 @@ for (const scenario of cases) {
   let host: ReturnType<typeof Bun.spawn> | undefined;
   const pids: number[] = [];
   let connection: { origin: string; token: string; pid: number };
-  async function launch() {
-    const log = openSync(join(evidence, `${scenario}-host-${pids.length}.log`), 'a');
-    try { host = Bun.spawn([process.execPath, join(import.meta.dir, 'host.ts'), root], { stdout: log, stderr: log }); }
-    finally { closeSync(log); }
-    pids.push(host.pid);
-    await until(() => {
-      if (host!.exitCode !== null) throw new Error('Fixture host exited before ready');
-      if (!existsSync(join(stateDir, 'connection.json'))) return false;
-      connection = JSON.parse(readFileSync(join(stateDir, 'connection.json'), 'utf8'));
-      return connection.pid === host!.pid && existsSync(join(root, 'ready.json'))
-        && JSON.parse(readFileSync(join(root, 'ready.json'), 'utf8')).pid === host!.pid;
-    }, 'owned fixture host ready');
-  }
-  async function api(path: string, body?: unknown, expected = 200) {
-    const response = await fetch(connection.origin + path, {
-      method: body === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${connection.token}`, 'content-type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(10000),
-    });
-    const value = await response.json();
-    assert.equal(response.status, expected, JSON.stringify(value));
-    return value;
-  }
   try {
     await launch();
     await api('/api/namespaces', { name: 'recovery' }, 201);

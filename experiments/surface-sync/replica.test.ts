@@ -1,13 +1,16 @@
 import { test, expect } from 'bun:test';
 import { Replica, type Cursor, type Snapshot } from './fixtures/sync.ts';
-const cursor=(sequence:number,epoch='a'):Cursor=>({epoch,sequence});
-const snapshot=(sequence:number,epoch='a'):Snapshot<number>=>({data:sequence,cursor:cursor(sequence,epoch)});
-function deferred<T>(){let resolve!:(value:T)=>void;const promise=new Promise<T>(r=>resolve=r);return{promise,resolve};}
-function fixture(read:(signal:AbortSignal)=>Promise<Snapshot<number>>){
+
+const deferred = <T>() => {let resolve!:(value:T)=>void;const promise=new Promise<T>(r=>resolve=r);return{promise,resolve};};
+
+const fixture = (read:(signal:AbortSignal)=>Promise<Snapshot<number>>) => {
   const applied:number[]=[],errors:string[]=[];let dirty=false,stale=0;
   const replica=new Replica({read,dirty:()=>dirty,apply:value=>applied.push(value),stale:()=>stale++,error:message=>errors.push(message)});
   return{replica,applied,errors,setDirty:(value:boolean)=>dirty=value,stale:()=>stale};
-}
+};
+
+const cursor=(sequence:number,epoch='a'):Cursor=>({epoch,sequence});
+const snapshot=(sequence:number,epoch='a'):Snapshot<number>=>({data:sequence,cursor:cursor(sequence,epoch)});
 test('subscriptions do not read; an explicit first load opts into updates and duplicates do not reread',async()=>{
   let reads=0,current=2;const f=fixture(async()=>{reads++;return snapshot(current);});
   f.replica.connected(cursor(0));f.replica.notify(cursor(2));expect(reads).toBe(0);

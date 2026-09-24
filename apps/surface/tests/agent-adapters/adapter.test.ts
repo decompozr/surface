@@ -3,6 +3,19 @@ import { CodexAdapter, DeliveryError, type Binding } from '../../src/lib/server/
 import { RpcError, TransportError, type Rpc } from '../../src/lib/server/agent-adapters/rpc.ts';
 import { realpathSync } from 'node:fs';
 
+const fixture = (state: string, mutate?: (method: string) => unknown) => {
+  return new FakeRpc((method, params) => {
+    if (method === 'thread/read') return { thread: { id: binding.threadId, cwd: binding.projectRoot, status: { type: state } } };
+    if (method === 'thread/turns/list') return { data: [{ id: 'active-turn', status: 'inProgress' }] };
+    if (method === 'turn/steer' || method === 'turn/start') {
+      if (mutate) return mutate(method);
+      return method === 'turn/steer' ? { turnId: params.expectedTurnId } : { turn: { id: 'new-turn' } };
+    }
+    throw new Error(`Unexpected method ${method}`);
+  });
+};
+
+
 const binding: Binding = { id: 'binding', projectRoot: realpathSync(process.cwd()), threadId: 'thread-exact', socketPath: '/test.sock' };
 class FakeRpc implements Rpc {
   calls: { method: string; params: any }[] = [];
@@ -13,17 +26,6 @@ class FakeRpc implements Rpc {
     return this.handler(method, params) as T;
   }
   close() { this.closed = true; }
-}
-function fixture(state: string, mutate?: (method: string) => unknown) {
-  return new FakeRpc((method, params) => {
-    if (method === 'thread/read') return { thread: { id: binding.threadId, cwd: binding.projectRoot, status: { type: state } } };
-    if (method === 'thread/turns/list') return { data: [{ id: 'active-turn', status: 'inProgress' }] };
-    if (method === 'turn/steer' || method === 'turn/start') {
-      if (mutate) return mutate(method);
-      return method === 'turn/steer' ? { turnId: params.expectedTurnId } : { turn: { id: 'new-turn' } };
-    }
-    throw new Error(`Unexpected method ${method}`);
-  });
 }
 test('steers the exact active turn without starting a new one', async () => {
   const rpc = fixture('active');

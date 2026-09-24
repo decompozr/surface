@@ -1,6 +1,28 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { createInteractionClient } from './interactions';
+
+  const submit = async (event: SubmitEvent) => {
+    event.preventDefault();
+    busy = true;
+    try {
+      const client = createInteractionClient();
+      const existing = await client.read();
+      if (existing.response) {
+        submitted = true;
+        status = `Existing submission: ${existing.response.status}.`;
+      } else {
+        // Disable after sending, including uncertain transport outcomes.
+        submitted = true;
+        const request = await client.submit({ message }, responseId);
+        status = `Submission ${request.response?.status ?? 'saved'}. Waiting for the agent result.`;
+      }
+      result = JSON.stringify(await client.waitForResult(), null, 2);
+      status = 'Agent result received.';
+    } catch (error) { status = error instanceof Error ? error.message : String(error); }
+    finally { busy = false; }
+  };
+
   let message = $state('');
   let status = $state('Ready for your input.');
   let result = $state('');
@@ -29,26 +51,6 @@
     })();
     return () => controller.abort();
   });
-  async function submit(event: SubmitEvent) {
-    event.preventDefault();
-    busy = true;
-    try {
-      const client = createInteractionClient();
-      const existing = await client.read();
-      if (existing.response) {
-        submitted = true;
-        status = `Existing submission: ${existing.response.status}.`;
-      } else {
-        // Disable after sending, including uncertain transport outcomes.
-        submitted = true;
-        const request = await client.submit({ message }, responseId);
-        status = `Submission ${request.response?.status ?? 'saved'}. Waiting for the agent result.`;
-      }
-      result = JSON.stringify(await client.waitForResult(), null, 2);
-      status = 'Agent result received.';
-    } catch (error) { status = error instanceof Error ? error.message : String(error); }
-    finally { busy = false; }
-  }
 </script>
 
 <main>

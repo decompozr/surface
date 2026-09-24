@@ -6,6 +6,18 @@ import { mkdtempSync, realpathSync, readFileSync, writeFileSync, rmSync, mkdirSy
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { startServer } from '@decompozr/surface-app/server/http/index';
+
+const assert: (value: unknown, message: string) => asserts value = (value: unknown, message: string): asserts value => { if (!value) throw new Error(message); };
+
+const command = async (args: string[], cwd = root) => {
+  const child = Bun.spawn(args, { cwd, stdout: 'pipe', stderr: 'pipe' });
+  const [out, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
+  if (code) throw new Error(`${args.join(' ')} failed (${code})\n${out}\n${error}`);
+  return out;
+};
+
+const cli = async (...args: string[]) => { return JSON.parse(await command([process.execPath, join(root, 'apps/cli/src/index.ts'), ...args, '--state-dir', stateDir], directory)); };
+
 const root = resolve(import.meta.dir, '..');
 const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-external-proof-')));
 const stateDir = join(directory, 'state');
@@ -14,14 +26,6 @@ const app = startServer({ stateDir, cliPath: join(root, 'apps/cli/src/index.ts')
   adapter: { inspect: async () => ({ status: 'idle' }), deliver: async (_binding, message) => { delivered.push(message); return { mode: 'start', turnId: 'explicit-test-fixture' }; } },
 });
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
-function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
-async function command(args: string[], cwd = root) {
-  const child = Bun.spawn(args, { cwd, stdout: 'pipe', stderr: 'pipe' });
-  const [out, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
-  if (code) throw new Error(`${args.join(' ')} failed (${code})\n${out}\n${error}`);
-  return out;
-}
-async function cli(...args: string[]) { return JSON.parse(await command([process.execPath, join(root, 'apps/cli/src/index.ts'), ...args, '--state-dir', stateDir], directory)); }
 const evidence: Record<string, unknown>[] = [];
 try {
   for (const framework of ['svelte', 'vanilla']) {

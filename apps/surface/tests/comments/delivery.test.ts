@@ -6,9 +6,8 @@ import { createServer, type Server } from 'node:net';
 import { CommentDelivery, type Connection } from '../../src/lib/server/comments/delivery.ts';
 import { DeliveryError, type AgentAdapter } from '../../src/lib/server/agent-adapters/codex.ts';
 import type { Batch } from '../../src/lib/comment-experiment/model.ts';
-const cleanup: (() => void)[] = [];
-afterEach(() => { for (const dispose of cleanup.splice(0)) dispose(); });
-async function fixture(adapter: AgentAdapter) {
+
+const fixture = async (adapter: AgentAdapter) => {
   const root = mkdtempSync(join(tmpdir(), 'surface-comments-'));
   const socketPath = join(root, 'control.sock');
   const server: Server = createServer();
@@ -16,7 +15,10 @@ async function fixture(adapter: AgentAdapter) {
   cleanup.push(() => { server.close(); rmSync(root, { recursive: true, force: true }); });
   const config: Connection = { threadId: 'fixture-thread', projectRoot: root, socketPath, label: 'Fixture only', token: 'fixture', callbackToken: 'fixture-callback', origin: 'http://localhost', resultCli: '/fixture/result.ts' };
   return { root, config, bridge: new CommentDelivery(root, config, adapter) };
-}
+};
+
+const cleanup: (() => void)[] = [];
+afterEach(() => { for (const dispose of cleanup.splice(0)) dispose(); });
 const batch = (): Batch => ({ id: 'batch-1', createdAt: '2026-09-23T00:00:00Z', page: '/experiments/comments', revision: 'v2', recipient: 'codex:fixture-thread', status: 'pending', comments: [{ id: 'comment-1', target: { id: 'heading', label: 'Heading', selector: '#heading', text: 'Title', revision: 'v2' }, text: 'Automated fixture only.' }] });
 describe('exact conversation comment delivery using a fake adapter', () => {
   test('concurrent duplicates and restart do not deliver twice; callback result is separate', async () => {

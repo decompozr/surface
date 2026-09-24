@@ -7,6 +7,21 @@ import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import { startSingleton } from '@decompozr/surface-app/server/host/runtime';
 import { DeliveryError, type AgentAdapter, type Binding } from '@decompozr/surface-app/server/agent-adapters/codex';
 
+const tool = async (name: string, args: Record<string, unknown> = {}, error = false) => {
+  const result = await client.callTool({ name: `surface_${name}`, arguments: args }, { timeout: 150_000 });
+  assert.equal(result.isError === true, error, JSON.stringify(result));
+  if (!error) assert.ok(result.structuredContent, 'Expected structured output');
+  return { result, output: result.structuredContent as any };
+};
+
+
+const cliCode = async (expectedCode: number, ...args: string[]) => {
+  const child = Bun.spawn([process.execPath, cliPath, ...args, '--state-dir', stateDir], { cwd: root, stdout: 'pipe', stderr: 'pipe' });
+  const [code, stdout, error] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
+  assert.equal(code, expectedCode, `CLI failed: ${error}`); return JSON.parse(stdout);
+};
+
+
 const root = process.cwd();
 const temporary = realpathSync(mkdtempSync(join(tmpdir(), 'surface-mcp-')));
 const stateDir = join(temporary, 'state'), source = join(temporary, 'project', 'panel');
@@ -35,18 +50,7 @@ let stderr = ''; transport.stderr?.on('data', chunk => { stderr += chunk.toStrin
 const client = new Client({ name: 'surface-mcp-verifier', version: '0.1.0' });
 const observations: Record<string, unknown> = {};
 const cliPath = join(root, 'apps/cli/src/runtime.ts');
-async function cliCode(expectedCode: number, ...args: string[]) {
-  const child = Bun.spawn([process.execPath, cliPath, ...args, '--state-dir', stateDir], { cwd: root, stdout: 'pipe', stderr: 'pipe' });
-  const [code, stdout, error] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
-  assert.equal(code, expectedCode, `CLI failed: ${error}`); return JSON.parse(stdout);
-}
 const cli = (...args: string[]) => cliCode(0, ...args);
-async function tool(name: string, args: Record<string, unknown> = {}, error = false) {
-  const result = await client.callTool({ name: `surface_${name}`, arguments: args }, { timeout: 150_000 });
-  assert.equal(result.isError === true, error, JSON.stringify(result));
-  if (!error) assert.ok(result.structuredContent, 'Expected structured output');
-  return { result, output: result.structuredContent as any };
-}
 const scope = { namespace: 'mcp', name: 'panel' };
 const schema = { type: 'object', required: ['label'], additionalProperties: false, properties: { label: { type: 'string' } } };
 try {

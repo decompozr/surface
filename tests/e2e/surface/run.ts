@@ -7,19 +7,16 @@ import { Database } from 'bun:sqlite';
 import { createHash } from 'node:crypto';
 import { fixture, git, command } from '../../../experiments/workspaces/fixture.ts';
 
-function assert(v:unknown,message:string):asserts v {if(!v)throw new Error(message);}
-const root=process.cwd(),base=realpathSync(mkdtempSync('/tmp/surface-public-')),home=join(base,'Surface Home'),state=join(home,'state');
-let repo=join(base,'release-source');mkdirSync(repo);
-const evidence=join(root,'.decompozr/surface/public-entry-proof');mkdirSync(evidence,{recursive:true});
-const f=await fixture(),observations:string[]=[],pids:number[]=[],hashes:Record<string,string>={};
-let launcher=join(root,'apps/cli/src/index.ts'),running=false,passed=false,revision='',errorText='';
-let browser:Awaited<ReturnType<typeof chromium.launch>>|undefined,mcp:any;
-let connection!:{origin:string;token:string};
-const observed=(text:string)=>{observations.push(text);console.log(text);};
-async function run(args:string[],cwd=base) {const result=await command(args,cwd);assert(result.code===0,result.err+'\n'+result.out);return result.out;}
-async function cli(cwd:string,...args:string[]) {return JSON.parse(await run([process.execPath,launcher,...args,'--home',home],cwd));}
-async function project(cwd:string,...args:string[]) {const result=await cli(cwd,'project',...args);assert(result.ok,JSON.stringify(result));return result.data;}
-async function start(port?:number) {
+
+const assert: (v: unknown, message: string) => asserts v = (v:unknown,message:string):asserts v => {if(!v)throw new Error(message);};
+
+const run = async (args:string[],cwd=base) => {const result=await command(args,cwd);assert(result.code===0,result.err+'\n'+result.out);return result.out;};
+
+const cli = async (cwd:string,...args:string[]) => {return JSON.parse(await run([process.execPath,launcher,...args,'--home',home],cwd));};
+
+const project = async (cwd:string,...args:string[]) => {const result=await cli(cwd,'project',...args);assert(result.ok,JSON.stringify(result));return result.data;};
+
+const start = async (port?:number) => {
   // Model a terminal/tool session ending after the CLI returns. Its process group
   // must not own the long-lived host. Only signal this disposable launch group.
   const session=Bun.spawn(['sh','-c','"$@" & wait','surface-start-session',process.execPath,launcher,'start',...(port===undefined?[]:['--port',String(port)]),'--home',home],{cwd:base,detached:true,stdin:'ignore',stdout:'pipe',stderr:'pipe'});
@@ -28,9 +25,11 @@ async function start(port?:number) {
   try{process.kill(-session.pid,'SIGTERM');}catch(error){if((error as NodeJS.ErrnoException).code!=='ESRCH')throw error;}
   await Bun.sleep(200);assert((await cli(base,'status')).status==='running','Host did not survive launching session teardown.');
   connection=JSON.parse(readFileSync(join(state,'connection.json'),'utf8'));return status;
-}
-async function stop() {await cli(base,'stop');running=false;assert(!existsSync(join(state,'server.lock')),'Host lock remains.');}
-async function snapshot() {
+};
+
+const stop = async () => {await cli(base,'stop');running=false;assert(!existsSync(join(state,'server.lock')),'Host lock remains.');};
+
+const snapshot = async () => {
   const listed=await run(['git','-C',root,'ls-files','-z']);const extra=await run(['git','-C',root,'ls-files','--others','--exclude-standard','-z']);
   for(const path of new Set([...listed.split('\0'),...extra.split('\0')].filter(Boolean))) {
     const from=join(root,path),to=join(repo,path);if(!existsSync(from))continue;mkdirSync(dirname(to),{recursive:true});
@@ -38,7 +37,16 @@ async function snapshot() {
     else{copyFileSync(from,to);hashes[path]=createHash('sha256').update(readFileSync(from)).digest('hex');}
   }
   await git(repo,'init','-q');await git(repo,'config','commit.gpgsign','false');await git(repo,'add','.');await git(repo,'commit','-qm','Public entry verification snapshot');return git(repo,'rev-parse','HEAD');
-}
+};
+
+const root=process.cwd(),base=realpathSync(mkdtempSync('/tmp/surface-public-')),home=join(base,'Surface Home'),state=join(home,'state');
+let repo=join(base,'release-source');mkdirSync(repo);
+const evidence=join(root,'.decompozr/surface/public-entry-proof');mkdirSync(evidence,{recursive:true});
+const f=await fixture(),observations:string[]=[],pids:number[]=[],hashes:Record<string,string>={};
+let launcher=join(root,'apps/cli/src/index.ts'),running=false,passed=false,revision='',errorText='';
+let browser:Awaited<ReturnType<typeof chromium.launch>>|undefined,mcp:any;
+let connection!:{origin:string;token:string};
+const observed=(text:string)=>{observations.push(text);console.log(text);};
 writeFileSync(join(evidence,'result.json'),JSON.stringify({passed:false,status:'running'}));
 try {
   revision=await snapshot();writeFileSync(join(evidence,'source.json'),JSON.stringify({revision,sourceHead:await git(root,'rev-parse','HEAD'),hashes},null,2));

@@ -7,36 +7,18 @@ import { selectSkills } from './provider.ts';
 import { requireCompatibleBun } from '@decompozr/surface-installer/bun-version';
 import { installationHome } from '@decompozr/surface-installer/paths';
 import { inspectSkillLink, linkSkill } from './skill-link.ts';
-export async function agentSetup(args=process.argv.slice(2)) {
-const {values,positionals}=parseArgs({args,allowPositionals:true,options:{home:{type:'string'},'skills-dir':{type:'string',multiple:true},provider:{type:'string',multiple:true},port:{type:'string'},tailscale:{type:'string'},ref:{type:'string'},help:{type:'boolean'}}});
-const requestedMode=positionals[0];
-const mode=requestedMode==='refresh'?'setup':requestedMode;
-if(values.help){console.log('./bin/setup | ./bin/test | ./bin/refresh [--provider codex|claude | --skills-dir PATH] [--home PATH] [--port PORT] [--tailscale on|off] [--ref COMMIT]\nSetup shows a Codex / Claude Code menu; saved choices or all detected providers are preselected. Space toggles; Enter confirms. Repeat --provider or --skills-dir for multiple destinations.');return;}
-if(!['setup','test','refresh'].includes(mode??'')||positionals.length!==1)throw new Error('Specify setup, test or refresh.');
-const root=resolve(import.meta.dir,'../../../..'),home=installationHome(values.home);
-const pkg=JSON.parse(readFileSync(join(root,'package.json'),'utf8'));
-requireCompatibleBun(pkg.packageManager,Bun.version);
-if(values.port!==undefined && (!Number.isInteger(Number(values.port)) || Number(values.port)<0 || Number(values.port)>65535))throw new Error('Invalid port.');
-const interactive=!!process.stdin.isTTY&&!!process.stdout.isTTY;
-const ui=interactive?await loadPrompts(mode!=='test'):undefined;
-ui?.intro('Surface · '+mode);
-const step=(message:string)=>{if(ui)ui.log.step(message);};
-const configuration=join(home,'agent-setup.json');
-const saved=existsSync(configuration)?JSON.parse(readFileSync(configuration,'utf8')):undefined;
-let access=mode==='test' ? saved?.access??{enabled:false} : await selectAccess(saved?.access,values.tailscale,interactive);
-const skills=await selectSkills({explicit:values['skills-dir'],provider:values.provider,saved:saved?.skillsDirectories??saved?.skillsDirectory,mode});
-if(ui)ui.note(`Install  ${home}\n\n`+skills.map(directory=>`Link     ${join(directory,'surface')}`).join('\n'),'Your setup');
-else {console.log(`Surface ${mode}: ${home}`);for(const directory of skills)console.log(`Skill symlink: ${join(directory,'surface')} -> ${join(root,'skills/surface')}`);}
-const env: NodeJS.ProcessEnv={...process.env,SURFACE_HOME:home};delete env.SURFACE_STATE_DIR;
-async function run(args:string[],cwd=root) {
+
+export const agentSetup = async (args=process.argv.slice(2)) => {
+
+const run = async (args:string[],cwd=root) => {
   const child=Bun.spawn(args,{cwd,env,stdout:'pipe',stderr:'pipe'});
   const [code,out,err]=await Promise.all([child.exited,new Response(child.stdout).text(),new Response(child.stderr).text()]);
   if(code)throw new Error(err+out);return out.trim();
-}
-for(const directory of skills)inspectSkillLink(root,directory); // Detect conflicts before touching the service.
-const launcher=join(home,'bin/surface');
-async function cli(...args:string[]){return JSON.parse(await run([launcher,...args,'--home',home]));}
-async function verify() {
+};
+
+const cli = async (...args:string[]) => {return JSON.parse(await run([launcher,...args,'--home',home]));};
+
+const verify = async () => {
   const skillLinks=skills.map(directory=>inspectSkillLink(root,directory));if(skillLinks.some(skill=>!skill.linked))throw new Error('Provider skill link is missing. Run setup first.');
   const status=await cli('status');if(status.status!=='running')throw new Error('Selected Surface is stopped; run its start command first.');
   const checkoutCommit=await run(['git','rev-parse','HEAD']);
@@ -62,16 +44,40 @@ async function verify() {
   }
   if(ui){ui.note(`Open     ${origin}${network.url?'\nTailscale '+network.url:''}\n\nSkills   ${skillLinks.length} linked to this checkout\nManage   ${launcher} status\n\nReload your agent to discover the skill.`, 'Ready');ui.outro('Surface is running.');}
   else console.log(JSON.stringify({status:'verified',home,launcher,origin,tailscale:network.url,release:status.lifecycle.release,skillLinks,doctor,agentDiscovery:'Restart/reload the provider if needed. Filesystem linking does not prove provider discovery or live conversation delivery.'},null,2));
-}
+};
+
+const saveSelection = () => {
+  const content=JSON.stringify({version:3,skillsDirectories:skills,access},null,2)+'\n';
+  if(!existsSync(configuration)||readFileSync(configuration,'utf8')!==content)writeFileSync(configuration,content,{mode:0o600});
+};
+
+const {values,positionals}=parseArgs({args,allowPositionals:true,options:{home:{type:'string'},'skills-dir':{type:'string',multiple:true},provider:{type:'string',multiple:true},port:{type:'string'},tailscale:{type:'string'},ref:{type:'string'},help:{type:'boolean'}}});
+const requestedMode=positionals[0];
+const mode=requestedMode==='refresh'?'setup':requestedMode;
+if(values.help){console.log('./bin/setup | ./bin/test | ./bin/refresh [--provider codex|claude | --skills-dir PATH] [--home PATH] [--port PORT] [--tailscale on|off] [--ref COMMIT]\nSetup shows a Codex / Claude Code menu; saved choices or all detected providers are preselected. Space toggles; Enter confirms. Repeat --provider or --skills-dir for multiple destinations.');return;}
+if(!['setup','test','refresh'].includes(mode??'')||positionals.length!==1)throw new Error('Specify setup, test or refresh.');
+const root=resolve(import.meta.dir,'../../../..'),home=installationHome(values.home);
+const pkg=JSON.parse(readFileSync(join(root,'package.json'),'utf8'));
+requireCompatibleBun(pkg.packageManager,Bun.version);
+if(values.port!==undefined && (!Number.isInteger(Number(values.port)) || Number(values.port)<0 || Number(values.port)>65535))throw new Error('Invalid port.');
+const interactive=!!process.stdin.isTTY&&!!process.stdout.isTTY;
+const ui=interactive?await loadPrompts(mode!=='test'):undefined;
+ui?.intro('Surface · '+mode);
+const step=(message:string)=>{if(ui)ui.log.step(message);};
+const configuration=join(home,'agent-setup.json');
+const saved=existsSync(configuration)?JSON.parse(readFileSync(configuration,'utf8')):undefined;
+let access=mode==='test' ? saved?.access??{enabled:false} : await selectAccess(saved?.access,values.tailscale,interactive);
+const skills=await selectSkills({explicit:values['skills-dir'],provider:values.provider,saved:saved?.skillsDirectories??saved?.skillsDirectory,mode});
+if(ui)ui.note(`Install  ${home}\n\n`+skills.map(directory=>`Link     ${join(directory,'surface')}`).join('\n'),'Your setup');
+else {console.log(`Surface ${mode}: ${home}`);for(const directory of skills)console.log(`Skill symlink: ${join(directory,'surface')} -> ${join(root,'skills/surface')}`);}
+const env: NodeJS.ProcessEnv={...process.env,SURFACE_HOME:home};delete env.SURFACE_STATE_DIR;
+for(const directory of skills)inspectSkillLink(root,directory); // Detect conflicts before touching the service.
+const launcher=join(home,'bin/surface');
 if(mode==='test'){await verify();return;}
 if(await run(['git','status','--porcelain']))throw new Error('Commit or preserve checkout changes before setup/refresh. Only committed source is installed.');
 const commit=await run(['git','rev-parse','--verify',`${values.ref??'HEAD'}^{commit}`]);
 // Skills stay linked to this checkout; keep the installed source and instructions aligned.
 if(commit!==await run(['git','rev-parse','HEAD']))throw new Error('Check out the selected commit before setup so linked skills match the installed release.');
-function saveSelection() {
-  const content=JSON.stringify({version:3,skillsDirectories:skills,access},null,2)+'\n';
-  if(!existsSync(configuration)||readFileSync(configuration,'utf8')!==content)writeFileSync(configuration,content,{mode:0o600});
-}
 let wasRunning=false;
 let installedCommit:string|undefined;
 let portChanged=false;
@@ -111,5 +117,6 @@ try {
   throw error;
 }
 
-}
+};
+
 if(import.meta.main)agentSetup().catch(error=>{console.error(error instanceof Error?error.message:String(error));process.exitCode=1;});

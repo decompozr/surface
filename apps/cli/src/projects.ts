@@ -2,7 +2,8 @@ import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { projectOperation, projectOperations, type ProjectCommand } from './surface-api.ts';
 
-export async function projectMain(args: string[], defaultStateDir: string): Promise<void> {
+
+export const projectMain = async (args: string[], defaultStateDir: string): Promise<void> => {
   const { values, positionals } = parseArgs({ args, allowPositionals: true, options: {
     project: { type: 'string' }, artifact: { type: 'string' }, source: { type: 'string' }, name: { type: 'string' },
     'state-dir': { type: 'string' }, help: { type: 'boolean', short: 'h' },
@@ -24,4 +25,4 @@ mount, unmount, archive and restore require --artifact. list and register take o
   const outcome = await projectOperation(resolve(values['state-dir'] ?? defaultStateDir), command);
   console.log(JSON.stringify(outcome, null, 2));
   if (!outcome.ok) process.exitCode = 1;
-}
+};

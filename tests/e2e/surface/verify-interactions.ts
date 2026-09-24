@@ -29,27 +29,31 @@ const adapter: AgentAdapter = {
 let app: Awaited<ReturnType<typeof startSurfaceApp>> | undefined;
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 try {
-  await new Promise<void>((resolve, reject) => { socket.once('error', reject); socket.listen(socketPath, resolve); });
-  app = await startSurfaceApp({ ...f, port: 0, adapter });
-  async function raw(path: string, body?: unknown, capability?: string) {
+
+  const raw = async (path: string, body?: unknown, capability?: string) => {
     const { token } = JSON.parse(readFileSync(join(f.stateDir, 'connection.json'), 'utf8'));
     return fetch(app!.origin + path, {
       method: body === undefined ? 'GET' : 'POST',
       headers: { authorization: `Bearer ${capability ?? token}`, 'content-type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-  }
-  async function api(path: string, body?: unknown) {
+  };
+
+  const api = async (path: string, body?: unknown) => {
     const response = await raw(path, body);
     const value = await response.json();
     assert.ok(response.ok, JSON.stringify(value)); return value;
-  }
-  async function project(projectRoot: string, operation: string) {
+  };
+
+  const project = async (projectRoot: string, operation: string) => {
     const value = await api('/api/v1/projects/operations', {
       projectRoot, operation, ...(operation === 'register' ? {} : { artifactId: f.artifactId }),
     });
     assert.ok(value.ok, JSON.stringify(value)); return value.data;
-  }
+  };
+
+  await new Promise<void>((resolve, reject) => { socket.once('error', reject); socket.listen(socketPath, resolve); });
+  app = await startSurfaceApp({ ...f, port: 0, adapter });
   await project(f.main, 'register'); await project(f.linked, 'register');
   const main = await project(f.main, 'mount'), linked = await project(f.linked, 'mount');
   const binding = await api('/api/bindings', { projectRoot: f.main, threadId: 'fixture-main', socketPath });

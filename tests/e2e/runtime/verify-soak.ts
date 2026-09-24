@@ -3,33 +3,33 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, realpathSync, rmSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startSingleton } from '@decompozr/surface-app/server/host/runtime';
-const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-soak-'))), stateDir = join(directory, 'state');
-const evidence = join(process.cwd(), '.decompozr/surface/soak-proof'); mkdirSync(evidence, { recursive: true });
-const probe = process.argv.includes('--probe');
-const samples: Record<string, any>[] = [];
-const started = performance.now();
-let app: Awaited<ReturnType<typeof startSingleton>> | undefined, browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
-function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
-function source(name: string) {
+
+const assert: (value: unknown, message: string) => asserts value = (value: unknown, message: string): asserts value => { if (!value) throw new Error(message); };
+
+const source = (name: string) => {
   const root = join(directory, name); mkdirSync(join(root, 'src'), { recursive: true });
   writeFileSync(join(root, 'package.json'), JSON.stringify({ name, private: true, type: 'module', dependencies: { svelte: '5.57.1', lodash: '4.17.21' } }));
   writeFileSync(join(root, 'artifact.json'), JSON.stringify({ framework: 'svelte', components: 'src', prebundle: ['lodash'] }));
   writeFileSync(join(root, 'src/Panel.svelte'), component(name)); return root;
-}
-function component(name: string) { return `<script>import lodash from 'lodash';import {previewState} from 'virtual:surface-preview';const count=previewState('count',0);</script><h1>${name}</h1><p>{lodash.VERSION}</p><button onclick={()=> $count++}>Count {$count}</button>`; }
-async function cli(...args: string[]) {
+};
+
+const component = (name: string) => { return `<script>import lodash from 'lodash';import {previewState} from 'virtual:surface-preview';const count=previewState('count',0);</script><h1>${name}</h1><p>{lodash.VERSION}</p><button onclick={()=> $count++}>Count {$count}</button>`; };
+
+const cli = async (...args: string[]) => {
   const child = Bun.spawn([process.execPath, join(process.cwd(), 'apps/cli/src/runtime.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
   const [out, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
   const result = JSON.parse(out || '{}'); if (code && result.status !== 'failed') throw new Error(`${args[0]}: ${error}`); return result;
-}
-function descendantProcesses() {
+};
+
+const descendantProcesses = () => {
   const output = Bun.spawnSync(['/bin/ps', '-axo', 'pid=,ppid=,comm=']).stdout.toString();
   const rows = output.trim().split('\n').map(line => { const match = /^\s*(\d+)\s+(\d+)\s+(.+)$/.exec(line)!; return { pid: Number(match[1]), ppid: Number(match[2]), name: match[3]! }; });
   const pids = new Set([process.pid]);
   for (let step = 0; step < 10; step++) for (const row of rows) if (pids.has(row.ppid)) pids.add(row.pid);
   return rows.filter(row => pids.has(row.pid) && row.pid !== process.pid && !row.name.endsWith('/ps'));
-}
-function sample(stage: string, cycle = -1) {
+};
+
+const sample = (stage: string, cycle = -1) => {
   Bun.gc(true);
   const graph = app!.vite.environments.client.moduleGraph, modules = [...graph.idToModuleMap.values()];
   const watched = app!.vite.watcher.getWatched();
@@ -50,7 +50,14 @@ function sample(stage: string, cycle = -1) {
     descendantProcesses: descendants.length, nonBrowserDescendants: descendants.filter(row => !/Chrome|chrome|crashpad/i.test(row.name)).map(row => row.name),
   };
   samples.push(value); writeFileSync(join(evidence, probe ? 'baseline-probe.json' : 'samples.json'), JSON.stringify(samples, null, 2)); return value;
-}
+};
+
+const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-soak-'))), stateDir = join(directory, 'state');
+const evidence = join(process.cwd(), '.decompozr/surface/soak-proof'); mkdirSync(evidence, { recursive: true });
+const probe = process.argv.includes('--probe');
+const samples: Record<string, any>[] = [];
+const started = performance.now();
+let app: Awaited<ReturnType<typeof startSingleton>> | undefined, browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 try {
   app = await startSingleton({ stateDir, port: 0 }); await cli('namespace', 'soak');
   browser = await chromium.launch({ channel: 'chrome', headless: true });

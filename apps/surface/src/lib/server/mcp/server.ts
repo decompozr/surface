@@ -6,20 +6,11 @@ import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import * as z from 'zod/v4';
 import { projectOperation } from '../http/project-client.ts';
 
-const slug = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
-const absolutePath = z.string().min(1).refine(isAbsolute, 'Expected an absolute path.');
-const id = z.uuid();
-const jsonObject = z.record(z.string(), z.unknown());
-const outputSchema = z.object({
-  ok: z.boolean(), status: z.string(), data: z.unknown().optional(),
-  error: z.string().optional(), httpStatus: z.number().optional(),
-});
-type Outcome = z.infer<typeof outputSchema>;
 
 /** Transport adapter only. State, validation, delivery and lifecycle belong to the existing singleton. */
-export function createMcpServer(stateDir: string) {
-  const server = new McpServer({ name: 'surface-singleton-experiment', version: '0.1.0' });
-  async function api(path: string, body?: unknown): Promise<Outcome> {
+export const createMcpServer = (stateDir: string) => {
+
+  const api = async (path: string, body?: unknown): Promise<Outcome> => {
     let origin: URL, token: string;
     try {
       const connection = JSON.parse(readFileSync(join(stateDir, 'connection.json'), 'utf8'));
@@ -49,9 +40,10 @@ export function createMcpServer(stateDir: string) {
       // A mutation may have reached the server even if its response was lost. Never retry here.
       return { ok: false, status: body === undefined ? 'unavailable' : 'unknown', error: body === undefined ? 'Singleton could not be reached or returned an invalid response.' : 'Operation outcome is unknown. Inspect existing state before retrying; the adapter did not retry.' };
     }
-  }
-  function register<S extends z.ZodRawShape>(name: string, description: string, shape: S,
-    operation: (input: z.infer<z.ZodObject<S>>) => Promise<Outcome>, readOnly = false) {
+  };
+
+  const register = <S extends z.ZodRawShape>(name: string, description: string, shape: S,
+    operation: (input: z.infer<z.ZodObject<S>>) => Promise<Outcome>, readOnly = false) => {
     server.registerTool(name, {
       description, inputSchema: z.strictObject(shape), outputSchema,
       annotations: { readOnlyHint: readOnly, destructiveHint: !readOnly, openWorldHint: !readOnly },
@@ -59,7 +51,9 @@ export function createMcpServer(stateDir: string) {
       const outcome = await operation(input);
       return { content: [{ type: 'text' as const, text: JSON.stringify(outcome) }], structuredContent: outcome, isError: !outcome.ok };
     });
-  }
+  };
+
+  const server = new McpServer({ name: 'surface-singleton-experiment', version: '0.1.0' });
   register('surface_health', 'Read singleton health. Does not start a server.', {}, () => api('/api/health'), true);
   register('surface_namespace', 'Create a namespace in the existing singleton.', { name: slug }, input => api('/api/namespaces', input));
   register('surface_mount', 'Mount a source folder and prepare declared dependencies. Failed preparation is an error outcome even when the HTTP request succeeded.', {
@@ -114,7 +108,18 @@ export function createMcpServer(stateDir: string) {
     });
   }
   return server;
-}
+};
+
+
+const slug = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
+const absolutePath = z.string().min(1).refine(isAbsolute, 'Expected an absolute path.');
+const id = z.uuid();
+const jsonObject = z.record(z.string(), z.unknown());
+const outputSchema = z.object({
+  ok: z.boolean(), status: z.string(), data: z.unknown().optional(),
+  error: z.string().optional(), httpStatus: z.number().optional(),
+});
+type Outcome = z.infer<typeof outputSchema>;
 
 if (import.meta.main) {
   const { values } = parseArgs({ options: { 'state-dir': { type: 'string' } } });

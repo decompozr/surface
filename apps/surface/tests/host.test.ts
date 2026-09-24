@@ -3,13 +3,15 @@ import { mkdtempSync, readFileSync, existsSync, realpathSync, rmSync } from 'nod
 import { join } from 'node:path';
 import { startSurfaceApp } from '../src/lib/server/host/host.ts';
 
-const temporary = () => realpathSync(mkdtempSync('/tmp/surface-app-host-'));
-async function listeners() {
+const listeners = async () => {
   const child = Bun.spawn(['/usr/sbin/lsof', '-nP', '-a', '-p', String(process.pid), '-iTCP', '-sTCP:LISTEN', '-Fn'], { stdout: 'pipe', stderr: 'pipe' });
   const output = await new Response(child.stdout).text(); const code = await child.exited;
   if (code !== 0 && code !== 1) throw new Error('Could not inspect process listeners.');
   return [...new Set(output.split('\n').filter(line => line.startsWith('n')).map(line => line.slice(1)))];
-}
+};
+
+
+const temporary = () => realpathSync(mkdtempSync('/tmp/surface-app-host-'));
 
 test('built SvelteKit and Vite share one instance and listener, then stop and restart cleanly', async () => {
   const stateDir = temporary();

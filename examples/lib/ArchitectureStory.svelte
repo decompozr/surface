@@ -1,5 +1,15 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+
+  const go = (index: number) => {
+    index = Math.max(0, Math.min(chapters.length - 1, index));
+    navigating = index;
+    active = index;
+    requestAnimationFrame(() => steps[index]?.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));
+  };
+
+  const reset = () => { selected='Billing'; choice=null; confirmed=false; };
+
   let active = $state(0);
   let inRange = $state(false);
   let navigating: number | null = null;
@@ -25,18 +35,9 @@
   const edges = $derived(mode === 'current' ? [[0,1],[0,2],[0,3],[0,4],[0,5]] : [[0,1],[0,2],[1,3],[1,4],[1,5]]);
   const selectedIndex = $derived(nodes.findIndex(n=>n.name===selected));
   const neighbors = $derived(edges.filter(e=>e.includes(selectedIndex)).map(e=>e[0]===selectedIndex?e[1]:e[0]));
-  function go(index: number) {
-    index = Math.max(0, Math.min(chapters.length - 1, index));
-    navigating = index;
-    active = index;
-    requestAnimationFrame(() => steps[index]?.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));
-  }
-  function reset() { selected='Billing'; choice=null; confirmed=false; }
   onMount(() => {
-    let frame = 0;
-    const desktop = window.matchMedia('(min-width: 851px)');
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-    function update() {
+
+    const update = () => {
       frame=0;
       const bounds = root.getBoundingClientRect();
       inRange = bounds.top < window.innerHeight * .5 && bounds.bottom > window.innerHeight * .5;
@@ -47,9 +48,9 @@
       steps.forEach((step,index)=>{if(step.getBoundingClientRect().top<=80)chapter=index});
       if (navigating === null) active=chapter;
       drift=reduced.matches?0:Math.max(-10,Math.min(10,(root.getBoundingClientRect().top/window.innerHeight)*6));
-    }
-    const schedule=()=>{if(!frame)frame=requestAnimationFrame(update)};
-    function keydown(event: KeyboardEvent) {
+    };
+
+    const keydown = (event: KeyboardEvent) => {
       if (!inRange || event.defaultPrevented || event.repeat || event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
       const target = event.target;
@@ -58,7 +59,12 @@
       const next = active + (event.key === 'ArrowRight' ? 1 : -1);
       if (next < 0 || next >= chapters.length) return;
       event.preventDefault(); go(next);
-    }
+    };
+
+    let frame = 0;
+    const desktop = window.matchMedia('(min-width: 851px)');
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const schedule=()=>{if(!frame)frame=requestAnimationFrame(update)};
     const cancelNavigation = () => { navigating = null; schedule(); };
     window.addEventListener('keydown',keydown);
     window.addEventListener('wheel',cancelNavigation,{passive:true});

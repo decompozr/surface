@@ -1,9 +1,55 @@
-export type Cursor = { epoch: string; sequence: number };
-export type Snapshot<T> = { data: T; cursor: Cursor };
-export function validCursor(value: unknown): value is Cursor {
+
+
+export const validCursor = (value: unknown): value is Cursor => {
   const c = value as Cursor | null;
   return !!c && typeof c.epoch === 'string' && c.epoch.length > 0 && c.epoch.length < 100 && Number.isSafeInteger(c.sequence) && c.sequence >= 0;
-}
+};
+
+
+export const watch = <T>(url: string, token: string, replica: Replica<T>, status: (text: string) => void) => {
+  const abort = new AbortController();
+  let attempt: AbortController | undefined;
+  const cancelAttempt = () => attempt?.abort();
+  abort.signal.addEventListener('abort',cancelAttempt);
+  window.addEventListener('offline',cancelAttempt);
+  const done = (async () => {
+    while (!abort.signal.aborted) {
+      try {
+        attempt = new AbortController();
+        const response = await fetch(url, { headers: { 'x-project-capability': token }, signal: attempt.signal, cache: 'no-store' });
+        if ([401,403,404].includes(response.status)) { status('Access ended. Reopen this view.'); return; }
+        if (!response.ok || !response.body) throw new Error('Stream unavailable');
+        const reader = response.body.getReader(), decoder = new TextDecoder(); let buffer = '', ready = false;
+        try {
+          while (!abort.signal.aborted) {
+            const timeout = setTimeout(cancelAttempt,2000);
+            const part = await reader.read().finally(() => clearTimeout(timeout)); if (part.done) break;
+            buffer += decoder.decode(part.value, { stream: true });
+            if (buffer.length > 8192) throw new Error('Oversized event');
+            let end: number;
+            while ((end = buffer.indexOf('\n\n')) !== -1) {
+              const frame = buffer.slice(0,end); buffer = buffer.slice(end+2);
+              const type = frame.split('\n').find(line => line.startsWith('event: '))?.slice(7);
+              const raw = frame.split('\n').find(line => line.startsWith('data: '))?.slice(6);
+              if (!raw) continue; const cursor: unknown = JSON.parse(raw); if (!validCursor(cursor)) throw new Error('Invalid cursor');
+              if (type === 'ready') { ready = true; replica.connected(cursor); status('Live updates connected'); }
+              else if (type === 'cursor' && ready) replica.notify(cursor);
+            }
+          }
+        } finally { await reader.cancel().catch(() => {}); }
+      } catch { /* read-only subscription reconnects; mutations never replay */ }
+      if (abort.signal.aborted) return;
+      status('Disconnected. Reconnecting…');
+      await new Promise<void>(resolve => {
+        const finish = () => { clearTimeout(timer); abort.signal.removeEventListener('abort',finish); resolve(); };
+        const timer = setTimeout(finish,250); abort.signal.addEventListener('abort',finish,{once:true});
+      });
+    }
+  })().finally(() => { abort.signal.removeEventListener('abort',cancelAttempt); window.removeEventListener('offline',cancelAttempt); });
+  return { done, stop() { abort.abort(); } };
+};
+export type Cursor = { epoch: string; sequence: number };
+export type Snapshot<T> = { data: T; cursor: Cursor };
 
 // A notification is a hint to read a snapshot, never a domain-state patch.
 export class Replica<T> {
@@ -62,47 +108,4 @@ export class Replica<T> {
       }
     }
   }
-}
-
-export function watch<T>(url: string, token: string, replica: Replica<T>, status: (text: string) => void) {
-  const abort = new AbortController();
-  let attempt: AbortController | undefined;
-  const cancelAttempt = () => attempt?.abort();
-  abort.signal.addEventListener('abort',cancelAttempt);
-  window.addEventListener('offline',cancelAttempt);
-  const done = (async () => {
-    while (!abort.signal.aborted) {
-      try {
-        attempt = new AbortController();
-        const response = await fetch(url, { headers: { 'x-project-capability': token }, signal: attempt.signal, cache: 'no-store' });
-        if ([401,403,404].includes(response.status)) { status('Access ended. Reopen this view.'); return; }
-        if (!response.ok || !response.body) throw new Error('Stream unavailable');
-        const reader = response.body.getReader(), decoder = new TextDecoder(); let buffer = '', ready = false;
-        try {
-          while (!abort.signal.aborted) {
-            const timeout = setTimeout(cancelAttempt,2000);
-            const part = await reader.read().finally(() => clearTimeout(timeout)); if (part.done) break;
-            buffer += decoder.decode(part.value, { stream: true });
-            if (buffer.length > 8192) throw new Error('Oversized event');
-            let end: number;
-            while ((end = buffer.indexOf('\n\n')) !== -1) {
-              const frame = buffer.slice(0,end); buffer = buffer.slice(end+2);
-              const type = frame.split('\n').find(line => line.startsWith('event: '))?.slice(7);
-              const raw = frame.split('\n').find(line => line.startsWith('data: '))?.slice(6);
-              if (!raw) continue; const cursor: unknown = JSON.parse(raw); if (!validCursor(cursor)) throw new Error('Invalid cursor');
-              if (type === 'ready') { ready = true; replica.connected(cursor); status('Live updates connected'); }
-              else if (type === 'cursor' && ready) replica.notify(cursor);
-            }
-          }
-        } finally { await reader.cancel().catch(() => {}); }
-      } catch { /* read-only subscription reconnects; mutations never replay */ }
-      if (abort.signal.aborted) return;
-      status('Disconnected. Reconnecting…');
-      await new Promise<void>(resolve => {
-        const finish = () => { clearTimeout(timer); abort.signal.removeEventListener('abort',finish); resolve(); };
-        const timer = setTimeout(finish,250); abort.signal.addEventListener('abort',finish,{once:true});
-      });
-    }
-  })().finally(() => { abort.signal.removeEventListener('abort',cancelAttempt); window.removeEventListener('offline',cancelAttempt); });
-  return { done, stop() { abort.abort(); } };
 }

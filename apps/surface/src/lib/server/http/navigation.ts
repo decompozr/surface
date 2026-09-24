@@ -1,7 +1,9 @@
 import { basename } from 'node:path';
 type Directory = { projects: { id: string; commonDir: string; workspaces: { id: string; root: string; branch: string; status: string }[] }[] };
+import type { NavigationNode, NavigationMount } from '../../contracts/navigation.ts';
+
 /** Only registered, ready route mounts are navigable. Never enumerate the filesystem. */
-export function navigationTree(mounts: NavigationMount[], directory: Directory): NavigationNode[] {
+export const navigationTree = (mounts: NavigationMount[], directory: Directory): NavigationNode[] => {
   const result: NavigationNode[] = [];
   for (const project of directory.projects) {
     const representative = mounts.find(mount => mount.publicPath && project.workspaces.some(workspace => workspace.root === mount.projectRoot));
@@ -30,6 +32,6 @@ export function navigationTree(mounts: NavigationMount[], directory: Directory):
     if (node.children.length) result.push(node);
   }
   return result;
-}
-import type { NavigationNode, NavigationMount } from '../../contracts/navigation.ts';
+};
+
 export type { NavigationNode, NavigationMount } from '../../contracts/navigation.ts';

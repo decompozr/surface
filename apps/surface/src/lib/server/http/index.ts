@@ -7,14 +7,16 @@ import { Runtimes } from '../services/runtime.ts';
 import { Store } from '../services/store.ts';
 import { Service, InputError, object } from '../services/service.ts';
 
-function equal(left: string, right: string) {
+
+const equal = (left: string, right: string) => {
   const a = Buffer.from(left), b = Buffer.from(right);
   return a.length === b.length && timingSafeEqual(a, b);
-}
-export function startServer(options: {
+};
+
+export const startServer = (options: {
   stateDir: string; cliPath: string; uiDir: string; port?: number;
   uiOrigin?: string; adapter?: AgentAdapter;
-}) {
+}) => {
   const stateDir = resolve(options.stateDir);
   mkdirSync(stateDir, { recursive: true, mode: 0o700 });
   const lockPath = join(stateDir, 'server.lock');
@@ -159,4 +161,4 @@ export function startServer(options: {
     writeFileSync(join(stateDir, 'connection.json'), JSON.stringify({ origin, token, pid: process.pid }), { mode: 0o600 });
     return { server, service, runtimes, origin, token, async stop() { server.stop(true); await runtimes.shutdown(); release(); } };
   } catch (error) { release(); throw error; }
-}
+};

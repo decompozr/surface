@@ -5,27 +5,34 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { startSingleton } from '../src/lib/server/host/runtime.ts';
 
-const endpoint = '/api/v1/projects/operations';
-function temporary() { return realpathSync(mkdtempSync(join(tmpdir(), 'surface-project-http-'))); }
-function source(projectRoot: string, name = 'panel', version = '5.57.1') {
+const temporary = () => { return realpathSync(mkdtempSync(join(tmpdir(), 'surface-project-http-'))); };
+
+const source = (projectRoot: string, name = 'panel', version = '5.57.1') => {
   const directory = join(projectRoot, name); mkdirSync(join(directory, 'src'), { recursive: true });
   writeFileSync(join(directory, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies: { svelte: version } }));
   writeFileSync(join(directory, 'src/Panel.svelte'), '<h1>Project HTTP fixture</h1>');
   return directory;
-}
-function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { resolve, promise }; }
-async function start(stateDir: string) {
-  const app = await startSingleton({ stateDir, port: 0 });
-  const { token } = JSON.parse(readFileSync(join(stateDir, 'connection.json'), 'utf8'));
-  async function api(path: string, data?: unknown, authorized = true) {
+};
+
+const deferred = <T>() => { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { resolve, promise }; };
+
+const start = async (stateDir: string) => {
+
+  const api = async (path: string, data?: unknown, authorized = true) => {
     const response = await fetch(app.origin + path, {
       method: data === undefined ? 'GET' : 'POST', headers: { ...(authorized ? { authorization: `Bearer ${token}` } : {}), 'content-type': 'application/json' },
       body: data === undefined ? undefined : JSON.stringify(data), signal: AbortSignal.timeout(10_000),
     });
     return { status: response.status, data: await response.json() as any };
-  }
+  };
+
+  const app = await startSingleton({ stateDir, port: 0 });
+  const { token } = JSON.parse(readFileSync(join(stateDir, 'connection.json'), 'utf8'));
   return { app, token, api, operation: (data: unknown) => api(endpoint, data) };
-}
+};
+
+
+const endpoint = '/api/v1/projects/operations';
 
 test('project HTTP authorizes before filesystem access and maps validation errors', async () => {
   const directory = temporary(), projectRoot = join(directory, 'project'); mkdirSync(projectRoot);

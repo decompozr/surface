@@ -6,12 +6,15 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createInteractions } from '@decompozr/surface-app/server/interactions/index';
 import { startSingleton } from '@decompozr/surface-app/server/host/runtime';
 
-function deferred<T>() {
+
+const deferred = <T>() => {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>(done => { resolve = done; });
   return { promise, resolve };
-}
-function temporary() { return realpathSync(mkdtempSync(join(tmpdir(), 'surface-regression-'))); }
+};
+
+const temporary = () => { return realpathSync(mkdtempSync(join(tmpdir(), 'surface-regression-'))); };
+
 
 test('shutdown keeps singleton lock until admitted binding inspection persists', async () => {
   const stateDir = temporary(), gate = deferred<{ status: string }>(), entered = deferred<void>();

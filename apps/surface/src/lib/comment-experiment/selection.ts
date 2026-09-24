@@ -1,6 +1,7 @@
 import { REVISION, type Target } from './model.ts';
 
-export function selectorFor(element: HTMLElement, workspace: HTMLElement): string {
+
+export const selectorFor = (element: HTMLElement, workspace: HTMLElement): string => {
   if (!workspace.contains(element) || element === workspace) throw new Error('Select content inside the workspace.');
   const parts: string[] = [];
   let node: HTMLElement | null = element;
@@ -13,8 +14,9 @@ export function selectorFor(element: HTMLElement, workspace: HTMLElement): strin
     node = node.parentElement;
   }
   return `${workspace.tagName.toLowerCase()}#${CSS.escape(workspace.id)} > ${parts.join(' > ')}`;
-}
-export function describeTarget(element: HTMLElement, workspace: HTMLElement): Target {
+};
+
+export const describeTarget = (element: HTMLElement, workspace: HTMLElement): Target => {
   const selector = selectorFor(element, workspace);
   const text = (element.textContent ?? '').replace(/\s+/g, ' ').trim();
   let hash = 0;
@@ -24,11 +26,12 @@ export function describeTarget(element: HTMLElement, workspace: HTMLElement): Ta
     selector, label: element.id ? `${element.tagName.toLowerCase()}#${element.id}` : `${element.tagName.toLowerCase()}${text ? ' · ' + text.slice(0, 48) : ''}`,
     text: text.slice(0, 1000), revision: REVISION,
   };
-}
-export function resolveTarget(target: Target | null, workspace: HTMLElement): HTMLElement | null {
+};
+
+export const resolveTarget = (target: Target | null, workspace: HTMLElement): HTMLElement | null => {
   if (!target) return null;
   try {
     const element = workspace.querySelector(target.selector);
     return element instanceof HTMLElement && element !== workspace && workspace.contains(element) ? element : null;
   } catch { return null; }
-}
+};

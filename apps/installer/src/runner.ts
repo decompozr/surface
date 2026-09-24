@@ -4,6 +4,15 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { timingSafeEqual } from 'node:crypto';
 
+const stop = (): Promise<void> => {
+  if (!stopTask) stopTask = app.stop().then(() => {
+    const current = JSON.parse(readFileSync(ownerPath, 'utf8'));
+    if (current.nonce === nonce) unlinkSync(ownerPath);
+  });
+  return stopTask!;
+};
+
+
 // This runner only starts an installed host. Its private socket owns lifecycle control.
 const [home, release, host, portValue] = process.argv.slice(2);
 if (!home || !release || !['singleton', 'sveltekit', 'contract', 'surface'].includes(host!)) throw new Error('Invalid owned runner arguments.');
@@ -42,13 +51,6 @@ const same = (value: unknown) => {
   const a = Buffer.from(value), b = Buffer.from(secret);
   return a.length === b.length && timingSafeEqual(a, b);
 };
-function stop(): Promise<void> {
-  if (!stopTask) stopTask = app.stop().then(() => {
-    const current = JSON.parse(readFileSync(ownerPath, 'utf8'));
-    if (current.nonce === nonce) unlinkSync(ownerPath);
-  });
-  return stopTask!;
-}
 const control = createServer(socket => {
   let input = '';
   socket.setTimeout(5000, () => socket.destroy());

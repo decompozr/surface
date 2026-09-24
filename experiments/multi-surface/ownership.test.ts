@@ -3,18 +3,20 @@ import { mkdtempSync, realpathSync, mkdirSync, writeFileSync, readFileSync, rmSy
 import { join } from 'node:path';
 import { backendRuntime } from './backends.ts';
 
-async function fixture(failClose = false) {
+
+const fixture = async (failClose = false) => {
   const root = realpathSync(mkdtempSync('/tmp/surface-multi-unit-')), source = join(root, 'ui'); mkdirSync(source);
   const path = join(root, 'backend.ts');
   writeFileSync(path, `export const apiVersion=1; export const counts={created:0,closed:0,attempts:0};
-    export function createProjectBackend(){counts.created++;return {invoke(){return {ok:true,data:null}},async close(){counts.attempts++;await Bun.sleep(10);if(${failClose}&&counts.attempts===1)throw new Error('injected close failure');counts.closed++;}}}`);
+    export const createProjectBackend = () => {counts.created++;return {invoke(){return {ok:true,data:null}},async close(){counts.attempts++;await Bun.sleep(10);if(${failClose}&&counts.attempts===1)throw new Error('injected close failure');counts.closed++;}}}`);
   writeFileSync(join(root, 'surface.backend.json'), JSON.stringify({ version:1,api:1,entry:'backend.ts',operations:['read'] }));
   const identity = { projectId:'project-id',workspaceId:'workspace-id',dataDirectory:join(root,'external-fixture-data') };
   const runtime = backendRuntime(root, async () => { await Bun.sleep(1); return identity; });
   const mount = { projectRoot:root, source, namespace:'project', name:'editor' };
   const {counts} = await import(path);
   return { root, path, runtime, mount, counts, identity, clean:()=>rmSync(root,{recursive:true,force:true}) };
-}
+};
+
 test('concurrent mounts share one factory; independent and repeated closes release only the last member', async () => {
   const f=await fixture();
   try {

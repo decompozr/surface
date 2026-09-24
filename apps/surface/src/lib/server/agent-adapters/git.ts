@@ -1,13 +1,15 @@
 import { realpathSync, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-async function git(root: string, ...args: string[]) {
+
+const git = async (root: string, ...args: string[]) => {
   // Git environment overrides must not redirect identity inspection to another repository.
   const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
   const child = Bun.spawn(['git', '-C', root, ...args], { env, stdout: 'pipe', stderr: 'pipe' });
   const [code, out, err] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
   if (code !== 0) throw new Error('Git workspace inspection failed: ' + err.trim()); return out.trimEnd();
-}
-export async function inspectGit(root: string) {
+};
+
+export const inspectGit = async (root: string) => {
   root = realpathSync(root);
   const [top, common, admin, inventory, branch] = await Promise.all([
     git(root, 'rev-parse', '--show-toplevel'), git(root, 'rev-parse', '--path-format=absolute', '--git-common-dir'),
@@ -22,4 +24,4 @@ export async function inspectGit(root: string) {
     if (realpathSync(backpointer) !== realpathSync(join(root, '.git'))) throw new Error('Git worktree backpointer mismatch.');
   }
   return { root, commonDir, gitDir, branch, roots };
-}
+};

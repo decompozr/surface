@@ -6,9 +6,8 @@ import { Store } from '../src/lib/server/services/store.ts';
 import { Runtimes } from '../src/lib/server/services/runtime.ts';
 import { startServer } from '../src/lib/server/http/index.ts';
 import { scaffold } from '@decompozr/surface-cli/scaffold';
-const cleanup: (() => unknown | Promise<unknown>)[] = [];
-afterEach(async () => { for (const fn of cleanup.splice(0).reverse()) await fn(); });
-function fixture() {
+
+const fixture = () => {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'surface-runtime-')));
   cleanup.push(() => rmSync(root, { recursive: true, force: true }));
   const store = new Store(join(root, 'state.json'));
@@ -18,7 +17,10 @@ function fixture() {
   writeFileSync(join(directory, 'serve.ts'), `if(process.env.SURFACE_PORT!==process.env.ARTIFACT_PORT) throw new Error('Legacy port alias differs'); Bun.serve({hostname:'127.0.0.1',port:Number(process.env.SURFACE_PORT),fetch:()=>new Response('external preview')}); console.log('external ready');`);
   const record = runtimes.register({ projectRoot: root, directory, command: [process.execPath, 'serve.ts'] });
   return { root, directory, store, runtimes, record };
-}
+};
+
+const cleanup: (() => unknown | Promise<unknown>)[] = [];
+afterEach(async () => { for (const fn of cleanup.splice(0).reverse()) await fn(); });
 test('mounts once, reports logs, stops and restarts an external project from saved source', async () => {
   const { runtimes, record, store, root } = fixture();
   const [first, second] = await Promise.all([runtimes.mount(record.id), runtimes.mount(record.id)]);

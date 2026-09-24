@@ -18,13 +18,16 @@ const adapter: AgentAdapter = {
 let app: Awaited<ReturnType<typeof startSurfaceApp>> | undefined;
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 try {
+
+  const raw = async (path: string, body?: unknown, capability = token) => {
+    return fetch(app!.origin + path, { method: body === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${capability}`, 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+  };
+
+  const api = async (path: string, body?: unknown) => { const response = await raw(path, body); const value = await response.json(); assert.ok(response.ok, JSON.stringify(value)); return value; };
+
   await new Promise<void>(resolve => socket.listen(socketPath, resolve));
   app = await startSurfaceApp({ ...f, port: 0, adapter });
   const { token } = JSON.parse(readFileSync(join(f.stateDir, 'connection.json'), 'utf8'));
-  async function raw(path: string, body?: unknown, capability = token) {
-    return fetch(app!.origin + path, { method: body === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${capability}`, 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
-  }
-  async function api(path: string, body?: unknown) { const response = await raw(path, body); const value = await response.json(); assert.ok(response.ok, JSON.stringify(value)); return value; }
   for (const operation of ['register', 'mount']) await api('/api/v1/projects/operations', { projectRoot: f.main, operation, ...(operation === 'mount' ? { artifactId: f.artifactId } : {}) });
   const mount = (await api('/api/mounts'))[0];
   const bindings = [];

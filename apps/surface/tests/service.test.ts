@@ -6,10 +6,7 @@ import { Store } from '../src/lib/server/services/store.ts';
 import { Service } from '../src/lib/server/services/service.ts';
 import { DeliveryError, type AgentAdapter, type Binding } from '../src/lib/server/agent-adapters/codex.ts';
 
-const directories: string[] = [];
-afterEach(() => { for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true }); });
-const payload = { responseId: 'one-response', data: { option: 'B', width: 160, comment: 'Please use this' } };
-function fixture(deliver?: AgentAdapter['deliver']) {
+const fixture = (deliver?: AgentAdapter['deliver']) => {
   const dir = mkdtempSync(join(tmpdir(), 'surface-service-')); directories.push(dir);
   const file = join(dir, 'state.json');
   const store = new Store(file);
@@ -22,7 +19,12 @@ function fixture(deliver?: AgentAdapter['deliver']) {
   }, '/path/to/surface/src/cli/index.ts');
   const request = service.create({ bindingId: binding.id, title: 'Choose an option' });
   return { service, store, request, calls, file };
-}
+};
+
+
+const directories: string[] = [];
+afterEach(() => { for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true }); });
+const payload = { responseId: 'one-response', data: { option: 'B', width: 160, comment: 'Please use this' } };
 test('persists accepted delivery and routes only to the bound session', async () => {
   const { service, request, calls, file } = fixture();
   const view = await service.submit(request.id, payload);

@@ -7,45 +7,51 @@ import { Client } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import { startSingleton } from '@decompozr/surface-app/server/host/runtime';
 
-const root = process.cwd();
-const temporary = realpathSync(mkdtempSync(join(tmpdir(), 'surface-project-access-')));
-const stateDir = join(temporary, 'server');
-const evidenceDir = join(root, '.decompozr/surface/project-access-proof'); mkdirSync(evidenceDir, { recursive: true });
-const observations: string[] = [];
-function observed(message: string) { observations.push(message); console.log(message); }
-const component = `<script lang="ts">
-import { previewState } from 'virtual:surface-preview';
-const count = previewState('counter', 0, 1);
-const draft = previewState('draft', '', 1);
-</script>
-<h1>Shared project core</h1><input aria-label="Draft" bind:value={$draft}/><button onclick={() => $count++}>Count {$count}</button>`;
-function project(name: string) {
+const tool = async (operation: string, args: Record<string, unknown>, expectError = false) => {
+  const result = await client.callTool({ name: `surface_project_${operation}`, arguments: args }, { timeout: 150_000 });
+  assert.equal(result.isError === true, expectError, JSON.stringify(result));
+  const outcome = result.structuredContent as any;
+  if (!expectError) { assert.equal(outcome.version, 1); assert.equal(outcome.ok, true); }
+  return { result, outcome, data: outcome?.data };
+};
+
+
+const observed = (message: string) => { observations.push(message); console.log(message); };
+
+const project = (name: string) => {
   const projectRoot = join(temporary, name), source = join(projectRoot, 'artifacts/panel');
   mkdirSync(join(source, 'src'), { recursive: true });
   writeFileSync(join(projectRoot, 'README.md'), 'User-owned project.\n');
   writeFileSync(join(source, 'package.json'), JSON.stringify({ name, private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
   writeFileSync(join(source, 'src/Panel.svelte'), component);
   return { projectRoot, source };
-}
+};
+
+const cli = async (projectRoot: string, operation: string, ...args: string[]) => {
+  const child = Bun.spawn([process.execPath, join(root, 'apps/cli/src/index.ts'), 'project', operation, '--project', projectRoot, '--state-dir', stateDir, ...args], { cwd: root, stdout: 'pipe', stderr: 'pipe' });
+  const [code, stdout, error] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
+  assert.equal(code, 0, `CLI ${operation}: ${error} ${stdout}`);
+  const outcome = JSON.parse(stdout); assert.equal(outcome.ok, true); assert.equal(outcome.version, 1); return outcome.data;
+};
+
+
+const root = process.cwd();
+const temporary = realpathSync(mkdtempSync(join(tmpdir(), 'surface-project-access-')));
+const stateDir = join(temporary, 'server');
+const evidenceDir = join(root, '.decompozr/surface/project-access-proof'); mkdirSync(evidenceDir, { recursive: true });
+const observations: string[] = [];
+const component = `<script lang="ts">
+import { previewState } from 'virtual:surface-preview';
+const count = previewState('counter', 0, 1);
+const draft = previewState('draft', '', 1);
+</script>
+<h1>Shared project core</h1><input aria-label="Draft" bind:value={$draft}/><button onclick={() => $count++}>Count {$count}</button>`;
 const alpha = project('alpha'), beta = project('beta');
 const client = new Client({ name: 'surface-project-access-verifier', version: '0.1.0' });
 const transport = new StdioClientTransport({ command: process.execPath, args: [join(process.cwd(), 'apps/surface/src/lib/server/mcp/server.ts'), '--state-dir', stateDir], cwd: root, stderr: 'pipe' });
 let stderr = ''; transport.stderr?.on('data', chunk => { stderr += chunk.toString(); });
 let app: Awaited<ReturnType<typeof startSingleton>> | undefined;
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
-async function cli(projectRoot: string, operation: string, ...args: string[]) {
-  const child = Bun.spawn([process.execPath, join(root, 'apps/cli/src/index.ts'), 'project', operation, '--project', projectRoot, '--state-dir', stateDir, ...args], { cwd: root, stdout: 'pipe', stderr: 'pipe' });
-  const [code, stdout, error] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
-  assert.equal(code, 0, `CLI ${operation}: ${error} ${stdout}`);
-  const outcome = JSON.parse(stdout); assert.equal(outcome.ok, true); assert.equal(outcome.version, 1); return outcome.data;
-}
-async function tool(operation: string, args: Record<string, unknown>, expectError = false) {
-  const result = await client.callTool({ name: `surface_project_${operation}`, arguments: args }, { timeout: 150_000 });
-  assert.equal(result.isError === true, expectError, JSON.stringify(result));
-  const outcome = result.structuredContent as any;
-  if (!expectError) { assert.equal(outcome.version, 1); assert.equal(outcome.ok, true); }
-  return { result, outcome, data: outcome?.data };
-}
 try {
   app = await startSingleton({ stateDir, port: 0 });
   const compiler = app.vite, identity = app.instanceId;

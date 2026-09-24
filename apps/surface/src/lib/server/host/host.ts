@@ -10,10 +10,9 @@ import type { RuntimeStatus } from '../../runtime-status.ts';
 
 import { readableMountPath } from './mount-path.ts';
 
-type Handler = (request: IncomingMessage, response: ServerResponse) => void;
 
 /** Integration slice: the built app and the existing component compiler share one listener. */
-export async function startSurfaceApp(options: { stateDir: string; port?: number; dataRoot?: string; adapter?: AgentAdapter; browserOrigin?: string; application?: Parameters<typeof startSingleton>[0]['application']; openMountResource?: Parameters<typeof startSingleton>[0]['openMountResource'] }) {
+export const startSurfaceApp = async (options: { stateDir: string; port?: number; dataRoot?: string; adapter?: AgentAdapter; browserOrigin?: string; application?: Parameters<typeof startSingleton>[0]['application']; openMountResource?: Parameters<typeof startSingleton>[0]['openMountResource'] }) => {
   const port = options.port ?? 4319;
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Invalid port.');
   if (!options.stateDir) throw new Error('Specify an isolated state directory.');
@@ -48,4 +47,7 @@ export async function startSurfaceApp(options: { stateDir: string; port?: number
   try { writeFileSync(configuration, JSON.stringify({ version: 1, dataRoot }), { mode: 0o600 }); }
   catch (error) { await runtime.stop(); throw error; }
   return runtime;
-}
+};
+
+
+type Handler = (request: IncomingMessage, response: ServerResponse) => void;

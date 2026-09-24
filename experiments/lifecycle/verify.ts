@@ -6,6 +6,37 @@ import { Installation, type Host } from './manager.ts';
 import { chromium } from '@playwright/test';
 import { createRequire } from 'node:module';
 
+const cmd = async (args: string[], cwd?: string) => {
+  const child = Bun.spawn(args, { cwd, stdout: 'pipe', stderr: 'pipe' });
+  const [code, out, err] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
+  assert.equal(code, 0, `${args.join(' ')}\n${err}\n${out}`); return out.trim();
+};
+
+const commit = async (message: string, empty = false) => {
+  await git('-c', 'user.name=Surface Experiment', '-c', 'user.email=surface-fixture@example.invalid', 'commit', ...(empty ? ['--allow-empty'] : []), '-m', message);
+  return git('rev-parse', 'HEAD');
+};
+
+const api = async (path: string, data?: unknown) => {
+  const connection = JSON.parse(readFileSync(join(home, 'state/connection.json'), 'utf8'));
+  const response = await fetch(new URL(path, connection.origin), {
+    method: data === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${connection.token}`, 'content-type': 'application/json' },
+    body: data === undefined ? undefined : JSON.stringify(data), signal: AbortSignal.timeout(120_000),
+  });
+  const result = await response.json() as any; assert.ok(response.ok, JSON.stringify(result)); return result;
+};
+
+const startAndMeasure = async (port?: number) => {
+  const start = performance.now();
+  const launch = await installation.start(port); ownedChild = launch.child;
+  ownedPids.add(launch.child.pid);
+  const health = await installation.health(); assert.equal(health.status, 'running');
+  return { ...launch.status, readyMs: Math.round(performance.now() - start) };
+};
+
+const stopOwned = async () => { await installation.stop(); if (ownedChild) await ownedChild.exited; ownedChild = undefined; };
+
+
 const { values } = parseArgs({ options: { repo: { type: 'string' }, ref: { type: 'string' }, host: { type: 'string' } } });
 const root = resolve(import.meta.dir, '../..');
 const sourceRepo = resolve(values.repo ?? root), sourceRef = values.ref ?? 'HEAD';
@@ -21,32 +52,7 @@ let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 let cliOwned = false;
 let mcpClient: { close(): Promise<void> } | undefined;
 const installation = new Installation(home);
-async function cmd(args: string[], cwd?: string) {
-  const child = Bun.spawn(args, { cwd, stdout: 'pipe', stderr: 'pipe' });
-  const [code, out, err] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
-  assert.equal(code, 0, `${args.join(' ')}\n${err}\n${out}`); return out.trim();
-}
 const git = (...args: string[]) => cmd(['git', '-C', fixtureRepo, ...args]);
-async function commit(message: string, empty = false) {
-  await git('-c', 'user.name=Surface Experiment', '-c', 'user.email=surface-fixture@example.invalid', 'commit', ...(empty ? ['--allow-empty'] : []), '-m', message);
-  return git('rev-parse', 'HEAD');
-}
-async function api(path: string, data?: unknown) {
-  const connection = JSON.parse(readFileSync(join(home, 'state/connection.json'), 'utf8'));
-  const response = await fetch(new URL(path, connection.origin), {
-    method: data === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${connection.token}`, 'content-type': 'application/json' },
-    body: data === undefined ? undefined : JSON.stringify(data), signal: AbortSignal.timeout(120_000),
-  });
-  const result = await response.json() as any; assert.ok(response.ok, JSON.stringify(result)); return result;
-}
-async function startAndMeasure(port?: number) {
-  const start = performance.now();
-  const launch = await installation.start(port); ownedChild = launch.child;
-  ownedPids.add(launch.child.pid);
-  const health = await installation.health(); assert.equal(health.status, 'running');
-  return { ...launch.status, readyMs: Math.round(performance.now() - start) };
-}
-async function stopOwned() { await installation.stop(); if (ownedChild) await ownedChild.exited; ownedChild = undefined; }
 try {
   mkdirSync(fixtureRepo); mkdirSync(join(project, 'src'), { recursive: true });
   const archive = join(temporary, 'snapshot.tar');

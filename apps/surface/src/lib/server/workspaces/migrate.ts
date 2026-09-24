@@ -4,12 +4,11 @@ import { createHash } from 'node:crypto';
 import { inspectGit, type Workspace } from './identity.ts';
 import { readProjectManifest } from '../services/projects.ts';
 
-const digest=(text:string)=>createHash('sha256').update(text).digest('hex');
-const names=['project-bindings.json','registry.json','interactions.json','workspaces.json','workspace-host.json'];
-const inside=(parent:string,child:string)=>{const p=relative(parent,child);return !p || (p!=='..'&&!p.startsWith('..')&&!isAbsolute(p));};
-function regular(path:string) {if(!lstatSync(path).isFile()) throw new Error('Migration inputs must be regular files: '+path);return readFileSync(path,'utf8');}
-function canonical(path:string) {path=resolve(path);let ancestor=path;while(!existsSync(ancestor)) ancestor=dirname(ancestor);if(realpathSync(ancestor)!==ancestor) throw new Error('Use canonical data paths without symlinks.');return path;}
-export async function planMigration(stateDir:string,dataRoot:string,storageMap:Record<string,string>={}) {
+const regular = (path:string) => {if(!lstatSync(path).isFile()) throw new Error('Migration inputs must be regular files: '+path);return readFileSync(path,'utf8');};
+
+const canonical = (path:string) => {path=resolve(path);let ancestor=path;while(!existsSync(ancestor)) ancestor=dirname(ancestor);if(realpathSync(ancestor)!==ancestor) throw new Error('Use canonical data paths without symlinks.');return path;};
+
+export const planMigration = async (stateDir:string,dataRoot:string,storageMap:Record<string,string>={}) => {
   stateDir=resolve(stateDir);dataRoot=canonical(dataRoot);
   if(existsSync(join(stateDir,'server.lock'))) throw new Error('Stop the selected host before planning its workspace migration.');
   if(existsSync(join(stateDir,'workspace-migration.pending.json'))) throw new Error('A migration is incomplete; restore its backup first.');
@@ -54,9 +53,11 @@ export async function planMigration(stateDir:string,dataRoot:string,storageMap:R
     if(request.previewScope&&!scopeMap.some(w=>w.namespace===request.previewScope.namespace&&w.root===request.previewScope.projectRoot)) throw new Error('Interaction scope is outside the mapped legacy projects.');
   }
   return {version:1 as const,stateDir,dataRoot,inputs,markers,ledger:{version:1,dataRoot,projects},preserveNamespaces:true,preserveInteractions:true,copyProjectData:false};
-}
-function atomic(path:string,text:string) {const tmp=path+'.'+crypto.randomUUID()+'.tmp';try{writeFileSync(tmp,text,{mode:0o600,flag:'wx'});renameSync(tmp,path);}finally{if(existsSync(tmp))unlinkSync(tmp);}}
-function lock(stateDir:string,recoveryId?:string) {
+};
+
+const atomic = (path:string,text:string) => {const tmp=path+'.'+crypto.randomUUID()+'.tmp';try{writeFileSync(tmp,text,{mode:0o600,flag:'wx'});renameSync(tmp,path);}finally{if(existsSync(tmp))unlinkSync(tmp);}};
+
+const lock = (stateDir:string,recoveryId?:string) => {
   const path=join(stateDir,'server.lock');
   if(recoveryId&&existsSync(path)) {
     const bytes=regular(path),owner=JSON.parse(bytes),pending=JSON.parse(regular(join(stateDir,'workspace-migration.pending.json')));
@@ -67,8 +68,9 @@ function lock(stateDir:string,recoveryId?:string) {
     renameSync(path,join(stateDir,'workspace-migrations',recoveryId,'abandoned-lock-'+crypto.randomUUID()+'.json'));
   }
   const fd=openSync(path,'wx',0o600);writeFileSync(fd,JSON.stringify({pid:process.pid,operation:'workspace-migration'}));return()=>{closeSync(fd);unlinkSync(path);};
-}
-export async function migrate(stateDir:string,dataRoot:string,storageMap:Record<string,string>={},failBeforeCommit?:()=>void) {
+};
+
+export const migrate = async (stateDir:string,dataRoot:string,storageMap:Record<string,string>={},failBeforeCommit?:()=>void) => {
   const plan=await planMigration(stateDir,dataRoot,storageMap),unlock=lock(plan.stateDir);
   const id=crypto.randomUUID(),backup=join(plan.stateDir,'workspace-migrations',id),pending=join(plan.stateDir,'workspace-migration.pending.json');
   const output={'workspaces.json':JSON.stringify(plan.ledger,null,2)+'\n','workspace-host.json':JSON.stringify({version:1,dataRoot:plan.dataRoot})+'\n'};
@@ -94,8 +96,9 @@ export async function migrate(stateDir:string,dataRoot:string,storageMap:Record<
     if(journalWritten) restoreJournal(plan.stateDir,journal);
     throw error;
   } finally {unlock();}
-}
-function restoreJournal(stateDir:string,journal:any) {
+};
+
+const restoreJournal = (stateDir:string,journal:any) => {
   for(const name of names) {
     const path=join(stateDir,name),current=existsSync(path)?regular(path):undefined,before=journal.inputs[name],after=journal.output[name];
     if(current!==before&&current!==after&&!(name==='project-bindings.json'&&current===undefined)) throw new Error('Migration state changed; refusing to overwrite newer data: '+name);
@@ -107,8 +110,9 @@ function restoreJournal(stateDir:string,journal:any) {
   }
   for(const marker of journal.markers) if(existsSync(marker.path))unlinkSync(marker.path);
   const pending=join(stateDir,'workspace-migration.pending.json');if(existsSync(pending))unlinkSync(pending);
-}
-export function rollbackMigration(stateDir:string,id:string) {
+};
+
+export const rollbackMigration = (stateDir:string,id:string) => {
   if(!/^[a-f0-9-]{36}$/.test(id))throw new Error('Invalid migration backup identity.');
   const unlock=lock(stateDir,id);
   try {
@@ -116,7 +120,13 @@ export function rollbackMigration(stateDir:string,id:string) {
     if(journal.version!==1||journal.id!==id||!journal.inputs||!journal.output||!Array.isArray(journal.markers))throw new Error('Invalid migration receipt.');
     restoreJournal(stateDir,journal);return {status:'restored',id};
   } finally{unlock();}
-}
-export function publicPlan(plan:Awaited<ReturnType<typeof planMigration>>) {
+};
+
+export const publicPlan = (plan:Awaited<ReturnType<typeof planMigration>>) => {
   return {stateDir:plan.stateDir,dataRoot:plan.dataRoot,projects:plan.ledger.projects.map(p=>({projectId:p.id,commonDir:p.commonDir,root:p.workspaces[0]!.root,namespace:p.workspaces[0]!.namespace,dataDirectory:p.workspaces[0]!.storage==='adopted'?p.workspaces[0]!.dataDirectory:join(plan.dataRoot,p.id,'<new-workspace-id>')})),preserveNamespaces:true,preserveInteractions:true,projectDataMoved:false,inputHashes:Object.fromEntries(Object.entries(plan.inputs).map(([name,text])=>[name,digest(text)]))};
-}
+};
+
+
+const digest=(text:string)=>createHash('sha256').update(text).digest('hex');
+const names=['project-bindings.json','registry.json','interactions.json','workspaces.json','workspace-host.json'];
+const inside=(parent:string,child:string)=>{const p=relative(parent,child);return !p || (p!=='..'&&!p.startsWith('..')&&!isAbsolute(p));};

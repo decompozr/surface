@@ -4,7 +4,8 @@ import { homedir } from 'node:os';
 import { terminalSelect, type MenuChoice } from './terminal-select.ts';
 import { loadPrompts } from './prompts.ts';
 
-export async function selectSkills(options: { explicit?: string[]; provider?: string[]; saved?: string | string[]; mode: string; userHome?: string; env?: NodeJS.ProcessEnv; interactive?: boolean; exists?: (path:string)=>boolean; ask?: (question:string)=>Promise<string>; choose?: (choices:MenuChoice[],initial:number[])=>Promise<number[]> }) {
+
+export const selectSkills = async (options: { explicit?: string[]; provider?: string[]; saved?: string | string[]; mode: string; userHome?: string; env?: NodeJS.ProcessEnv; interactive?: boolean; exists?: (path:string)=>boolean; ask?: (question:string)=>Promise<string>; choose?: (choices:MenuChoice[],initial:number[])=>Promise<number[]> }) => {
   const env=options.env??process.env, home=options.userHome??homedir(), exists=options.exists??existsSync;
   const providers=[
     {id:'codex',name:'Codex',root:resolve(env.CODEX_HOME??join(home,'.codex'))},
@@ -38,4 +39,4 @@ export async function selectSkills(options: { explicit?: string[]; provider?: st
   const custom=await ui.text({message:'Custom skills directory',placeholder:'/absolute/path/to/skills',validate:value=>value?.trim().startsWith('/')?undefined:'Enter an absolute directory path.'});
   if(ui.isCancel(custom))throw new Error('Setup cancelled. No installation changes made.');
   return unique([...paths,custom.trim()]);
-}
+};

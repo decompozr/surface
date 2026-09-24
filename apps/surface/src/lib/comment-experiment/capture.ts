@@ -1,8 +1,9 @@
 import { toCanvas } from 'html-to-image';
 import type { Capture } from './model.ts';
 
+
 /** Capture only the element's visible rectangle, excluding annotation overlays. */
-export async function captureElement(element: HTMLElement): Promise<Capture> {
+export const captureElement = async (element: HTMLElement): Promise<Capture> => {
   await document.fonts.ready;
   const rect = element.getBoundingClientRect();
   let left = Math.max(0, rect.left), top = Math.max(0, rect.top);
@@ -34,4 +35,4 @@ export async function captureElement(element: HTMLElement): Promise<Capture> {
   const png = canvas.toDataURL('image/png');
   if (png.length > 1_500_000) throw new Error('This capture is too large. Select a smaller element.');
   return { png, width, height, capturedAt: new Date().toISOString(), method: 'dom-render', bounds: { x: left, y: top, width, height } };
-}
+};

@@ -7,10 +7,22 @@ import { scaffold } from './scaffold.ts';
 import { projectMain } from './projects.ts';
 import { startServer } from '@decompozr/surface-app/server/http/index';
 
-export const root = fileURLToPath(new URL('../../..', import.meta.url));
-const cliPath = fileURLToPath(import.meta.url);
 
-export async function main(args = process.argv.slice(2)) {
+export const main = async (args = process.argv.slice(2)) => {
+
+  const api = async (path: string, data?: unknown) => {
+    const response = await fetch(new URL(path, base), {
+      method: data === undefined ? 'GET' : 'POST',
+      headers: { authorization: `Bearer ${connection.token}`, 'content-type': 'application/json' },
+      body: data === undefined ? undefined : JSON.stringify(data), signal: AbortSignal.timeout(90_000),
+    });
+    const body = await response.json() as { error?: string; response?: { status: string } };
+    if (!response.ok) throw new Error(body.error ?? `HTTP ${response.status}`);
+    console.log(JSON.stringify(body, null, 2));
+    if ((body as { status?: string }).status === 'failed') process.exitCode = 1;
+    if (body.response?.status === 'failed' || body.response?.status === 'unknown') process.exitCode = 1;
+  };
+
   const { values, positionals, tokens } = parseArgs({ args, allowPositionals: true, tokens: true, options: {
     directory: { type: 'string' }, framework: { type: 'string' }, runtime: { type: 'string' },
     'command-json': { type: 'string' }, 'schema-file': { type: 'string' }, 'preview-path': { type: 'string' },
@@ -118,18 +130,6 @@ Live bind/send commands target the exact registered Codex conversation. No mock 
   const connection = JSON.parse(readFileSync(join(stateDir, 'connection.json'), 'utf8'));
   const base = new URL(connection.origin);
   if (base.protocol !== 'http:' || base.hostname !== '127.0.0.1') throw new Error('Expected a local Surface connection.');
-  async function api(path: string, data?: unknown) {
-    const response = await fetch(new URL(path, base), {
-      method: data === undefined ? 'GET' : 'POST',
-      headers: { authorization: `Bearer ${connection.token}`, 'content-type': 'application/json' },
-      body: data === undefined ? undefined : JSON.stringify(data), signal: AbortSignal.timeout(90_000),
-    });
-    const body = await response.json() as { error?: string; response?: { status: string } };
-    if (!response.ok) throw new Error(body.error ?? `HTTP ${response.status}`);
-    console.log(JSON.stringify(body, null, 2));
-    if ((body as { status?: string }).status === 'failed') process.exitCode = 1;
-    if (body.response?.status === 'failed' || body.response?.status === 'unknown') process.exitCode = 1;
-  }
   switch (command) {
     case 'register': await api('/api/runtimes', { projectRoot: resolve(required('project')), directory: resolve(required('directory')), command: JSON.parse(required('command-json')) }); break;
     case 'runtimes': await api('/api/runtimes'); break;
@@ -145,7 +145,11 @@ Live bind/send commands target the exact registered Codex conversation. No mock 
     case 'close': await api(`/api/requests/${encodeURIComponent(required('request'))}/close`, {}); break;
     default: throw new Error(`Unknown command: ${command}. Use --help.`);
   }
-}
+};
+
+
+export const root = fileURLToPath(new URL('../../..', import.meta.url));
+const cliPath = fileURLToPath(import.meta.url);
 if (import.meta.main) {
   main().catch(error => { console.error(error instanceof Error ? error.message : error); process.exitCode = 1; });
 }

@@ -3,13 +3,10 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, realpathSync, lsta
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startSingleton } from '@decompozr/surface-app/server/host/runtime';
-const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-singleton-proof-')));
-const stateDir = join(directory, 'state');
-const evidenceDir = join(process.cwd(), '.decompozr/surface/singleton-proof');
-mkdirSync(evidenceDir, { recursive: true });
-const versions = ['4.0.2', '5.1.5'];
-function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
-function makeProject(name: string, version: string) {
+
+const assert: (condition: unknown, message: string) => asserts condition = (condition: unknown, message: string): asserts condition => { if (!condition) throw new Error(message); };
+
+const makeProject = (name: string, version: string) => {
   const source = join(directory, name); mkdirSync(join(source, 'src'), { recursive: true });
   writeFileSync(join(source, 'package.json'), JSON.stringify({ name, private: true, type: 'module', dependencies: { svelte: '5.57.1', nanoid: version } }, null, 2));
   writeFileSync(join(source, 'artifact.json'), JSON.stringify({ framework: 'svelte', components: 'src', props: { 'src/Counter.svelte': { label: name } } }));
@@ -25,19 +22,27 @@ const identifier = nanoid(9);
 <main><p>SURFACE / SINGLETON EXPERIMENT</p><h1>{label}</h1><p data-testid="version">nanoid {meta.version}</p><p data-testid="id">{identifier}</p><input aria-label="Draft" bind:value={$draft}/><button onclick={()=> $count++}>Count {$count}</button></main>
 <style>:global(body){font-family:system-ui;background:#f7f6f0;color:#213b31;margin:0}main{max-width:640px;margin:10vh auto;padding:24px}h1{font-size:3rem}button{padding:12px 24px;background:#213b31;color:white;border:0;font:inherit}</style>`);
   return source;
-}
+};
+
+const observed = (message: string) => { observations.push(message); console.log(message); };
+
+const cli = async (...args: string[]) => {
+  const process = Bun.spawn([Bun.which('bun')!, join(globalThis.process.cwd(), 'apps/cli/src/runtime.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
+  const [out, error, code] = await Promise.all([new Response(process.stdout).text(), new Response(process.stderr).text(), process.exited]);
+  if (code !== 0) throw new Error(`${args.join(' ')} failed (${code}): ${error}\n${out}`);
+  return JSON.parse(out);
+};
+
+const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-singleton-proof-')));
+const stateDir = join(directory, 'state');
+const evidenceDir = join(process.cwd(), '.decompozr/surface/singleton-proof');
+mkdirSync(evidenceDir, { recursive: true });
+const versions = ['4.0.2', '5.1.5'];
 const alpha = makeProject('alpha', versions[0]!);
 const beta = makeProject('beta', versions[1]!);
 let app: Awaited<ReturnType<typeof startSingleton>> | undefined;
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 const observations: string[] = [];
-function observed(message: string) { observations.push(message); console.log(message); }
-async function cli(...args: string[]) {
-  const process = Bun.spawn([Bun.which('bun')!, join(globalThis.process.cwd(), 'apps/cli/src/runtime.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
-  const [out, error, code] = await Promise.all([new Response(process.stdout).text(), new Response(process.stderr).text(), process.exited]);
-  if (code !== 0) throw new Error(`${args.join(' ')} failed (${code}): ${error}\n${out}`);
-  return JSON.parse(out);
-}
 try {
   app = await startSingleton({ stateDir, port: 0 });
   const original = await cli('health');

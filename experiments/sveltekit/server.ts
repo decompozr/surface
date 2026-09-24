@@ -5,9 +5,8 @@ import { parseArgs } from 'node:util';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { startSingleton } from '@decompozr/surface-app/server/host/runtime';
 
-type Handler = (req: IncomingMessage, res: ServerResponse, next?: () => void) => void;
 /** Built Kit application handler + one live Vite component compiler, sharing one listener. */
-export async function startKitFoundation(options: Parameters<typeof startSingleton>[0]) {
+export const startKitFoundation = async (options: Parameters<typeof startSingleton>[0]) => {
   const build = join(import.meta.dir, 'build/handler.js');
   if (!existsSync(build)) throw new Error('Build the SvelteKit shell first: bun run --cwd experiments/sveltekit build');
   const { handler } = await import(pathToFileURL(build).href) as { handler: Handler };
@@ -19,7 +18,10 @@ export async function startKitFoundation(options: Parameters<typeof startSinglet
     handler(req, res);
     return true;
   } });
-}
+};
+
+
+type Handler = (req: IncomingMessage, res: ServerResponse, next?: () => void) => void;
 
 if (import.meta.main) {
   const { values } = parseArgs({ options: { 'state-dir': { type: 'string' }, port: { type: 'string' } } });

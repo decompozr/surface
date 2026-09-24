@@ -6,36 +6,7 @@ import { join } from 'node:path';
 import { request } from 'node:http';
 import { createHash } from 'node:crypto';
 
-function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-project-db-')));
-const stateDir = join(directory, 'state');
-const evidenceDir = join(import.meta.dir, '../../.decompozr/surface/project-database-proof');
-mkdirSync(evidenceDir, { recursive: true });
-writeFileSync(join(evidenceDir, 'result.json'), JSON.stringify({ at: new Date().toISOString(), passed: false, status: 'running' }));
-const observations: string[] = [], processIds: number[] = [];
-const observed = (message: string) => { observations.push(message); console.log(message); };
-const fixtures = join(import.meta.dir, 'fixtures');
-function makeProject(label: string, backend = true) {
-  const root = join(directory, label), source = join(root, 'ui');
-  mkdirSync(join(source, 'src'), { recursive: true });
-  if (backend) copyFileSync(join(fixtures, 'backend.ts'), join(root, 'backend.ts'));
-  copyFileSync(join(fixtures, backend ? 'Scenarios.svelte' : 'Local.svelte'), join(source, 'src/Scenarios.svelte'));
-  writeFileSync(join(source, 'package.json'), JSON.stringify({ name: `sqlite-${label}`, private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
-  writeFileSync(join(source, 'artifact.json'), JSON.stringify({ framework: 'svelte', components: 'src', props: { 'src/Scenarios.svelte': { label } } }));
-  return { root, source, backend, namespace: label, name: 'scenarios', db: join(root, 'data/scenarios.sqlite') };
-}
-const alpha = makeProject('alpha'), beta = makeProject('beta');
-const unused = makeProject('unused'), plain = makeProject('plain', false);
-const projects = [alpha, beta, unused, plain];
-const config = join(directory, 'config.json');
-writeFileSync(config, JSON.stringify({ stateDir, projects }));
-let host: ReturnType<typeof Bun.spawn> | undefined, locker: ReturnType<typeof Bun.spawn> | undefined;
-let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
-let connection!: { origin: string; token: string; pid: number };
-let hostLog = '', logTasks: Promise<void>[] = [];
-let success = false;
-async function start() {
+const start = async () => {
   let ready = false;
   const child = Bun.spawn([process.execPath, join(import.meta.dir, 'host.ts'), config], { stdout: 'pipe', stderr: 'pipe' });
   host = child; processIds.push(child.pid);
@@ -56,8 +27,23 @@ async function start() {
   assert(ready, 'Host failed to become ready: ' + hostLog.slice(-3000));
   connection = JSON.parse(readFileSync(join(stateDir, 'connection.json'), 'utf8'));
   assert(connection.pid === child.pid, 'Connection belongs to a different process.');
-}
-async function stop() {
+};
+
+
+
+const assert: (value: unknown, message: string) => asserts value = (value: unknown, message: string): asserts value => { if (!value) throw new Error(message); };
+
+const makeProject = (label: string, backend = true) => {
+  const root = join(directory, label), source = join(root, 'ui');
+  mkdirSync(join(source, 'src'), { recursive: true });
+  if (backend) copyFileSync(join(fixtures, 'backend.ts'), join(root, 'backend.ts'));
+  copyFileSync(join(fixtures, backend ? 'Scenarios.svelte' : 'Local.svelte'), join(source, 'src/Scenarios.svelte'));
+  writeFileSync(join(source, 'package.json'), JSON.stringify({ name: `sqlite-${label}`, private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
+  writeFileSync(join(source, 'artifact.json'), JSON.stringify({ framework: 'svelte', components: 'src', props: { 'src/Scenarios.svelte': { label } } }));
+  return { root, source, backend, namespace: label, name: 'scenarios', db: join(root, 'data/scenarios.sqlite') };
+};
+
+const stop = async () => {
   if (!host) return;
   const child = host; child.kill('SIGTERM');
   const result = await Promise.race([child.exited, delay(15_000).then(() => 'timeout' as const)]);
@@ -65,37 +51,46 @@ async function stop() {
   host = undefined;
   assert(result === 0, 'Host stop failed: ' + hostLog.slice(-2000));
   assert(!existsSync(join(stateDir, 'server.lock')) && !existsSync(join(stateDir, 'connection.json')), 'Host ownership files remain after stop.');
-}
-async function admin(path: string, input?: unknown) {
+};
+
+const admin = async (path: string, input?: unknown) => {
   const response = await fetch(connection.origin + path, { method: input === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${connection.token}`, 'content-type': 'application/json' }, body: input === undefined ? undefined : JSON.stringify(input) });
   const value = await response.json(); assert(response.ok, `Management ${path} failed: ${JSON.stringify(value)}`); return value;
-}
-async function access() { return await admin('/project-db/access') as { scope: string; token: string; database: { databaseOpen: boolean; opens: number } }[]; }
-function key(project: typeof alpha) { return `${project.namespace}/${project.name}`; }
-async function mount(project: typeof alpha) {
+};
+
+const access = async () => { return await admin('/project-db/access') as { scope: string; token: string; database: { databaseOpen: boolean; opens: number } }[]; };
+
+const key = (project: typeof alpha) => { return `${project.namespace}/${project.name}`; };
+
+const mount = async (project: typeof alpha) => {
   await admin('/api/namespaces', { name: project.namespace });
   const value = await admin('/api/mounts', { namespace: project.namespace, name: project.name, source: project.source, projectRoot: project.root });
   assert(value.status === 'ready', 'Mount failed: ' + value.error); return value;
-}
-async function token(project: typeof alpha) {
+};
+
+const token = async (project: typeof alpha) => {
   const entry = (await access()).find(item => item.scope === key(project));
   assert(entry, 'Missing access for ' + key(project)); return entry.token;
-}
-function url(project: typeof alpha, capability: string) { return `${connection.origin}/n/${key(project)}/?component=src%2FScenarios.svelte#db=${capability}`; }
-async function action(project: typeof alpha, capability: string, operation: string, input: unknown) {
+};
+
+const url = (project: typeof alpha, capability: string) => { return `${connection.origin}/n/${key(project)}/?component=src%2FScenarios.svelte#db=${capability}`; };
+
+const action = async (project: typeof alpha, capability: string, operation: string, input: unknown) => {
   const response = await fetch(`${connection.origin}/project-db/${key(project)}/actions`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-project-capability': capability }, body: JSON.stringify({ operation, input }) });
   return { status: response.status, ...await response.json() };
-}
-const value = (title: string, angle: number, expectedRevision: number) => ({ id: 'shared-id', title, angle, expectedRevision });
-async function rows(project: typeof alpha, capability: string) {
+};
+
+const rows = async (project: typeof alpha, capability: string) => {
   const result = await action(project, capability, 'listScenarios', {}); assert(result.ok, JSON.stringify(result)); return result.data as { id: string; title: string; angle: number; revision: number }[];
-}
-async function openFiles() {
+};
+
+const openFiles = async () => {
   const child = Bun.spawn(['/usr/sbin/lsof', '-nP', '-p', String(connection.pid), '-Fn'], { stdout: 'pipe', stderr: 'pipe' });
   const text = await new Response(child.stdout).text(); await child.exited;
   return text.split('\n').filter(line => line.startsWith('n')).map(line => line.slice(1));
-}
-async function unopened(selected: typeof projects, absent: boolean) {
+};
+
+const unopened = async (selected: typeof projects, absent: boolean) => {
   const files = await openFiles(), entries = await access();
   for (const project of selected) {
     if (absent) assert(!existsSync(join(project.root, 'data')), `${project.namespace} created data before demand.`);
@@ -103,7 +98,28 @@ async function unopened(selected: typeof projects, absent: boolean) {
     const entry = entries.find(item => item.scope === key(project));
     assert(!entry || (!entry.database.databaseOpen && entry.database.opens === 0), `${project.namespace} acquired a connection without demand.`);
   }
-}
+};
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-project-db-')));
+const stateDir = join(directory, 'state');
+const evidenceDir = join(import.meta.dir, '../../.decompozr/surface/project-database-proof');
+mkdirSync(evidenceDir, { recursive: true });
+writeFileSync(join(evidenceDir, 'result.json'), JSON.stringify({ at: new Date().toISOString(), passed: false, status: 'running' }));
+const observations: string[] = [], processIds: number[] = [];
+const observed = (message: string) => { observations.push(message); console.log(message); };
+const fixtures = join(import.meta.dir, 'fixtures');
+const alpha = makeProject('alpha'), beta = makeProject('beta');
+const unused = makeProject('unused'), plain = makeProject('plain', false);
+const projects = [alpha, beta, unused, plain];
+const config = join(directory, 'config.json');
+writeFileSync(config, JSON.stringify({ stateDir, projects }));
+let host: ReturnType<typeof Bun.spawn> | undefined, locker: ReturnType<typeof Bun.spawn> | undefined;
+let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
+let connection!: { origin: string; token: string; pid: number };
+let hostLog = '', logTasks: Promise<void>[] = [];
+let success = false;
+const value = (title: string, angle: number, expectedRevision: number) => ({ id: 'shared-id', title, angle, expectedRevision });
 try {
   await start();
   for (const project of projects) {

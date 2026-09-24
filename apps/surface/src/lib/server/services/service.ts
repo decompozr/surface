@@ -7,15 +7,18 @@ import { DeliveryError, type AgentAdapter, type Binding, type DeliveryIntent } f
 import { Store, type RequestRecord, type PreviewScope } from './store.ts';
 
 import { InputError } from '../../contracts/errors.ts';
-export { InputError } from '../../contracts/errors.ts';
-export function object(value: unknown): Record<string, unknown> {
+
+export const object = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new InputError('Expected a JSON object.');
   return value as Record<string, unknown>;
-}
-export function text(value: unknown, name: string, max = 1000): string {
+};
+
+export const text = (value: unknown, name: string, max = 1000): string => {
   if (typeof value !== 'string' || !value.trim() || value.length > max) throw new InputError(`Invalid ${name}.`);
   return value;
-}
+};
+
+export { InputError } from '../../contracts/errors.ts';
 const ajv = new Ajv({ strict: true, allErrors: true });
 export const feedbackSchema = {
   type: 'object', additionalProperties: false, required: ['option', 'width', 'comment'],

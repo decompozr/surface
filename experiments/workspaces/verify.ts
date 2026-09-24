@@ -8,7 +8,54 @@ import { startWorkspaceHost } from './host.ts';
 import { workspaceDirectory, type Workspace } from './identity.ts';
 import type { AgentAdapter } from '@decompozr/surface-app/server/agent-adapters/codex';
 
-function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
+const cli = async (root: string, ...args: string[]) => { const forwarded = publicCli ? (args[0] === 'retire' ? ['workspace', ...args] : ['project', ...args]) : args; return command([process.execPath, join(import.meta.dir, publicCli ? '../../apps/cli/src/index.ts' : 'cli.ts'), ...forwarded], root, { SURFACE_STATE_DIR: f.state }); };
+
+
+
+const assert: (value: unknown, message: string) => asserts value = (value: unknown, message: string): asserts value => { if (!value) throw new Error(message); };
+
+const start = async () => { app = await startWorkspaceHost({ stateDir: f.state, dataRoot: f.data, port: 0, adapter }); connection = JSON.parse(readFileSync(join(f.state, 'connection.json'), 'utf8')); };
+
+const stop = async () => { const origin = app!.origin; await app!.stop(); app = undefined; assert(!existsSync(join(f.state, 'server.lock')), 'Server lock remains.'); let reachable = true; try { await fetch(origin + '/api/health'); } catch { reachable = false; } assert(!reachable, 'Host listener remains.'); };
+
+const raw = async (path: string, input?: unknown, token = connection.token) => {
+  const response = await fetch(connection.origin + path, { method: input === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: input === undefined ? undefined : JSON.stringify(input) });
+  return { status: response.status, data: await response.json() };
+};
+
+const api = async (path: string, input?: unknown) => { const result = await raw(path,input); assert(result.status < 300, JSON.stringify(result)); return result.data; };
+
+const project = async (root: string, ...args: string[]) => { const result = await cli(root,...args); assert(result.code === 0, result.err + result.out); const value = JSON.parse(result.out); assert(value.ok, result.out); return value.data; };
+
+const register = async (root: string) => { const result = await project(root,'register'); return directory.get(result.workspaceId); };
+
+const mount = async (w: Workspace) => { return project(w.root,'mount','--artifact',f.manifest.artifacts[0]!.id); };
+
+const access = async () => { return await api('/project-db/access') as { scope: string; token: string; database: { databaseOpen: boolean; opens: number } }[]; };
+
+const token = async (w: Workspace) => { const entry = (await access()).find(e => e.scope === `${w.namespace}/${name}`); assert(entry,'Backend missing.'); return entry.token; };
+
+const action = async (w: Workspace, operation: string, input: unknown, capability?: string) => {
+  const response = await fetch(`${connection.origin}/project-db/${w.namespace}/${name}/actions`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-project-capability': capability ?? await token(w) }, body: JSON.stringify({ operation,input }) });
+  return { status: response.status, ...await response.json() };
+};
+
+const unopened = async (workspaces: Workspace[], absent = true) => {
+  const entries = await access(), files = await command(['/usr/sbin/lsof','-nP','-p',String(process.pid),'-Fn']); assert(files.code === 0,'lsof failed.');
+  for (const w of workspaces) {
+    if (absent) assert(!existsSync(w.dataDirectory),'Unneeded project storage appeared.');
+    assert(!files.out.includes(w.dataDirectory + '/scenarios.sqlite'),'Unexpected SQLite handle.');
+    const entry = entries.find(e => e.scope === `${w.namespace}/${name}`); assert(!entry || (!entry.database.databaseOpen && entry.database.opens === 0),'Backend acquired storage without demand.');
+  }
+};
+
+const readRows = (w: Workspace) => { const db = new Database(join(w.dataDirectory,'scenarios.sqlite'), { readonly: true }); try { assert((db.query('PRAGMA integrity_check').get() as any).integrity_check === 'ok','Database damaged.'); return db.query<{ title: string; revision: number },[]>('SELECT title,revision FROM scenarios').all(); } finally { db.close(true); } };
+
+const request = async (w: Workspace, thread: string) => {
+  const binding = await api('/api/bindings',{ projectRoot: w.root, threadId: thread, socketPath });
+  return api('/api/requests',{ bindingId: binding.id, namespace: w.namespace, name, component: 'src/Form.svelte', title: 'Workspace choice', schema: { type: 'object', additionalProperties: false, required: ['label'], properties: { label: { type: 'string' } } } });
+};
+
 const publicCli = process.argv.includes('--public-cli');
 const f = await fixture(), evidence = resolve(import.meta.dir, publicCli ? '../../.decompozr/surface/public-workspaces-proof' : '../../.decompozr/surface/workspaces-proof'); mkdirSync(evidence, { recursive: true });
 const observations: string[] = [], deliveries: { thread: string; root: string; requestId: string }[] = [];
@@ -24,37 +71,7 @@ const adapter: AgentAdapter = {
 };
 const directory = workspaceDirectory(f.state, f.data);
 let main!: Workspace, a!: Workspace, b!: Workspace;
-async function start() { app = await startWorkspaceHost({ stateDir: f.state, dataRoot: f.data, port: 0, adapter }); connection = JSON.parse(readFileSync(join(f.state, 'connection.json'), 'utf8')); }
-async function stop() { const origin = app!.origin; await app!.stop(); app = undefined; assert(!existsSync(join(f.state, 'server.lock')), 'Server lock remains.'); let reachable = true; try { await fetch(origin + '/api/health'); } catch { reachable = false; } assert(!reachable, 'Host listener remains.'); }
-async function raw(path: string, input?: unknown, token = connection.token) {
-  const response = await fetch(connection.origin + path, { method: input === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: input === undefined ? undefined : JSON.stringify(input) });
-  return { status: response.status, data: await response.json() };
-}
-async function api(path: string, input?: unknown) { const result = await raw(path,input); assert(result.status < 300, JSON.stringify(result)); return result.data; }
-async function cli(root: string, ...args: string[]) { const forwarded = publicCli ? (args[0] === 'retire' ? ['workspace', ...args] : ['project', ...args]) : args; return command([process.execPath, join(import.meta.dir, publicCli ? '../../apps/cli/src/index.ts' : 'cli.ts'), ...forwarded], root, { SURFACE_STATE_DIR: f.state }); }
-async function project(root: string, ...args: string[]) { const result = await cli(root,...args); assert(result.code === 0, result.err + result.out); const value = JSON.parse(result.out); assert(value.ok, result.out); return value.data; }
-async function register(root: string) { const result = await project(root,'register'); return directory.get(result.workspaceId); }
-async function mount(w: Workspace) { return project(w.root,'mount','--artifact',f.manifest.artifacts[0]!.id); }
 const name = `a-${f.manifest.artifacts[0]!.id}`;
-async function access() { return await api('/project-db/access') as { scope: string; token: string; database: { databaseOpen: boolean; opens: number } }[]; }
-async function token(w: Workspace) { const entry = (await access()).find(e => e.scope === `${w.namespace}/${name}`); assert(entry,'Backend missing.'); return entry.token; }
-async function action(w: Workspace, operation: string, input: unknown, capability?: string) {
-  const response = await fetch(`${connection.origin}/project-db/${w.namespace}/${name}/actions`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-project-capability': capability ?? await token(w) }, body: JSON.stringify({ operation,input }) });
-  return { status: response.status, ...await response.json() };
-}
-async function unopened(workspaces: Workspace[], absent = true) {
-  const entries = await access(), files = await command(['/usr/sbin/lsof','-nP','-p',String(process.pid),'-Fn']); assert(files.code === 0,'lsof failed.');
-  for (const w of workspaces) {
-    if (absent) assert(!existsSync(w.dataDirectory),'Unneeded project storage appeared.');
-    assert(!files.out.includes(w.dataDirectory + '/scenarios.sqlite'),'Unexpected SQLite handle.');
-    const entry = entries.find(e => e.scope === `${w.namespace}/${name}`); assert(!entry || (!entry.database.databaseOpen && entry.database.opens === 0),'Backend acquired storage without demand.');
-  }
-}
-function readRows(w: Workspace) { const db = new Database(join(w.dataDirectory,'scenarios.sqlite'), { readonly: true }); try { assert((db.query('PRAGMA integrity_check').get() as any).integrity_check === 'ok','Database damaged.'); return db.query<{ title: string; revision: number },[]>('SELECT title,revision FROM scenarios').all(); } finally { db.close(true); } }
-async function request(w: Workspace, thread: string) {
-  const binding = await api('/api/bindings',{ projectRoot: w.root, threadId: thread, socketPath });
-  return api('/api/requests',{ bindingId: binding.id, namespace: w.namespace, name, component: 'src/Form.svelte', title: 'Workspace choice', schema: { type: 'object', additionalProperties: false, required: ['label'], properties: { label: { type: 'string' } } } });
-}
 writeFileSync(join(evidence,'result.json'),JSON.stringify({ passed:false,status:'running',fixture:f.directory }));
 try {
   await start();

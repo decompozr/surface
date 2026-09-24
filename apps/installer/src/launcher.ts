@@ -5,8 +5,7 @@ import { Installation } from './manager.ts';
 import { installationHome } from './paths.ts';
 import { validateRelease } from './compatibility.ts';
 
-export const lifecycleCommands = new Set(['install','upgrade','start','status','stop','restart','rollback','recover','uninstall']);
-export async function prepareLauncher(home: string, release: string) {
+export const prepareLauncher = async (home: string, release: string) => {
   const source = join(home,'releases',release), directory = join(home,'tooling',release);
   for (const path of [join(home,'tooling'),join(home,'bin')]) {
     if (existsSync(path) && lstatSync(path).isSymbolicLink()) throw new Error('Owned launcher directories must not be symlinks.');
@@ -26,8 +25,9 @@ export async function prepareLauncher(home: string, release: string) {
   if (!result.success) throw new Error('Surface launcher build failed.');
   copyFileSync(join(source,'apps/installer/src/runner.ts'),join(directory,'runner.ts')); chmodSync(join(directory,'launcher.js'),0o700);
   const temporary = join(home,'bin',`.surface-${crypto.randomUUID()}`); symlinkSync(join(directory,'launcher.js'),temporary); renameSync(temporary,join(home,'bin/surface'));
-}
-export async function lifecycleMain(args: string[]) {
+};
+
+export const lifecycleMain = async (args: string[]) => {
   const {values,positionals} = parseArgs({args,allowPositionals:true,options:{home:{type:'string'},repo:{type:'string'},ref:{type:'string'},port:{type:'string'},release:{type:'string'},bundle:{type:'string'}}});
   if (positionals.length !== 1) throw new Error('Expected one lifecycle command.');
   const home=installationHome(values.home), manager=new Installation(home,validateRelease);
@@ -57,7 +57,10 @@ export async function lifecycleMain(args: string[]) {
     case 'uninstall': return manager.uninstall();
     default: throw new Error('Unknown lifecycle command.');
   }
-}
+};
+
+
+export const lifecycleCommands = new Set(['install','upgrade','start','status','stop','restart','rollback','recover','uninstall']);
 if(import.meta.main) {
   try {
     const args=process.argv.slice(2);

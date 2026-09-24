@@ -5,11 +5,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { MountResourceContext } from '../host/runtime.ts';
 
-type Outcome = { ok: true; data: unknown } | { ok: false; code: string; message?: string };
-type Backend = { invoke(operation: string, input: unknown): Outcome; close(): void | Promise<void>; inspect?(): unknown };
-type Declaration = { version: 1; api: 1; entry: string; operations: string[] };
-const contained = (parent: string, child: string) => { const path = relative(parent, child); return path === '' || (!path.startsWith('..' + '/') && path !== '..' && !isAbsolute(path)); };
-export function declaration(root: string, source: string): (Declaration & { modulePath: string }) | undefined {
+export const declaration = (root: string, source: string): (Declaration & { modulePath: string }) | undefined => {
   root = realpathSync(root); source = realpathSync(source);
   const path = join(root, 'surface.backend.json');
   if (!existsSync(path)) return undefined;
@@ -20,16 +16,20 @@ export function declaration(root: string, source: string): (Declaration & { modu
   const lexical = resolve(root, value.entry), modulePath = realpathSync(lexical);
   if (!contained(root, modulePath) || modulePath !== lexical || !statSync(modulePath).isFile() || contained(source, modulePath) || contained(source, path)) throw new Error('Backend entry and declaration must stay outside browser source, without symlink indirection.');
   return { ...value, modulePath };
-}
-function reply(res: ServerResponse, status: number, value: unknown) { res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(value)); }
-function equal(a: string, b: string) { const x = Buffer.from(a), y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); }
-async function body(req: IncomingMessage) {
+};
+
+const reply = (res: ServerResponse, status: number, value: unknown) => { res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(value)); };
+
+const equal = (a: string, b: string) => { const x = Buffer.from(a), y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); };
+
+const body = async (req: IncomingMessage) => {
   if (req.headers['content-type']?.split(';')[0] !== 'application/json') throw new Error('Expected JSON.');
   let size = 0, text = '';
   for await (const part of req) { size += part.length; if (size > 8192) throw new Error('Payload too large.'); text += part.toString(); }
   return JSON.parse(text);
-}
-export function backendRuntime(stateDir: string, context?: (mount: MountResourceContext) => Promise<unknown>) {
+};
+
+export const backendRuntime = (stateDir: string, context?: (mount: MountResourceContext) => Promise<unknown>) => {
   type Entry = { root: string; backend: Backend; token: string; operations: Set<string> };
   const entries = new Map<string, Entry>(), roots = new Set<string>();
   return {
@@ -83,4 +83,10 @@ export function backendRuntime(stateDir: string, context?: (mount: MountResource
       return true;
     },
   };
-}
+};
+
+
+type Outcome = { ok: true; data: unknown } | { ok: false; code: string; message?: string };
+type Backend = { invoke(operation: string, input: unknown): Outcome; close(): void | Promise<void>; inspect?(): unknown };
+type Declaration = { version: 1; api: 1; entry: string; operations: string[] };
+const contained = (parent: string, child: string) => { const path = relative(parent, child); return path === '' || (!path.startsWith('..' + '/') && path !== '..' && !isAbsolute(path)); };

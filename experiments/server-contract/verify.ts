@@ -5,30 +5,27 @@ import { join, dirname, resolve } from 'node:path';
 import { createServer } from 'node:net';
 import { hash, preferencesFile } from './compatibility.ts';
 
-function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
-const source = resolve(import.meta.dir, '../..'), directory = realpathSync(mkdtempSync('/tmp/surface-contract-'));
-const home = join(directory, 'Surface Home'), state = join(home, 'state'), unrelated = join(directory, 'unrelated');
-let repo = join(directory, 'fixture-source'); mkdirSync(repo); mkdirSync(unrelated);
-const evidence = join(source, '.decompozr/surface/server-contract-proof'); mkdirSync(evidence, { recursive: true });
-const observations: string[] = [], pids: number[] = [], sourceHashes: Record<string,string> = {};
-const observed = (message: string) => { observations.push(message); console.log(message); };
-let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined, running = false, success = false;
-let launcher = join(source, 'experiments/server-contract/launcher.ts');
-let connection!: { origin: string; token: string; pid: number };
-let releaseA = '', releaseB = '', lastError = '';
-async function command(args: string[], cwd = unrelated) {
+
+const assert: (value: unknown, message: string) => asserts value = (value: unknown, message: string): asserts value => { if (!value) throw new Error(message); };
+
+const command = async (args: string[], cwd = unrelated) => {
   const child = Bun.spawn(args, { cwd, env: { ...process.env, SURFACE_HOME: join(directory, 'wrong-environment-home'), GIT_AUTHOR_NAME: 'Surface Experiment', GIT_AUTHOR_EMAIL: 'surface@example.invalid', GIT_COMMITTER_NAME: 'Surface Experiment', GIT_COMMITTER_EMAIL: 'surface@example.invalid' }, stdout: 'pipe', stderr: 'pipe' });
   const [code, out, err] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
   return { code, out, err };
-}
-async function must(args: string[], cwd?: string) { const result = await command(args, cwd); assert(result.code === 0, `${args.slice(0,4).join(' ')} failed:\n${result.err}\n${result.out}`); return result.out.trim(); }
-async function cli(...args: string[]) { return JSON.parse(await must([process.execPath, launcher, ...args, '--home', home])); }
-async function rejectCli(message: string, ...args: string[]) {
+};
+
+const must = async (args: string[], cwd?: string) => { const result = await command(args, cwd); assert(result.code === 0, `${args.slice(0,4).join(' ')} failed:\n${result.err}\n${result.out}`); return result.out.trim(); };
+
+const cli = async (...args: string[]) => { return JSON.parse(await must([process.execPath, launcher, ...args, '--home', home])); };
+
+const rejectCli = async (message: string, ...args: string[]) => {
   const result = await command([process.execPath, launcher, ...args, '--home', home]);
   assert(result.code !== 0 && result.err.includes(message), `Expected ${message}: ${result.out} ${result.err}`);
-}
-async function git(...args: string[]) { return must(['git', '-C', repo, ...args]); }
-async function snapshot() {
+};
+
+const git = async (...args: string[]) => { return must(['git', '-C', repo, ...args]); };
+
+const snapshot = async () => {
   const paths = (await must(['git', '-C', source, 'ls-files', '-z'])).split('\0').filter(Boolean);
   const added = (await must(['git', '-C', source, 'ls-files', '--others', '--exclude-standard', '-z'])).split('\0').filter(path => path.startsWith('experiments/server-contract/'));
   for (const path of [...new Set([...paths, ...added])]) {
@@ -52,8 +49,9 @@ async function snapshot() {
   writeFileSync(join(repo, 'experiments/server-contract/launcher.ts'), 'deliberately invalid TypeScript {{{');
   await git('add', '.'); await git('commit', '-qm', 'Deliberately broken launcher bundle candidate');
   return { a, b, bad, badLauncher: await git('rev-parse', 'HEAD') };
-}
-function project(label: string, backend = true) {
+};
+
+const project = (label: string, backend = true) => {
   const root = join(directory, label), ui = join(root, 'ui'); mkdirSync(join(ui, 'src'), { recursive: true });
   copyFileSync(join(source, 'experiments/project-database/fixtures', backend ? 'Scenarios.svelte' : 'Local.svelte'), join(ui, 'src/Scenarios.svelte'));
   writeFileSync(join(ui, 'package.json'), JSON.stringify({ name: `contract-${label}`, private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
@@ -63,30 +61,37 @@ function project(label: string, backend = true) {
     writeFileSync(join(root, 'surface.backend.json'), JSON.stringify({ version: 1, api: 1, entry: 'backend.ts', operations: ['describeProject', 'listScenarios', 'saveScenario'] }));
   }
   return { label, root, ui, backend, db: join(root, 'data/scenarios.sqlite'), id: '', scope: '', preview: '' };
-}
-const alpha = project('alpha'), beta = project('beta'), unused = project('unused'), plain = project('plain', false), projects = [alpha, beta, unused, plain];
-async function projectCli(p: typeof alpha, operation: string, ...args: string[]) {
+};
+
+const projectCli = async (p: typeof alpha, operation: string, ...args: string[]) => {
   const result = await cli('project', operation, '--project', p.root, ...args); assert(result.ok, JSON.stringify(result)); return result.data;
-}
-async function mount(p: typeof alpha) {
+};
+
+const mount = async (p: typeof alpha) => {
   const result = await projectCli(p, 'mount', '--artifact', p.id);
   assert(result.status === 'ready', JSON.stringify(result));
   p.scope = `${result.namespace}/${result.name}`; p.preview = result.previewUrl;
-}
-async function start(port?: number) {
+};
+
+const start = async (port?: number) => {
   const result = await cli('start', ...(port === undefined ? [] : ['--port', String(port)]));
   running = true; pids.push(result.pid); connection = JSON.parse(readFileSync(join(state, 'connection.json'), 'utf8'));
   assert(connection.pid === result.pid, 'Connection/owner PID mismatch.');
   for (const p of projects.filter(p => p.id)) await mount(p);
-}
-async function stop() { await cli('stop'); running = false; assert(!existsSync(join(state, 'server.lock')), 'Server lock remains after stop.'); }
-async function access() { return await cli('access') as { scope: string; token: string; database: { databaseOpen: boolean; opens: number } }[]; }
-async function capability(p: typeof alpha) { const entry = (await access()).find(entry => entry.scope === p.scope); assert(entry, `Missing backend ${p.label}`); return entry.token; }
-async function action(p: typeof alpha, token: string, operation: string, input: unknown) {
+};
+
+const stop = async () => { await cli('stop'); running = false; assert(!existsSync(join(state, 'server.lock')), 'Server lock remains after stop.'); };
+
+const access = async () => { return await cli('access') as { scope: string; token: string; database: { databaseOpen: boolean; opens: number } }[]; };
+
+const capability = async (p: typeof alpha) => { const entry = (await access()).find(entry => entry.scope === p.scope); assert(entry, `Missing backend ${p.label}`); return entry.token; };
+
+const action = async (p: typeof alpha, token: string, operation: string, input: unknown) => {
   const response = await fetch(`${connection.origin}/project-db/${p.scope}/actions`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-project-capability': token }, body: JSON.stringify({ operation, input }) });
   return { status: response.status, ...await response.json() };
-}
-async function unopened(selected: typeof projects, absent = true) {
+};
+
+const unopened = async (selected: typeof projects, absent = true) => {
   const files = (await must(['/usr/sbin/lsof', '-nP', '-p', String(connection.pid), '-Fn'])).split('\n');
   const entries = await access();
   for (const p of selected) {
@@ -95,9 +100,23 @@ async function unopened(selected: typeof projects, absent = true) {
     const entry = entries.find(entry => entry.scope === p.scope);
     assert(!entry || (!entry.database.databaseOpen && entry.database.opens === 0), `${p.label} has unexpected storage acquisition.`);
   }
-}
-async function rows(p: typeof alpha) { const result = await action(p, await capability(p), 'listScenarios', {}); assert(result.ok, JSON.stringify(result)); return result.data; }
-function dbRows(p: typeof alpha) { const db = new Database(p.db, { readonly: true }); try { assert((db.query('PRAGMA integrity_check').get() as any).integrity_check === 'ok', 'SQLite integrity failure.'); return db.query('SELECT * FROM scenarios ORDER BY id').all(); } finally { db.close(); } }
+};
+
+const rows = async (p: typeof alpha) => { const result = await action(p, await capability(p), 'listScenarios', {}); assert(result.ok, JSON.stringify(result)); return result.data; };
+
+const dbRows = (p: typeof alpha) => { const db = new Database(p.db, { readonly: true }); try { assert((db.query('PRAGMA integrity_check').get() as any).integrity_check === 'ok', 'SQLite integrity failure.'); return db.query('SELECT * FROM scenarios ORDER BY id').all(); } finally { db.close(); } };
+
+const source = resolve(import.meta.dir, '../..'), directory = realpathSync(mkdtempSync('/tmp/surface-contract-'));
+const home = join(directory, 'Surface Home'), state = join(home, 'state'), unrelated = join(directory, 'unrelated');
+let repo = join(directory, 'fixture-source'); mkdirSync(repo); mkdirSync(unrelated);
+const evidence = join(source, '.decompozr/surface/server-contract-proof'); mkdirSync(evidence, { recursive: true });
+const observations: string[] = [], pids: number[] = [], sourceHashes: Record<string,string> = {};
+const observed = (message: string) => { observations.push(message); console.log(message); };
+let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined, running = false, success = false;
+let launcher = join(source, 'experiments/server-contract/launcher.ts');
+let connection!: { origin: string; token: string; pid: number };
+let releaseA = '', releaseB = '', lastError = '';
+const alpha = project('alpha'), beta = project('beta'), unused = project('unused'), plain = project('plain', false), projects = [alpha, beta, unused, plain];
 writeFileSync(join(evidence, 'result.json'), JSON.stringify({ passed: false, status: 'running', directory }));
 try {
   const revisions = await snapshot();

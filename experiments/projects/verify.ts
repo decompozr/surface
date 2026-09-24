@@ -5,31 +5,39 @@ import { join } from 'node:path';
 import { startSingleton } from '@decompozr/surface-app/server/host/runtime';
 import { manifestName, withLock } from './project.ts';
 
-const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-projects-'))), stateDir = join(directory, 'server');
-const evidenceDir = join(import.meta.dir, '../../.decompozr/surface/project-management-proof');
-mkdirSync(evidenceDir, { recursive: true });
-const observations: string[] = [];
-function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
-function observed(message: string) { observations.push(message); console.log(message); }
-function project(name: string) {
+const call = async (project: string, ...args: string[]) => {
+  const child = Bun.spawn([process.execPath, join(import.meta.dir, 'cli.ts'), ...args, '--project', project, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
+  const [output, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
+  return { code, error, data: code === 0 ? JSON.parse(output) : undefined };
+};
+
+
+const assert: (condition: unknown, message: string) => asserts condition = (condition: unknown, message: string): asserts condition => { if (!condition) throw new Error(message); };
+
+const observed = (message: string) => { observations.push(message); console.log(message); };
+
+const project = (name: string) => {
   const root = join(directory, name), source = join(root, 'artifacts/panel');
   mkdirSync(join(source, 'src'), { recursive: true });
   writeFileSync(join(root, 'README.md'), `User-owned ${name} repository.\n`);
   writeFileSync(join(source, 'package.json'), JSON.stringify({ name, private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
   writeFileSync(join(source, 'src/Panel.svelte'), '<script lang="ts">let count = $state(0); let draft = $state("");</script><h1>Project-owned panel</h1><input aria-label="Draft" bind:value={draft}/><button onclick={() => count++}>Count {count}</button>');
   return { root, source };
-}
+};
+
+const cli = async (project: string, ...args: string[]) => { const result = await call(project, ...args); assert(result.code === 0, `${args[0]}: ${result.error}`); return result.data; };
+
+const rejects = async (project: string, text: string, ...args: string[]) => { const result = await call(project, ...args); assert(result.code !== 0 && result.error.includes(text), `Expected ${text}, received ${JSON.stringify(result)}`); };
+
+
+const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-projects-'))), stateDir = join(directory, 'server');
+const evidenceDir = join(import.meta.dir, '../../.decompozr/surface/project-management-proof');
+mkdirSync(evidenceDir, { recursive: true });
+const observations: string[] = [];
 const alpha = project('alpha'), beta = project('beta');
 const originalReadme = readFileSync(join(alpha.root, 'README.md'), 'utf8');
 const originalSource = readFileSync(join(alpha.source, 'src/Panel.svelte'), 'utf8');
 const originalPackage = readFileSync(join(alpha.source, 'package.json'), 'utf8');
-async function call(project: string, ...args: string[]) {
-  const child = Bun.spawn([process.execPath, join(import.meta.dir, 'cli.ts'), ...args, '--project', project, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
-  const [output, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
-  return { code, error, data: code === 0 ? JSON.parse(output) : undefined };
-}
-async function cli(project: string, ...args: string[]) { const result = await call(project, ...args); assert(result.code === 0, `${args[0]}: ${result.error}`); return result.data; }
-async function rejects(project: string, text: string, ...args: string[]) { const result = await call(project, ...args); assert(result.code !== 0 && result.error.includes(text), `Expected ${text}, received ${JSON.stringify(result)}`); }
 let app: Awaited<ReturnType<typeof startSingleton>> | undefined;
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 try {

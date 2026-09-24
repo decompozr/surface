@@ -1,10 +1,6 @@
 <script lang="ts">
-  type Row = { id: string; title: string; angle: number; revision: number };
-  let rows = $state<Row[]>([]), id = $state('near'), title = $state('Near view'), angle = $state(35);
-  let status = $state('Unsaved draft'), pending = $state(false);
-  const scope = location.pathname.split('/').filter(Boolean).slice(1, 3).join('/');
-  const token = new URLSearchParams(location.hash.slice(1)).get('db') ?? '';
-  async function save() {
+
+  const save = async () => {
     pending = true;
     try {
       const response = await fetch(`/project-db/${scope}/actions`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-project-capability': token }, body: JSON.stringify({ operation: 'saveScenario', input: { id, title, angle, expectedRevision: rows.find(row => row.id === id)?.revision ?? 0 } }) });
@@ -13,7 +9,13 @@
       rows = [...rows.filter(row => row.id !== id), result.data]; status = `Saved ${result.data.title} · revision ${result.data.revision}`;
     } catch (error) { status = String(error); }
     finally { pending = false; }
-  }
+  };
+
+  type Row = { id: string; title: string; angle: number; revision: number };
+  let rows = $state<Row[]>([]), id = $state('near'), title = $state('Near view'), angle = $state(35);
+  let status = $state('Unsaved draft'), pending = $state(false);
+  const scope = location.pathname.split('/').filter(Boolean).slice(1, 3).join('/');
+  const token = new URLSearchParams(location.hash.slice(1)).get('db') ?? '';
 </script>
 <main>
   <p class="eyebrow">SURFACE EXPERIMENT · EDITOR</p><h1>Plan a scenario</h1>

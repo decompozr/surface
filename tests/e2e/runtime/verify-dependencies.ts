@@ -3,14 +3,12 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, realpathSync, rmSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startSingleton } from '@decompozr/surface-app/server/host/runtime';
-const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-dependencies-')));
-const stateDir = join(directory, 'state');
-const evidenceDir = join(process.cwd(), '.decompozr/surface/dependency-proof'); mkdirSync(evidenceDir, { recursive: true });
-const baselineOnly = process.argv.includes('--baseline');
-const observations: string[] = [];
-function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
-function observed(message: string) { observations.push(message); console.log(message); }
-function project(name: string, version: string) {
+
+const assert: (value: unknown, message: string) => asserts value = (value: unknown, message: string): asserts value => { if (!value) throw new Error(message); };
+
+const observed = (message: string) => { observations.push(message); console.log(message); };
+
+const project = (name: string, version: string) => {
   const source = join(directory, name); mkdirSync(join(source, 'src'), { recursive: true });
   mkdirSync(join(source, 'packages/mixed-entry'), { recursive: true });
   writeFileSync(join(source, 'package.json'), JSON.stringify({ name, private: true, type: 'module', dependencies: { svelte: '5.57.1', lodash: version, 'mixed-entry': 'file:./packages/mixed-entry' } }));
@@ -18,18 +16,26 @@ function project(name: string, version: string) {
   writeFileSync(join(source, 'packages/mixed-entry/index.js'), `import lodash from 'lodash'; export const mixed = 'ESM via CJS ' + lodash.VERSION + ': ' + lodash.chunk(['a','b','c'], 2).map(row=>row.join('')).join('|');`);
   writeFileSync(join(source, 'src/Panel.svelte'), `<script>import lodash from 'lodash'; import { mixed } from 'mixed-entry'; import { previewState } from 'virtual:surface-preview'; const count=previewState('count',0);</script><h1>${name}</h1><p data-testid="version">{lodash.VERSION}</p><p data-testid="cjs">{lodash.chunk([1,2,3],2).map(row=>row.join('')).join('|')}</p><p data-testid="mixed">{mixed}</p><button onclick={()=> $count++}>Count {$count}</button>`);
   return source;
-}
-function manifest(source: string, prebundle: string[]) { writeFileSync(join(source, 'artifact.json'), JSON.stringify({ framework: 'svelte', components: 'src', prebundle })); }
-const alpha = project('alpha', '4.17.20'), beta = project('beta', '4.17.21');
-let app: Awaited<ReturnType<typeof startSingleton>> | undefined;
-let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
-async function cli(...args: string[]) {
+};
+
+const manifest = (source: string, prebundle: string[]) => { writeFileSync(join(source, 'artifact.json'), JSON.stringify({ framework: 'svelte', components: 'src', prebundle })); };
+
+const cli = async (...args: string[]) => {
   const child = Bun.spawn([process.execPath, join(process.cwd(), 'apps/cli/src/runtime.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
   const [out, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
   const result = JSON.parse(out || '{}');
   if (code && result.status !== 'failed') throw new Error(`${args[0]}: ${error}`);
   return result;
-}
+};
+
+const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-dependencies-')));
+const stateDir = join(directory, 'state');
+const evidenceDir = join(process.cwd(), '.decompozr/surface/dependency-proof'); mkdirSync(evidenceDir, { recursive: true });
+const baselineOnly = process.argv.includes('--baseline');
+const observations: string[] = [];
+const alpha = project('alpha', '4.17.20'), beta = project('beta', '4.17.21');
+let app: Awaited<ReturnType<typeof startSingleton>> | undefined;
+let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 try {
   app = await startSingleton({ stateDir, port: 0 });
   const originalVite = app.vite, originalInstance = app.instanceId;

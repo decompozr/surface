@@ -18,6 +18,18 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]] as con
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
   try {
+
+    const resize = async (x: number, y: number, width: number, height: number, event = 'resize') => {
+      await page.evaluate(({ x, y, width, height, event }) => {
+        Object.assign(window.visualViewport!, { offsetLeft: x, offsetTop: y, width, height });
+        window.visualViewport!.dispatchEvent(new Event(event));
+      }, { x, y, width, height, event });
+      await expect.poll(async () => {
+        const r = await editor.boundingBox();
+        return !!r && r.x >= x + 11 && r.y >= y + 11 && r.x + r.width <= x + width - 11 && r.y + r.height <= y + height - 31;
+      }).toBe(true);
+    };
+
     await page.goto(origin + '/experiments/comments', { waitUntil: 'networkidle' });
     await expect(page.getByRole('button', { name: 'Leave comment mode', exact: true })).toBeEnabled();
     const workspace = page.locator('#comment-workspace');
@@ -37,16 +49,6 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]] as con
     await workspace.evaluate(el => { el.scrollTop += 120; });
     await expect.poll(async () => (await editor.boundingBox())!.y).toBeLessThan(initial!.y - 10);
     await expect(field).toBeFocused();
-    async function resize(x: number, y: number, width: number, height: number, event = 'resize') {
-      await page.evaluate(({ x, y, width, height, event }) => {
-        Object.assign(window.visualViewport!, { offsetLeft: x, offsetTop: y, width, height });
-        window.visualViewport!.dispatchEvent(new Event(event));
-      }, { x, y, width, height, event });
-      await expect.poll(async () => {
-        const r = await editor.boundingBox();
-        return !!r && r.x >= x + 11 && r.y >= y + 11 && r.x + r.width <= x + width - 11 && r.y + r.height <= y + height - 31;
-      }).toBe(true);
-    }
     await resize(0, 150, 390, 310);
     const input = await field.boundingBox();
     expect(input!.y).toBeGreaterThanOrEqual(150);

@@ -2,22 +2,25 @@
   import { onMount } from 'svelte';
   import { createSurfaceClient } from 'virtual:surface-client';
   import { previewState } from 'virtual:surface-preview';
+
+  const refresh = async () => {
+    try { interaction = await client.read(); failure = ''; }
+    catch (error) { failure = String(error); }
+  };
+
+  const submit = async () => {
+    submitting = true;
+    try { interaction = await client.submit({ label: $draft }, $responseId); failure = ''; }
+    catch (error) { failure = String(error); }
+    finally { submitting = false; }
+  };
+
   const client = createSurfaceClient();
   const draft = previewState('feedback-draft', '', 1);
   const responseId = previewState('feedback-response-id', crypto.randomUUID(), 1);
   let interaction = $state<{ closed: boolean; response?: { status: string }; result?: { message?: string } } | null>(null);
   let failure = $state('');
   let submitting = $state(false);
-  async function refresh() {
-    try { interaction = await client.read(); failure = ''; }
-    catch (error) { failure = String(error); }
-  }
-  async function submit() {
-    submitting = true;
-    try { interaction = await client.submit({ label: $draft }, $responseId); failure = ''; }
-    catch (error) { failure = String(error); }
-    finally { submitting = false; }
-  }
   onMount(() => {
     void refresh();
     const timer = setInterval(refresh, 500);

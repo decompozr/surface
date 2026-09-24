@@ -6,51 +6,65 @@ import { Database } from 'bun:sqlite';
 import { Installation } from '@decompozr/surface-installer/manager';
 import { command, git } from '../workspaces/fixture.ts';
 
-function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
-const root = resolve(import.meta.dir, '../..'), base = realpathSync(mkdtempSync('/tmp/surface-multi-'));
-const home = join(base, 'Experimental Home'), state = join(home, 'state'), data = join(home, 'project-data');
-const repo = join(base, 'release-source'), main = join(base, 'project'), branch = join(base, 'worktree-a');
-const evidence = join(root, '.decompozr/surface/multi-surface-proof'); mkdirSync(evidence, { recursive: true });
-const observations: string[] = [], hashes: Record<string,string> = {}, pids: number[] = [];
-const manifest = { version:1, projectId:crypto.randomUUID(), name:'Multi-surface experiment', artifacts:[
-  { id:crypto.randomUUID(), name:'Editor', source:'editor', archived:false },
-  { id:crypto.randomUUID(), name:'Comparison', source:'compare', archived:false },
-] };
-let installed: { release:string } | undefined;
-let connection!: { origin:string; token:string };
-let host: ReturnType<typeof Bun.spawn> | undefined, hostLog: Promise<string> | undefined;
-let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined, passed = false, errorText = '';
-const observed = (message: string) => { observations.push(message); console.log(message); };
+const fixture = async () => {
+  for(const [folder,component] of [['editor','Editor'],['compare','Compare']]) {
+    const dir=join(main,folder!);mkdirSync(join(dir,'src'),{recursive:true});
+    writeFileSync(join(dir,'package.json'),JSON.stringify({name:'multi-surface-'+folder,private:true,type:'module',dependencies:{svelte:'5.57.1'}}));
+    writeFileSync(join(dir,'artifact.json'),JSON.stringify({framework:'svelte',components:'src'}));
+    copyFileSync(join(import.meta.dir,`fixtures/${component}.svelte`),join(dir,`src/${component}.svelte`));
+  }
+  writeFileSync(join(main,'artifact.project.json'),JSON.stringify(manifest,null,2)+'\n');
+  writeFileSync(join(main,'.gitignore'),'node_modules/\neditor/bun.lock\ncompare/bun.lock\n.artifact-project.lock\n');
+  const backend=readFileSync(join(root,'experiments/project-database/fixtures/backend.ts'),'utf8').replace('export const createProjectBackend','const createStoreBackend');
+  writeFileSync(join(main,'backend.ts'),backend+`\nexport const apiVersion=1;\nlet factories=0,closes=0;\nexport const createProjectBackend = (context) => {const backend=createStoreBackend(context),instance=++factories;let closed=false;return {...backend,inspect(){return {...backend.inspect(),instance,factories,closes}},close(){backend.close();if(!closed){closed=true;closes++;}}};}\n`);
+  writeFileSync(join(main,'surface.backend.json'),JSON.stringify({version:1,api:1,entry:'backend.ts',operations:['describeProject','listScenarios','saveScenario']}));
+  await git(main,'init','-q','-b','main');await git(main,'config','commit.gpgsign','false');await git(main,'add','.');await git(main,'commit','-qm','Editor and comparison experiment app');
+  await git(main,'worktree','add','-qb','experiment-a',branch);
+};
+
+
+
+const assert: (value: unknown, message: string) => asserts value = (value: unknown, message: string): asserts value => { if (!value) throw new Error(message); };
+
 // Compare private metadata by hash only; do not expose management credentials.
-function sharedFingerprint() {
-  const shared = '/Users/scottchu/Library/Application Support/Surface', entries: Record<string,string> = {};
-  function visit(path: string) {
+const sharedFingerprint = () => {
+
+  const visit = (path: string) => {
     if (!existsSync(path)) { entries[path] = 'absent'; return; }
     const stat = lstatSync(path);
     if (stat.isDirectory()) { for (const name of readdirSync(path).sort()) visit(join(path,name)); }
     else entries[path] = createHash('sha256').update(stat.isSymbolicLink() ? readlinkSync(path) : readFileSync(path)).digest('hex');
-  }
+  };
+
+  const shared = '/Users/scottchu/Library/Application Support/Surface', entries: Record<string,string> = {};
   for (const path of ['active.json','settings.json','state','run','bin']) visit(join(shared,path));
   visit('/Users/scottchu/.bun/bin/surface');
   return createHash('sha256').update(JSON.stringify(entries)).digest('hex');
-}
-const sharedBefore = sharedFingerprint();
-async function run(args: string[], cwd = base) { const result = await command(args,cwd); assert(result.code === 0, result.err+'\n'+result.out); return result.out; }
-async function cli(cwd: string, ...args: string[]) {
+};
+
+const run = async (args: string[], cwd = base) => { const result = await command(args,cwd); assert(result.code === 0, result.err+'\n'+result.out); return result.out; };
+
+const cli = async (cwd: string, ...args: string[]) => {
   return JSON.parse(await run([process.execPath,join(home,'releases',installed!.release,'apps/cli/src/index.ts'),...args,'--state-dir',state],cwd));
-}
-async function project(cwd: string, ...args: string[]) { const result = await cli(cwd,'project',...args); assert(result.ok,JSON.stringify(result)); return result.data; }
-async function access() { return cli(base,'access'); }
-async function entry(mount: any) { const result = (await access()).find((item:any)=>item.scope===`${mount.namespace}/${mount.name}`); assert(result,'Missing capability'); return result; }
-async function action(mount: any, token: string, operation: string, input: unknown) {
+};
+
+const project = async (cwd: string, ...args: string[]) => { const result = await cli(cwd,'project',...args); assert(result.ok,JSON.stringify(result)); return result.data; };
+
+const access = async () => { return cli(base,'access'); };
+
+const entry = async (mount: any) => { const result = (await access()).find((item:any)=>item.scope===`${mount.namespace}/${mount.name}`); assert(result,'Missing capability'); return result; };
+
+const action = async (mount: any, token: string, operation: string, input: unknown) => {
   const response = await fetch(`${connection.origin}/project-db/${mount.namespace}/${mount.name}/actions`,{method:'POST',headers:{'content-type':'application/json','x-project-capability':token},body:JSON.stringify({operation,input})});
   return { status:response.status, value:await response.json() as any };
-}
-async function handles(path: string) {
+};
+
+const handles = async (path: string) => {
   const result = await command(['/usr/sbin/lsof','-nP','-p',String(host!.pid),'-Fn']); assert(result.code===0,'Cannot inspect owned host handles: '+result.err);
   return result.out.split('\n').filter(line=>line==='n'+path||line.startsWith('n'+path+'-'));
-}
-async function start() {
+};
+
+const start = async () => {
   const release = join(home,'releases',installed!.release);
   const child = Bun.spawn([process.execPath,join(release,'experiments/multi-surface/host.ts'),'--state-dir',state,'--data-root',data,'--port','0'],{cwd:base,stdin:'ignore',stdout:'pipe',stderr:'pipe'});
   host=child; pids.push(child.pid);
@@ -66,38 +80,44 @@ async function start() {
     await Bun.sleep(50);
   }
   throw new Error('Experimental host startup timeout');
-}
-async function stop() {
+};
+
+const stop = async () => {
   if(!host)return;const child=host;
   child.kill('SIGTERM');
   const code=await Promise.race([child.exited,Bun.sleep(15000).then(()=>{throw new Error('Owned experiment host did not stop');})]);
   writeFileSync(join(evidence,`host-${child.pid}.log`),await hostLog!);assert(code===0,'Host shutdown failed');host=undefined;
   assert(!existsSync(join(state,'server.lock')),'Host lock remains');
-}
-async function snapshot() {
+};
+
+const snapshot = async () => {
   mkdirSync(repo);
   const files=new Set((await run(['git','-C',root,'ls-files','-z'])).split('\0').concat((await run(['git','-C',root,'ls-files','--others','--exclude-standard','-z'])).split('\0')).filter(Boolean));
   for(const path of files) {const from=join(root,path),to=join(repo,path);if(!existsSync(from))continue;mkdirSync(dirname(to),{recursive:true});const content=lstatSync(from).isSymbolicLink()?readlinkSync(from):readFileSync(from);if(typeof content==='string')symlinkSync(content,to);else copyFileSync(from,to);hashes[path]=createHash('sha256').update(content).digest('hex');}
   await git(repo,'init','-q');await git(repo,'config','commit.gpgsign','false');await git(repo,'add','.');await git(repo,'commit','-qm','Isolated multi-surface experiment snapshot');
   return git(repo,'rev-parse','HEAD');
-}
-async function fixture() {
-  for(const [folder,component] of [['editor','Editor'],['compare','Compare']]) {
-    const dir=join(main,folder!);mkdirSync(join(dir,'src'),{recursive:true});
-    writeFileSync(join(dir,'package.json'),JSON.stringify({name:'multi-surface-'+folder,private:true,type:'module',dependencies:{svelte:'5.57.1'}}));
-    writeFileSync(join(dir,'artifact.json'),JSON.stringify({framework:'svelte',components:'src'}));
-    copyFileSync(join(import.meta.dir,`fixtures/${component}.svelte`),join(dir,`src/${component}.svelte`));
-  }
-  writeFileSync(join(main,'artifact.project.json'),JSON.stringify(manifest,null,2)+'\n');
-  writeFileSync(join(main,'.gitignore'),'node_modules/\neditor/bun.lock\ncompare/bun.lock\n.artifact-project.lock\n');
-  const backend=readFileSync(join(root,'experiments/project-database/fixtures/backend.ts'),'utf8').replace('export function createProjectBackend','function createStoreBackend');
-  writeFileSync(join(main,'backend.ts'),backend+`\nexport const apiVersion=1;\nlet factories=0,closes=0;\nexport function createProjectBackend(context){const backend=createStoreBackend(context),instance=++factories;let closed=false;return {...backend,inspect(){return {...backend.inspect(),instance,factories,closes}},close(){backend.close();if(!closed){closed=true;closes++;}}};}\n`);
-  writeFileSync(join(main,'surface.backend.json'),JSON.stringify({version:1,api:1,entry:'backend.ts',operations:['describeProject','listScenarios','saveScenario']}));
-  await git(main,'init','-q','-b','main');await git(main,'config','commit.gpgsign','false');await git(main,'add','.');await git(main,'commit','-qm','Editor and comparison experiment app');
-  await git(main,'worktree','add','-qb','experiment-a',branch);
-}
+};
+
+const root = resolve(import.meta.dir, '../..'), base = realpathSync(mkdtempSync('/tmp/surface-multi-'));
+const home = join(base, 'Experimental Home'), state = join(home, 'state'), data = join(home, 'project-data');
+const repo = join(base, 'release-source'), main = join(base, 'project'), branch = join(base, 'worktree-a');
+const evidence = join(root, '.decompozr/surface/multi-surface-proof'); mkdirSync(evidence, { recursive: true });
+const observations: string[] = [], hashes: Record<string,string> = {}, pids: number[] = [];
+const manifest = { version:1, projectId:crypto.randomUUID(), name:'Multi-surface experiment', artifacts:[
+  { id:crypto.randomUUID(), name:'Editor', source:'editor', archived:false },
+  { id:crypto.randomUUID(), name:'Comparison', source:'compare', archived:false },
+] };
+let installed: { release:string } | undefined;
+let connection!: { origin:string; token:string };
+let host: ReturnType<typeof Bun.spawn> | undefined, hostLog: Promise<string> | undefined;
+let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined, passed = false, errorText = '';
+const observed = (message: string) => { observations.push(message); console.log(message); };
+const sharedBefore = sharedFingerprint();
 writeFileSync(join(evidence,'result.json'),JSON.stringify({passed:false,status:'running',base}));
 try {
+
+  const visit = async (page:any,mount:any,component:string) => {await page.goto('about:blank');await page.goto(`${mount.previewUrl}?component=src%2F${component}.svelte#db=${(await entry(mount)).token}`);};
+
   await fixture();const revision=await snapshot();
   writeFileSync(join(evidence,'source.json'),JSON.stringify({revision,sourceHead:await git(root,'rev-parse','HEAD'),hashes},null,2));
   installed=await new Installation(home).install(repo,revision,'surface');
@@ -120,7 +140,6 @@ try {
   assert(!existsSync(data),'Rejected or non-data operation allocated storage');
   browser=await chromium.launch({channel:'chrome',headless:true});
   const editPage=await browser.newPage({viewport:{width:1000,height:850}}),comparePage=await browser.newPage({viewport:{width:1100,height:750}});
-  async function visit(page:any,mount:any,component:string){await page.goto('about:blank');await page.goto(`${mount.previewUrl}?component=src%2F${component}.svelte#db=${(await entry(mount)).token}`);}
   await visit(editPage,editor,'Editor');await visit(comparePage,comparison,'Compare');
   await editPage.getByLabel('Scenario name',{exact:true}).fill('Near view');assert(!existsSync(data),'Browser draft allocated storage');
   await expect(comparePage.getByRole('status')).toHaveText('Saved scenarios have not been loaded.');

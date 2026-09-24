@@ -1,10 +1,9 @@
 import { existsSync } from 'node:fs';
 import { loadPrompts } from './prompts.ts';
-export type Access = { enabled:boolean; port?:number; host?:string; target?:string };
-type Config = { TCP?:Record<string,unknown>; Web?:Record<string,{Handlers?:Record<string,{Proxy?:string}>}>; AllowFunnel?:Record<string,boolean> };
-export type TSRun = (args:string[])=>Promise<string>;
-export function tailscaleCLI() { return Bun.which('tailscale') ?? (existsSync('/Applications/Tailscale.app/Contents/MacOS/Tailscale')?'/Applications/Tailscale.app/Contents/MacOS/Tailscale':undefined); }
-export async function tsRun(args:string[]) {
+
+export const tailscaleCLI = () => { return Bun.which('tailscale') ?? (existsSync('/Applications/Tailscale.app/Contents/MacOS/Tailscale')?'/Applications/Tailscale.app/Contents/MacOS/Tailscale':undefined); };
+
+export const tsRun = async (args:string[]) => {
   const executable=tailscaleCLI();if(!executable)throw new Error('Install Tailscale from https://tailscale.com/download, connect, then rerun setup.');
   const p=Bun.spawn([executable,...args],{stdout:'pipe',stderr:'pipe'});
   const timer=setTimeout(()=>p.kill(),30_000);
@@ -12,13 +11,15 @@ export async function tsRun(args:string[]) {
   try { result=await Promise.all([p.exited,new Response(p.stdout).text(),new Response(p.stderr).text()]); } finally { clearTimeout(timer); }
   const [code,out,err]=result;
   if(code)throw new Error(`Tailscale: ${err || out}`);return out;
-}
-export async function connectedHost(run:TSRun=tsRun) {
+};
+
+export const connectedHost = async (run:TSRun=tsRun) => {
   const status=JSON.parse(await run(['status','--json']));
   if(status.BackendState!=='Running'||!status.Self?.DNSName)throw new Error('Open Tailscale, sign in and connect, then rerun setup.');
   return String(status.Self.DNSName).replace(/\.$/,'');
-}
-export async function selectAccess(saved:Access|undefined, explicit:string|undefined, interactive:boolean):Promise<Access> {
+};
+
+export const selectAccess = async (saved:Access|undefined, explicit:string|undefined, interactive:boolean):Promise<Access> => {
   if(explicit && !['on','off'].includes(explicit))throw new Error('Use --tailscale on|off.');
   if(explicit)return {...saved,enabled:explicit==='on'};
   if(saved)return saved;
@@ -37,8 +38,9 @@ export async function selectAccess(saved:Access|undefined, explicit:string|undef
   }
   if(choice==='on')await connectedHost();
   return {enabled:choice==='on'};
-}
-export function planAccess(config:Config, access:Access, host:string, target:string) {
+};
+
+export const planAccess = (config:Config, access:Access, host:string, target:string) => {
   let port=access.port;
   if(port===undefined){port=8463;while(config.TCP?.[port]||Object.keys(config.Web??{}).some(k=>k.endsWith(':'+port)))port++;if(port>65535)throw new Error('No available Tailscale HTTPS port.');}
   const key=`${host}:${port}`, handlers=config.Web?.[key]?.Handlers;
@@ -46,8 +48,9 @@ export function planAccess(config:Config, access:Access, host:string, target:str
   const owned=access.host===host && access.target && handlers && Object.keys(handlers).length===1 && handlers['/']?.Proxy===access.target;
   if(config.AllowFunnel?.[key] || occupied&&!owned)throw new Error(`Tailscale port ${port} belongs to another configuration; it was left unchanged.`);
   return {port,key,needsChange:!occupied || handlers?.['/']?.Proxy!==target};
-}
-export async function reconcileAccess(access:Access,target:string,readOnly=false,run:TSRun=tsRun):Promise<{access:Access;url?:string}> {
+};
+
+export const reconcileAccess = async (access:Access,target:string,readOnly=false,run:TSRun=tsRun):Promise<{access:Access;url?:string}> => {
   if(!access.enabled&&!access.target)return {access};
   const host=await connectedHost(run),config:Config=JSON.parse(await run(['serve','status','--json']));
   const plan=planAccess(config,access,host,target);
@@ -64,4 +67,8 @@ export async function reconcileAccess(access:Access,target:string,readOnly=false
   const after:Config=JSON.parse(await run(['serve','status','--json']));
   if(after.AllowFunnel?.[plan.key]||after.Web?.[plan.key]?.Handlers?.['/']?.Proxy!==target)throw new Error('Tailscale private mapping verification failed.');
   return {access:result,url:`https://${plan.key}`};
-}
+};
+
+export type Access = { enabled:boolean; port?:number; host?:string; target?:string };
+type Config = { TCP?:Record<string,unknown>; Web?:Record<string,{Handlers?:Record<string,{Proxy?:string}>}>; AllowFunnel?:Record<string,boolean> };
+export type TSRun = (args:string[])=>Promise<string>;
