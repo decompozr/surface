@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
-  import { Badge, Button, Select, Toolbar, ToggleButton, Tag, IconButton, TextArea, Slider, Icon, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
+  import { Badge, Button, ToggleGroup, Toolbar, ToggleButton, Tag, IconButton, TextArea, Slider, Icon, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
   import Toast from '$lib/components/Toast.svelte';
   import SurfaceShell from '$lib/components/SurfaceShell.svelte';
   import { composerPlacement, readViewport } from '$lib/comment-experiment/viewport';
@@ -353,9 +353,9 @@
       {#if data.live && !connectionKey}<Text size="small" class="hint">Open the private connection link to enable sending.</Text>{/if}
       {#if review.draft.text.trim() || review.draft.capture}<Text size="small" class="hint">Add this comment to the draft before sending the batch.</Text>{/if}
       {#if data.live && review.comments.length}
-        <Select label="How to send" value={handling} onchange={(event) => handling = event.currentTarget.value as typeof handling} disabled={locked || pending}
-          options={[{ value: 'by-the-way', label: 'By the way · tell the agent now' }, { value: 'after-current', label: 'After the current task' }]} />
-        <Text size="small" tone="muted">{handling === 'by-the-way' ? 'Ask the agent to acknowledge, keep the original task, and decide when to handle this.' : 'Queue this feedback until the current turn finishes.'}{recipientObservation && recipientObservation.status !== 'active' ? ' The agent is not currently working; this starts a new turn.' : ''}</Text>
+        <ToggleGroup label="Delivery mode" size="compact" value={handling} disabled={locked || pending}
+          options={[{ value: 'by-the-way', label: 'Steer', icon: 'arrow-right', showLabel: true }, { value: 'after-current', label: 'Queue', icon: 'files', showLabel: true }]}
+          onValueChange={(value) => { if (value === 'by-the-way' || value === 'after-current') handling = value; }} />
         <Button size="compact" disabled={locked || inspecting} onclick={() => refreshRecipient()}>Refresh agent</Button>
       {/if}
       <div class="send-action"><IconButton size="compact" icon="arrow-up" variant="primary" appearance="default" label={`Send ${review.comments.length} comments together`} title={`Send ${review.comments.length} comments together`} disabled={locked || (data.live && (!agentAvailable || !recipientObservation || inspecting)) || pending || !review.comments.length || !!review.draft.text.trim() || !!review.draft.capture} onclick={send} /></div>
