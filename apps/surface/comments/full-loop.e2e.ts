@@ -46,14 +46,14 @@ try {
     const count = deliveries.length;
     try {
       await page.goto(origin + '/experiments/comments#connect=' + token);
-      await page.locator('#headline').click();
+      await page.locator('#option-a h2').click();
       const parentAction = page.getByRole('button', { name: 'Select parent element' });
       await expect(parentAction).toBeVisible();
       await parentAction.click();
       await expect(parentAction).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
       expect(await page.locator('.element-label').evaluate(node => {
         const button = node.querySelector('button')!.getBoundingClientRect();
-        const label = node.querySelector(':scope > span')!.getBoundingClientRect();
+        const label = node.querySelector(':scope > span:last-child')!.getBoundingClientRect();
         return button.right <= label.left + 1;
       })).toBe(true);
       await page.locator('#headline').click();
