@@ -1,6 +1,7 @@
 import { chromium, webkit, devices, expect } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
-const origin = process.env.COMMENTS_E2E_ORIGIN ?? 'https://mac-mini.duckbill-ionian.ts.net:8466';
+const origin = process.env.COMMENTS_E2E_ORIGIN;
+if (!origin?.startsWith('http://127.0.0.1:')) throw new Error('Isolated loopback fixture required');
 const output = process.env.COMMENTS_E2E_OUTPUT ?? '.decompozr/surface/comments-e2e';
 mkdirSync(output, { recursive: true });
 for (const profile of ['desktop', 'touch-chromium', 'mobile'] as const) {
@@ -86,6 +87,14 @@ for (const profile of ['desktop', 'touch-chromium', 'mobile'] as const) {
       await tools.getByRole('button', { name: 'Capture selected element' }).focus();
       await page.keyboard.press('ArrowRight');
       await expect(tools.getByRole('button', { name: 'Comment on selected element' })).toBeFocused();
+      await page.keyboard.press('End');
+      await expect(tools.getByRole('button', { name: 'Clear selection' })).toBeFocused();
+      await page.keyboard.press('ArrowRight');
+      await expect(tools.getByRole('button', { name: 'Select parent element' })).toBeFocused();
+      await page.keyboard.press('ArrowLeft');
+      await expect(tools.getByRole('button', { name: 'Clear selection' })).toBeFocused();
+      await page.keyboard.press('Home');
+      await expect(tools.getByRole('button', { name: 'Select parent element' })).toBeFocused();
     }
     await expect(page.getByRole('region', { name: 'Comment on selected element' })).toHaveCount(0);
     await expect(page.getByRole('complementary', { name: 'Comments and conversation' })).toHaveCount(0);
@@ -124,8 +133,13 @@ for (const profile of ['desktop', 'touch-chromium', 'mobile'] as const) {
     await (profile === 'desktop' ? page.locator('#headline').click() : page.locator('#headline').tap());
     await tools.getByRole('button', { name: 'Capture selected element' }).click();
     await expect(page.getByAltText('Selected element screenshot preview')).toBeVisible({ timeout: 15000 });
-    const editorBounds = await page.getByRole('region', { name: 'Comment on selected element' }).boundingBox();
-    expect(editorBounds!.y + editorBounds!.height).toBeLessThanOrEqual(page.viewportSize()!.height - 24);
+    const editor = page.getByRole('region', { name: 'Comment on selected element' });
+    // Image layout and ResizeObserver repositioning settle on separate frames.
+    await expect.poll(async () => {
+      const bounds = await editor.boundingBox();
+      return bounds!.y + bounds!.height;
+    }).toBeLessThanOrEqual(page.viewportSize()!.height - 44);
+    const editorBounds = await editor.boundingBox();
     const saveBounds = await page.getByRole('button', { name: 'Add comment to draft' }).boundingBox();
     expect(saveBounds!.y + saveBounds!.height).toBeLessThanOrEqual(editorBounds!.y + editorBounds!.height);
     await page.screenshot({ path: `${output}/${profile}-capture.png`, fullPage: true });

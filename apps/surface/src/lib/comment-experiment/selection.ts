@@ -28,7 +28,7 @@ export function describeTarget(element: HTMLElement, workspace: HTMLElement): Ta
 export function resolveTarget(target: Target | null, workspace: HTMLElement): HTMLElement | null {
   if (!target) return null;
   try {
-    const element = document.querySelector(target.selector);
+    const element = workspace.querySelector(target.selector);
     return element instanceof HTMLElement && element !== workspace && workspace.contains(element) ? element : null;
   } catch { return null; }
 }

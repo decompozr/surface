@@ -16,23 +16,23 @@ function database(): Promise<IDBDatabase> {
     request.onerror = () => reject(request.error);
   });
 }
-export async function readState(): Promise<State> {
+export async function readState(key = 'conversation'): Promise<State> {
   const db = await database();
   try {
     return await new Promise((resolve, reject) => {
       const tx = db.transaction('state', 'readonly');
-      const request = tx.objectStore('state').get('conversation');
+      const request = tx.objectStore('state').get(key);
       tx.oncomplete = () => resolve(request.result?.version === 1 ? request.result : emptyState());
       tx.onerror = () => reject(tx.error);
     });
   } finally { db.close(); }
 }
-export async function writeState(state: State): Promise<void> {
+export async function writeState(state: State, key = 'conversation'): Promise<void> {
   const db = await database();
   try {
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction('state', 'readwrite');
-      tx.objectStore('state').put(state, 'conversation');
+      tx.objectStore('state').put(state, key);
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error ?? new Error('Storage transaction aborted'));

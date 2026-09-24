@@ -1,5 +1,6 @@
 /** Run from the repository root. Builds a disposable immutable snapshot; never touches the live preview. */
-import { cpSync, mkdirSync, symlinkSync, writeFileSync, readFileSync } from 'node:fs';
+import { cpSync, mkdirSync, symlinkSync, writeFileSync, readFileSync, readdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { createServer } from 'node:net';
 import { resolve, join } from 'node:path';
 const root = process.cwd();
@@ -10,16 +11,39 @@ async function run(args: string[], env: Record<string, string> = {}) {
   if (await child.exited !== 0) throw new Error(`Failed: ${args.join(' ')}. Evidence: ${output}`);
 }
 await run(['bun', 'run', '--cwd', 'apps/surface', 'check']);
-await run(['bun', 'test', 'apps/surface/comments/delivery.test.ts']);
+await run(['bun', 'test', 'apps/surface/comments/delivery.test.ts', 'apps/surface/comments/mounted.test.ts']);
 await run(['bun', 'run', '--cwd', 'apps/surface', 'build']);
 const snapshot = join(output, 'release'); mkdirSync(snapshot);
 cpSync(resolve('apps/surface/build'), join(snapshot, 'build'), { recursive: true });
 writeFileSync(join(snapshot, 'package.json'), '{"type":"module"}\n');
 symlinkSync(resolve('apps/surface/node_modules'), join(snapshot, 'node_modules'), 'dir');
+const appSnapshot = join(snapshot, 'app'); mkdirSync(appSnapshot);
+for (const directory of ['src', 'server', 'runtime', 'comments', 'templates']) cpSync(resolve('apps/surface', directory), join(appSnapshot, directory), { recursive: true, filter: path => !path.split('/').some(part => ['node_modules', '.vite'].includes(part)) });
+cpSync(resolve('apps/surface/build'), join(appSnapshot, 'build'), { recursive: true });
+cpSync(resolve('apps/surface/package.json'), join(appSnapshot, 'package.json'));
+symlinkSync(resolve('apps/surface/node_modules'), join(appSnapshot, 'node_modules'), 'dir');
+symlinkSync(resolve('apps/surface/runtime/node_modules'), join(appSnapshot, 'runtime/node_modules'), 'dir');
+const manifest: { path: string; sha256: string }[] = [];
+function hashTree(directory: string) {
+  for (const entry of readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) hashTree(path);
+    else if (entry.isFile()) manifest.push({ path: path.slice(snapshot.length + 1), sha256: createHash('sha256').update(readFileSync(path)).digest('hex') });
+  }
+}
+hashTree(snapshot);
+writeFileSync(join(output, 'snapshot-manifest.json'), JSON.stringify(manifest, null, 2));
 for (const scenario of ['idle', 'active']) {
   await run(['bun', 'apps/surface/comments/full-loop.e2e.ts'], {
     COMMENTS_E2E_BUILD_DIR: snapshot,
     COMMENTS_E2E_OUTPUT: join(output, scenario),
+    COMMENTS_E2E_ACTIVE: scenario === 'idle' ? '0' : '1',
+  });
+}
+for (const scenario of ['idle', 'active']) {
+  await run(['bun', 'apps/surface/comments/mounted.e2e.ts'], {
+    COMMENTS_E2E_APP_DIR: appSnapshot,
+    COMMENTS_E2E_OUTPUT: join(output, `mounted-${scenario}`),
     COMMENTS_E2E_ACTIVE: scenario === 'idle' ? '0' : '1',
   });
 }
@@ -41,8 +65,10 @@ try {
   }
   if (!healthy) throw new Error('Isolated geometry server did not become ready');
   await run(['bun', 'apps/surface/comments/toolbar-scroll.e2e.ts'], { COMMENTS_E2E_ORIGIN: origin, COMMENTS_E2E_OUTPUT: join(output, 'toolbar') });
+  await run(['bun', 'apps/surface/comments/mobile-desktop.e2e.ts'], { COMMENTS_E2E_ORIGIN: origin, COMMENTS_E2E_OUTPUT: join(output, 'interaction-audit') });
+  await run(['bun', 'apps/surface/comments/viewport.e2e.ts'], { COMMENTS_E2E_ORIGIN: origin, COMMENTS_E2E_OUTPUT: join(output, 'viewport-audit') });
 } finally { server.kill(); await server.exited; }
 const git = Bun.spawn(['git', 'rev-parse', 'HEAD'], { stdout: 'pipe' });
 const head = (await new Response(git.stdout).text()).trim(); await git.exited;
-writeFileSync(join(output, 'report.json'), JSON.stringify({ status: 'passed', head, source: 'current worktree including WIP', snapshot, scenarios: ['idle', 'active'], profiles: ['Chromium desktop', 'WebKit iPhone 13 emulation'], provider: 'isolated local protocol fixture', physicalDevice: false, reports: ['idle','active'].map(name => JSON.parse(readFileSync(join(output, name, 'report.json'), 'utf8'))) }, null, 2));
+writeFileSync(join(output, 'report.json'), JSON.stringify({ status: 'passed', head, source: 'current worktree including WIP', snapshot, scenarios: ['idle', 'active'], profiles: ['Chromium desktop', 'WebKit iPhone 13 emulation'], provider: 'isolated local protocol fixture', physicalDevice: false, snapshotManifestSha256: createHash('sha256').update(JSON.stringify(manifest)).digest('hex'), reports: ['idle','active','mounted-idle','mounted-active'].map(name => JSON.parse(readFileSync(join(output, name, 'report.json'), 'utf8'))) }, null, 2));
 console.log(`Comments E2E matrix passed. Evidence: ${output}`);

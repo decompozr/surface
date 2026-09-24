@@ -8,7 +8,7 @@ import { Store } from '../src/core/store';
 import { CodexAdapter, type AgentAdapter, type Binding } from '../src/adapters/codex';
 import type { Batch } from '../src/lib/comment-experiment/model';
 
-export type Connection = { threadId: string; projectRoot: string; socketPath: string; label: string; token: string; callbackToken: string; origin: string; resultCli: string };
+export type Connection = { threadId: string; projectRoot: string; socketPath: string; label: string; token: string; callbackToken: string; origin: string; resultCli: string; resultPath?: string };
 export class UnsubmittedCommentError extends Error {}
 export class CommentDelivery {
   readonly service: Service;
@@ -27,7 +27,7 @@ export class CommentDelivery {
     const binding = await this.bind();
     return this.adapter.inspect(binding);
   }
-  async submit(batch: Batch) {
+  async submit(batch: Batch, beforeSubmit?: () => void) {
     const binding = await this.bind();
     if (batch.recipient !== `codex:${binding.threadId}`) throw new Error('The batch recipient differs from the bound conversation.');
     const comments = batch.comments.map(comment => {
@@ -56,7 +56,7 @@ export class CommentDelivery {
       await pending.operation;
       return this.view(batch.id);
     }
-    const operation = this.service.submit(request.id, { responseId: batch.id, data, delivery: batch.delivery });
+    const operation = this.service.submit(request.id, { responseId: batch.id, data, delivery: batch.delivery }, beforeSubmit);
     this.submissions.set(batch.id, { data: identity, operation });
     try { await operation; return this.view(batch.id); }
     catch (cause) {
