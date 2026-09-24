@@ -21,7 +21,7 @@ export function describeTarget(element: HTMLElement, workspace: HTMLElement): Ta
   for (const char of selector) hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0;
   return {
     id: element.id || `element-${(hash >>> 0).toString(16)}`,
-    selector, label: selector,
+    selector, label: element.id ? `${element.tagName.toLowerCase()}#${element.id}` : `${element.tagName.toLowerCase()}${text ? ' · ' + text.slice(0, 48) : ''}`,
     text: text.slice(0, 1000), revision: REVISION,
   };
 }

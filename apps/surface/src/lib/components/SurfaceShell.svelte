@@ -6,10 +6,10 @@
   import { AppShell, AppHeader, Brand, Button, Icon, Text, Breadcrumbs } from '@decompozr/design-system';
   import NavigationTree from './NavigationTree.svelte';
   import RecipientPanel from './RecipientPanel.svelte';
-  let { navigation = [], currentPath = '/', children, headerTools, surfaceIdentity = false, overlayNavigation = false, showBreadcrumbs = true, panelContent, panelOpen = $bindable(false), status }: {
+  let { navigation = [], currentPath = '/', children, headerTools, surfaceIdentity = false, overlayNavigation = false, showBreadcrumbs = true, panelContent, panelOpen = $bindable(false), status, statusHeight = '0px' }: {
     navigation?: NavigationNode[]; currentPath?: string; children?: Snippet; headerTools?: Snippet;
     surfaceIdentity?: boolean; overlayNavigation?: boolean; showBreadcrumbs?: boolean;
-    panelContent?: Snippet; panelOpen?: boolean; status?: Snippet;
+    panelContent?: Snippet; panelOpen?: boolean; status?: Snippet; statusHeight?: string;
   } = $props();
   let navigationOpen = $state(false), currentURL = $state(''), mobile = $state(false), collapsed = $state(false);
   let pageContent: HTMLDivElement;
@@ -56,7 +56,7 @@
   <Text size="eyebrow" tone="muted">Projects &amp; worktrees</Text>
   {#if navigation.length}<NavigationTree nodes={navigation} {currentPath} {currentURL} />{:else}<Text size="small" tone="muted">No route pages are mounted yet.</Text>{/if}
 {/snippet}
-<AppShell navigationMode={overlayNavigation ? 'overlay' : 'responsive'} {header} navigation={navigationContent} bind:navigationOpen navigationId="surface-navigation" navigationLabel="Workspace navigation" panel={panelContent} bind:panelOpen panelId="surface-comments" panelLabel="Comments and conversation" {status} statusHeight="0px">
+<AppShell navigationMode={overlayNavigation ? 'overlay' : 'responsive'} {header} navigation={navigationContent} bind:navigationOpen navigationId="surface-navigation" navigationLabel="Workspace navigation" panel={panelContent} bind:panelOpen panelId="surface-comments" panelLabel="Comments and conversation" {status} {statusHeight}>
   <div class="content" class:viewport={overlayNavigation}>
     {#if showBreadcrumbs}<Breadcrumbs items={[
       { label: 'Home', href: '/', current: currentPath === '/', attributes: { 'data-sveltekit-reload': true } },

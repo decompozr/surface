@@ -184,6 +184,10 @@ Follow-up correction: the user meant the existing green outline label, not a dup
 
 Mobile feedback identified review opening at old history and an incoherent composer with Refresh agent and overlapping export/status controls. Removed JSON export, moved refresh beside connection status, aligned delivery and Send, and scroll review to its latest content on opening/layout. Desktop Chromium and mobile WebKit checks passed with retained history, a newly added draft visible at the bottom, no export action and refresh in the status bar.
 
+### Automatic UX audit gate and iterative comment repair
+
+The user required automatic auditing after UI/UX changes and asked for several audit/fix iterations. The [five-iteration record](../experiments/2026-09-24-comments-ux-audit.md) distinguishes functional tests from visual acceptance and records repairs to selection labels, overlapping actions/status, touch targets, hover styling, empty-draft actions and constrained-height editing. Adopted in source-workflow.md and AGENTS.md; physical iPhone acceptance remains separate.
+
 ## Comments consolidation and regression ownership
 
 The user confirmed a newer comments consumer already worked in the other task. Reading that task established real received comments and a distinct 8467 preview with Switch-based delivery. The old 8466 active-recipient failure must not be generalized to that implementation. The original worktree now uses that newer committed source as its integration baseline and carries forward only missing toolbar/connection fixes plus [self-owned E2E rules](../evaluations/self-e2e.md). The regression runner follows the newer automatic recovery and compact-event contracts. See the [consolidation record](../experiments/2026-09-23-element-comments.md#consolidation-of-the-two-comments-work-streams).
