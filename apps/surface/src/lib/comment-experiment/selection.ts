@@ -1,4 +1,4 @@
-import { REVISION, type Target } from './model';
+import { REVISION, type Target } from './model.ts';
 
 export function selectorFor(element: HTMLElement, workspace: HTMLElement): string {
   if (!workspace.contains(element) || element === workspace) throw new Error('Select content inside the workspace.');

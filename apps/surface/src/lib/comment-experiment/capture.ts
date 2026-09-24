@@ -1,5 +1,5 @@
 import { toCanvas } from 'html-to-image';
-import type { Capture } from './model';
+import type { Capture } from './model.ts';
 
 /** Capture only the element's visible rectangle, excluding annotation overlays. */
 export async function captureElement(element: HTMLElement): Promise<Capture> {

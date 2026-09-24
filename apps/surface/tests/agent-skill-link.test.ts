@@ -1,7 +1,7 @@
 import { test, expect } from 'bun:test';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, realpathSync, rmSync, symlinkSync, lstatSync } from 'node:fs';
 import { join } from 'node:path';
-import { linkSkill } from '../../../scripts/agent/skill-link.ts';
+import { linkSkill } from '../../installer/src/setup/skill-link.ts';
 
 test('provider skill is a live idempotent link to the checkout, never a copy',()=>{
  const base=realpathSync(mkdtempSync('/tmp/surface-skill-'));

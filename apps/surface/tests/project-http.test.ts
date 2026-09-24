@@ -3,7 +3,7 @@ import { request as httpRequest } from 'node:http';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, realpathSync, existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { startSingleton } from '../runtime/server.ts';
+import { startSingleton } from '../src/lib/server/host/runtime.ts';
 
 const endpoint = '/api/v1/projects/operations';
 function temporary() { return realpathSync(mkdtempSync(join(tmpdir(), 'surface-project-http-'))); }

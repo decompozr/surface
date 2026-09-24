@@ -8,6 +8,7 @@ Direct user and repository instructions govern authorized work. Current intent a
 
 - **Understand the product:** [vision](intent/vision.md) → [principles](intent/principles.md) → [consumer boundary](requirements/consumers.md) → [runtime requirements](requirements/runtime.md).
 - **Install or use it:** [user setup](../SETUP.md) → [agent setup](../skills/surface/references/setup.md) → [page authoring](../skills/surface/references/pages.md) → [interaction contract](requirements/agent-interaction.md). Use the selected installation consistently.
+- **Package ownership:** [workspace boundaries](architecture/package-boundaries.md).
 - **Design or implement:** requirements → [component ownership](architecture/components.md) and [lifecycle invariants](architecture/lifecycle.md) → [UI design](design/README.md) → [evaluation matrix](evaluations/README.md) and [self-owned E2E procedure](evaluations/self-e2e.md). Inspect the relevant implementation before changing its contract.
 - **Installable candidate:** [release and upgrade acceptance](evaluations/release-candidate.md).
 - **Mounted-page comments:** [adopted scope](requirements/agent-interaction.md#mounted-page-contextual-comments-september-24-adoption) → [September 24 integration evidence](experiments/2026-09-24-mounted-comments.md).

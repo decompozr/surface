@@ -2,10 +2,10 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdtempSync, mkdirSync, writeFileSync, realpathSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Store } from '../src/core/store.ts';
-import { Runtimes } from '../src/core/runtime.ts';
-import { startServer } from '../src/server/index.ts';
-import { scaffold } from '../src/cli/scaffold.ts';
+import { Store } from '../src/lib/server/core/store.ts';
+import { Runtimes } from '../src/lib/server/core/runtime.ts';
+import { startServer } from '../src/lib/server/http/index.ts';
+import { scaffold } from '@decompozr/surface-cli/scaffold';
 const cleanup: (() => unknown | Promise<unknown>)[] = [];
 afterEach(async () => { for (const fn of cleanup.splice(0).reverse()) await fn(); });
 function fixture() {
@@ -87,7 +87,7 @@ test('killing the manager closes its preview process group', async () => {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'surface-crash-')));
   cleanup.push(() => rmSync(root, { recursive: true, force: true }));
   const bootstrap = join(root, 'manager.ts');
-  writeFileSync(bootstrap, `import { startServer } from ${JSON.stringify(join(process.cwd(), 'apps/surface/src/server/index.ts'))};
+  writeFileSync(bootstrap, `import { startServer } from ${JSON.stringify(join(process.cwd(), 'apps/surface/src/lib/server/http/index.ts'))};
 const app=startServer({stateDir:${JSON.stringify(join(root, 'state'))},cliPath:'/cli',uiDir:${JSON.stringify(root)},port:0});
 console.log(JSON.stringify({origin:app.origin,token:app.token}));`);
   writeFileSync(join(root, 'serve.ts'), "Bun.serve({hostname:'127.0.0.1',port:Number(process.env.SURFACE_PORT),fetch:()=>new Response('owned')});");

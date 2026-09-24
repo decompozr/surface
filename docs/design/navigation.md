@@ -1,6 +1,6 @@
 # Navigation and screen hierarchy
 
-Source-inspected at `7fceefc`: [shell](../../apps/surface/src/lib/components/SurfaceShell.svelte), [tree](../../apps/surface/src/lib/components/NavigationTree.svelte), [tree builder](../../apps/surface/src/server/navigation.ts), [home](../../apps/surface/src/routes/+page.svelte), [page guide](../../skills/surface/references/pages.md). Existing verifier: [navigation fixture](../../apps/surface/scripts/verify-navigation.ts). No screenshot was captured in this task.
+Source-inspected at `7fceefc`: [shell](../../apps/surface/src/lib/components/SurfaceShell.svelte), [tree](../../apps/surface/src/lib/components/NavigationTree.svelte), [tree builder](../../apps/surface/src/lib/server/http/navigation.ts), [home](../../apps/surface/src/routes/+page.svelte), [page guide](../../skills/surface/references/pages.md). Existing verifier: [navigation fixture](../../tests/e2e/surface/verify-navigation.ts). No screenshot was captured in this task.
 
 ## D-01: information hierarchy and routes
 

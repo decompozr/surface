@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, realpathSync, readFileSync, writeFileSync, copy
 import { join, resolve, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { Database } from 'bun:sqlite';
-import { Installation } from '../../apps/surface/src/installation/manager.ts';
+import { Installation } from '@decompozr/surface-installer/manager';
 import { command, git } from '../workspaces/fixture.ts';
 
 function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
@@ -37,7 +37,7 @@ function sharedFingerprint() {
 const sharedBefore = sharedFingerprint();
 async function run(args: string[], cwd = base) { const result = await command(args,cwd); assert(result.code === 0, result.err+'\n'+result.out); return result.out; }
 async function cli(cwd: string, ...args: string[]) {
-  return JSON.parse(await run([process.execPath,join(home,'releases',installed!.release,'apps/surface/src/cli/index.ts'),...args,'--state-dir',state],cwd));
+  return JSON.parse(await run([process.execPath,join(home,'releases',installed!.release,'apps/cli/src/index.ts'),...args,'--state-dir',state],cwd));
 }
 async function project(cwd: string, ...args: string[]) { const result = await cli(cwd,'project',...args); assert(result.ok,JSON.stringify(result)); return result.data; }
 async function access() { return cli(base,'access'); }

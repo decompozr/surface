@@ -1,4 +1,4 @@
-import { UnsubmittedCommentError } from '../../../../../comments/delivery';
+import { UnsubmittedCommentError } from '../../../../lib/server/comments/delivery.ts';
 import { authorize } from '$lib/server/comment-delivery';
 import { env } from '$env/dynamic/private';
 import { error, json } from '@sveltejs/kit';

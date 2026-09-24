@@ -3,10 +3,10 @@ import {json,error} from '@sveltejs/kit';
 import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {Store} from '../../../../core/store';
-import {Service} from '../../../../core/service';
-import {DeliveryError,type AgentAdapter} from '../../../../adapters/codex';
-import {RecipientWorkflow} from '../../../../core/recipient-workflow';
+import {Store} from '../../../../lib/server/core/store.ts';
+import {Service} from '../../../../lib/server/core/service.ts';
+import {DeliveryError,type AgentAdapter} from '@decompozr/surface-agent-adapters/codex';
+import {RecipientWorkflow} from '../../../../lib/server/core/recipient-workflow.ts';
 const sessions=new Map<string,{root:string;flow:RecipientWorkflow;request:string;offline:boolean;uncertain:boolean;expires:number}>();
 export async function POST({request,url}){
  if(env.SURFACE_AGENT_PICKER_EXPERIMENT!=='1'||env.SURFACE_AGENT_DIRECTORY_SOCKET)error(404);

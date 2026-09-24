@@ -2,10 +2,10 @@ import {test,expect} from 'bun:test';
 import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {Store} from '../../apps/surface/src/core/store';
-import {Service} from '../../apps/surface/src/core/service';
-import {DeliveryError,type AgentAdapter} from '../../apps/surface/src/adapters/codex';
-import {RecipientWorkflow} from './workflow';
+import {Store} from '@decompozr/surface-app/server/core/store';
+import {Service} from '@decompozr/surface-app/server/core/service';
+import {DeliveryError,type AgentAdapter} from '@decompozr/surface-agent-adapters/codex';
+import {RecipientWorkflow} from './workflow.ts';
 test('recipient lifecycle: load, disappearance, takeover, delivery, result, no replay',async()=>{
  const root=mkdtempSync(join(tmpdir(),'surface-recipient-'));try{
  const store=new Store(join(root,'state.json'));for(const id of ['a','b','foreign'])store.update(s=>s.bindings.push({id,threadId:id,projectRoot:id==='foreign'?'/other':root,socketPath:'/fixture'}));

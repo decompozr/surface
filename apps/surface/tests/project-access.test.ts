@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { projectOperation } from '../src/client/management.ts';
+import { projectOperation } from '@decompozr/surface-client/management';
 
 const directories: string[] = [];
 const servers: ReturnType<typeof Bun.serve>[] = [];
@@ -81,7 +81,7 @@ describe('project management transport', () => {
         : new Response('lost structured response');
     }); connect(state, server.url.origin);
     for (const status of ['failed', 'unknown']) {
-      const child = Bun.spawn([process.execPath, resolve(import.meta.dir, '../src/cli/index.ts'), 'project', 'mount', '--artifact', crypto.randomUUID(), '--project', '/fixture/project', '--state-dir', state], { stdout: 'pipe', stderr: 'pipe' });
+      const child = Bun.spawn([process.execPath, resolve(process.cwd(), 'apps/cli/src/index.ts'), 'project', 'mount', '--artifact', crypto.randomUUID(), '--project', '/fixture/project', '--state-dir', state], { stdout: 'pipe', stderr: 'pipe' });
       const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
       expect(code).toBe(1); expect(stderr).toBe(''); expect(JSON.parse(stdout).status).toBe(status);
     }
@@ -99,12 +99,12 @@ describe('project management transport', () => {
         : Response.json({ version: 1, ok: true, status: 'ok', data: { projectRoot } });
     }); connect(state, server.url.origin);
     async function cli(...args: string[]) {
-      const child = Bun.spawn([process.execPath, resolve(import.meta.dir, '../src/cli/index.ts'), 'project', ...args, '--project', projectRoot, '--state-dir', state], { stdout: 'pipe', stderr: 'pipe' });
+      const child = Bun.spawn([process.execPath, resolve(process.cwd(), 'apps/cli/src/index.ts'), 'project', ...args, '--project', projectRoot, '--state-dir', state], { stdout: 'pipe', stderr: 'pipe' });
       const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
       expect(stderr).toBe(''); return { code, outcome: JSON.parse(stdout) };
     }
     expect((await cli('list')).code).toBe(0);
-    const beforeCommand = Bun.spawn([process.execPath, resolve(import.meta.dir, '../src/cli/index.ts'), '--state-dir', state, 'project', 'list', '--project', projectRoot], { stdout: 'pipe', stderr: 'pipe' });
+    const beforeCommand = Bun.spawn([process.execPath, resolve(process.cwd(), 'apps/cli/src/index.ts'), '--state-dir', state, 'project', 'list', '--project', projectRoot], { stdout: 'pipe', stderr: 'pipe' });
     const [beforeCode, beforeOutput, beforeError] = await Promise.all([beforeCommand.exited, new Response(beforeCommand.stdout).text(), new Response(beforeCommand.stderr).text()]);
     expect(beforeCode).toBe(0); expect(beforeError).toBe(''); expect(JSON.parse(beforeOutput).ok).toBe(true);
     const rejected = await cli('add', '--source', 'artifacts/panel', '--name', 'Panel');

@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { designSystemIdentity, materializeDesignSystem } from '../src/installation/design-system';
+import { designSystemIdentity, materializeDesignSystem } from '@decompozr/surface-installer/design-system';
 
 test('release owns pinned package bytes while development stays linked; drift rejects before replacing dependency', () => {
   const root = mkdtempSync(join(tmpdir(), 'surface-ds-release-'));

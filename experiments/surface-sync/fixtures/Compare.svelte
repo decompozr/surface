@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Replica, watch } from './sync';
+  import { Replica, watch } from './sync.ts';
   type Row = { id: string; title: string; angle: number; revision: number };
   let rows = $state<Row[]>([]), status = $state('Saved scenarios have not been loaded.'), connection = $state('Connecting…');
   const scope = location.pathname.split('/').filter(Boolean).slice(1,3).join('/');

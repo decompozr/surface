@@ -1,0 +1,21 @@
+{
+  "name": "@decompozr/surface-page-runtime",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "vite": "8.3.0",
+    "svelte": "5.57.1",
+    "@sveltejs/vite-plugin-svelte": "7.3.0",
+    "@decompozr/surface-contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "@types/bun": "1.4.2"
+  },
+  "exports": {
+    "./*": "./src/*.ts"
+  }
+}

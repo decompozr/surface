@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { startKitFoundation } from '../sveltekit/server.ts';
 import { backendRuntime } from './backends.ts';
-import { workspaceDirectory } from '../../apps/surface/src/workspaces/identity.ts';
+import { workspaceDirectory } from '@decompozr/surface-app/server/workspaces/identity';
 import { parseArgs } from 'node:util';
 
 export async function startMultiSurfaceExperiment(options: Parameters<typeof startKitFoundation>[0] & { dataRoot?: string }) {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button, Select, SurfaceCard, Text } from '@decompozr/design-system';
   import { onMount } from 'svelte';
-  import { createSurfaceClient, type Recipient, type Interaction, type Directory, type DeliveryIntent } from '../../client/index';
+  import { createSurfaceClient, type Recipient, type Interaction, type Directory, type DeliveryIntent } from '@decompozr/surface-client/index';
   let client: ReturnType<typeof createSurfaceClient> | undefined;
   let recipient = $state<Recipient>();
   let request = $state<Interaction>();

@@ -12,15 +12,13 @@
     "skipLibCheck": true
   },
   "include": [
-    "apps/surface/src/adapters/**/*.ts",
-    "apps/surface/src/core/**/*.ts",
-    "apps/surface/src/client/**/*.ts",
-    "apps/surface/src/cli/**/*.ts",
-    "apps/surface/src/installation/**/*.ts",
-    "apps/surface/src/server/**/*.ts",
-    "apps/surface/src/runtime/**/*.ts",
-    "apps/surface/src/workspaces/**/*.ts",
+    "apps/cli/src/**/*.ts",
+    "apps/installer/src/**/*.ts",
+    "apps/surface/src/lib/server/**/*.ts",
+    "packages/*/src/**/*.ts",
     "apps/surface/tests/**/*.ts",
-    "scripts/**/*.ts"
+    "tests/**/*.ts",
+    "scripts/**/*.ts",
+    "apps/surface/.svelte-kit/ambient.d.ts"
   ]
 }

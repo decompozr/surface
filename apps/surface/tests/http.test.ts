@@ -2,14 +2,14 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { startServer } from '../src/server/index.ts';
+import { startServer } from '../src/lib/server/http/index.ts';
 const cleanups: (() => void | Promise<void>)[] = [];
 afterEach(async () => { for (const cleanup of cleanups.splice(0).reverse()) await cleanup(); });
 function fixture() {
   const directory = mkdtempSync(join(tmpdir(), 'surface-http-'));
   cleanups.push(() => rmSync(directory, { recursive: true, force: true }));
   let deliveries = 0;
-  const app = startServer({ stateDir: directory, cliPath: join(process.cwd(), 'apps/surface/src/cli/index.ts'), uiDir: join(process.cwd(), 'examples/svelte-feedback/dist'), port: 0,
+  const app = startServer({ stateDir: directory, cliPath: join(process.cwd(), 'apps/cli/src/index.ts'), uiDir: join(process.cwd(), 'examples/svelte-feedback/dist'), port: 0,
     adapter: { inspect: async () => ({ status: 'idle' }), deliver: async () => { deliveries++; return { mode: 'start', turnId: 't' }; } },
   });
   cleanups.push(() => app.stop());
@@ -38,7 +38,7 @@ test('rejects unexpected origins and hosts even with a valid token', async () =>
 });
 test('CLI reads the same service state', async () => {
   const { directory, request } = fixture();
-  const child = Bun.spawn([process.execPath, 'apps/surface/src/cli/index.ts', 'inspect', '--state-dir', directory, '--request', request.id], { stdout: 'pipe', stderr: 'pipe' });
+  const child = Bun.spawn([process.execPath, 'apps/cli/src/index.ts', 'inspect', '--state-dir', directory, '--request', request.id], { stdout: 'pipe', stderr: 'pipe' });
   const output = await new Response(child.stdout).text();
   expect(await child.exited).toBe(0);
   expect(JSON.parse(output).title).toBe('Pick one');

@@ -2,8 +2,8 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, realpathSync, renameSync, existsSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createProjectService, projectManifestName, projectArtifactScope } from '../src/core/projects.ts';
-import { projectOperations, type ProjectRuntime, type ProjectMount, type ProjectOperationInput, type ProjectOutcome } from '../src/core/project-contract.ts';
+import { createProjectService, projectManifestName, projectArtifactScope } from '../src/lib/server/core/projects.ts';
+import { projectOperations, type ProjectRuntime, type ProjectMount, type ProjectOperationInput, type ProjectOutcome } from '@decompozr/surface-contracts/projects';
 
 const directories: string[] = [];
 afterEach(() => { for (const path of directories.splice(0)) rmSync(path, { recursive: true, force: true }); });

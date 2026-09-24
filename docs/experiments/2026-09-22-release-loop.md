@@ -24,7 +24,7 @@ Published [v0.1.0-experiment.20260922](https://github.com/decompozr/surface/rele
 
 - Artifact: `surface-0.1.0-experiment.20260922-darwin-arm64.tar.gz`, approximately 84 MB.
 - SHA-256: `860c267821012fe36c6600230544a81e87f95dd61554bafe294db2d1d1132485`.
-- Re-downloaded both assets from GitHub, verified the checksum, and ran `bun scripts/release/verify.ts /absolute/download/archive.tar.gz`.
+- Re-downloaded both assets from GitHub, verified the checksum, and ran `bun tests/e2e/release/bundle.ts /absolute/download/archive.tar.gz`.
 - Installation and lifecycle commands ran with system-only PATH, using the bundled Bun. The extracted directory was moved after installation; the installed entry continued working from a different project.
 - The installed current app served health and a separate Git project's readable page. Chrome rendered the counter and a real click changed Count 0 to Count 1.
 - The real installed stdio MCP adapter listed the same project/workspace as the CLI. This is tool integration evidence, not live agent delivery.

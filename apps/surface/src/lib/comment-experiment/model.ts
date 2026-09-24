@@ -1,4 +1,4 @@
-import type { DeliveryIntent } from '../../client/index';
+import type { DeliveryIntent } from '@decompozr/surface-client/index';
 export const REVISION = 'comment-playground-v2';
 export type Target = { id: string; label: string; selector: string; text: string; revision: string };
 export type Capture = { png: string; width: number; height: number; capturedAt: string; method: 'dom-render'; bounds: { x: number; y: number; width: number; height: number } };

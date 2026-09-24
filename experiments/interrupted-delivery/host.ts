@@ -1,6 +1,6 @@
 import { join, resolve } from 'node:path';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { startSingleton } from '../../apps/surface/runtime/server';
+import { startSingleton } from '@decompozr/surface-app/server/host/runtime';
 
 const root = resolve(process.argv[2]!);
 if (JSON.parse(readFileSync(join(root, 'fixture.json'), 'utf8')).kind !== 'surface-interrupted-delivery') {

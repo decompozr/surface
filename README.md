@@ -82,7 +82,7 @@ Start with the [source documentation guide](docs/README.md) for authority, readi
 
 The shared UI groups registered route pages by project/worktree. Interaction pages offer explicit queue/steer choices and opt-in same-worktree recipient changes. See the [delivery contract](docs/requirements/agent-interaction.md#explicit-delivery-intent) for provider race limits and the distinction between fixture checks and actual user delivery.
 
-The isolated [element-comments experiment](docs/experiments/2026-09-23-element-comments.md) and its [local runner](apps/surface/comments/README.md) remain work in progress, separate from the public UI.
+The isolated [element-comments experiment](docs/experiments/2026-09-23-element-comments.md) and its [local runner](apps/surface/src/lib/server/comments/README.md) remain work in progress, separate from the public UI.
 
 ## Application development layout
 

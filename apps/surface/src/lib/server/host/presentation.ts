@@ -1,0 +1,11 @@
+import { resolve, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { realpathSync } from 'node:fs';
+const sharedUI = resolve(import.meta.dir, '../../components');
+const app = resolve(import.meta.dir, '../../../..');
+export const presentation = {
+  allowedPaths: [sharedUI, resolve(sharedUI, '../comment-experiment'), realpathSync(join(app, 'node_modules/@decompozr/design-system/dist')), realpathSync(join(app, 'node_modules/@decompozr/design-system/package.json')), realpathSync(join(app, 'node_modules/html-to-image'))],
+  browserClient: resolve(fileURLToPath(import.meta.resolve('@decompozr/surface-client')), '..'),
+  shellSource: `if(import.meta.hot) import.meta.hot.on('vite:beforeUpdate',()=>window.dispatchEvent(new Event('surface:source-changed'))); import {mount, flushSync} from 'svelte'; import SurfaceShell from ${JSON.stringify(join(sharedUI, 'SurfaceShell.svelte'))}; import CommentWorkspace from ${JSON.stringify(join(sharedUI, 'CommentWorkspace.svelte'))}; import FolderIndex from ${JSON.stringify(join(sharedUI, 'FolderIndex.svelte'))}; const folder=document.querySelector('.surface-folder'); if(folder){const title=folder.querySelector('h1').textContent; const initialEntries=Array.from(folder.querySelectorAll('a')).map((a,i)=>({id:String(i),label:a.textContent,href:a.getAttribute('href')})); folder.replaceChildren(); flushSync(()=>mount(FolderIndex,{target:folder,props:{title,initialEntries}}));} const context=JSON.parse(document.getElementById('artifact-preview-context').textContent); if(context.navigation){flushSync(()=>mount(context.component ? CommentWorkspace : SurfaceShell,{target:document.getElementById('surface-shell'),props:context.component ? {mounted:true,data:{navigation:context.navigation,...context.comments},currentPath:location.pathname,endpoint:context.commentsEndpoint,storageKey:context.commentsStorageKey,revision:context.revision} : {navigation:context.navigation,currentPath:location.pathname}})); document.getElementById('surface-page').append(document.getElementById('app'));}`,
+  beforeComponent: ` import RecipientPanel from ${JSON.stringify(join(sharedUI, 'RecipientPanel.svelte'))}; if(!document.getElementById('surface-page')) mount(RecipientPanel, {target:document.getElementById('surface-recipient')});`,
+};

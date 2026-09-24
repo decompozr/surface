@@ -2,9 +2,9 @@ import { test, expect } from 'bun:test';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fixture } from '../../../experiments/workspaces/fixture.ts';
-import { inspectGit, workspaceDirectory } from '../src/workspaces/identity.ts';
-import { planMigration, migrate, rollbackMigration } from '../src/workspaces/migrate.ts';
-import { installationHome, serviceState } from '../src/installation/paths.ts';
+import { inspectGit, workspaceDirectory } from '../src/lib/server/workspaces/identity.ts';
+import { planMigration, migrate, rollbackMigration } from '../src/lib/server/workspaces/migrate.ts';
+import { installationHome, serviceState } from '@decompozr/surface-installer/paths';
 
 async function legacy() {
   const f=await fixture();mkdirSync(f.state);
@@ -68,7 +68,7 @@ test('interrupted migration recovery verifies its dead owner and restores the re
     const result=await migrate(f.state,f.data),child=Bun.spawn([process.execPath,'-e','process.exit(0)'],{stdout:'ignore',stderr:'ignore'});await child.exited;
     writeFileSync(join(f.state,'workspace-migration.pending.json'),JSON.stringify({version:1,id:result.id}));
     writeFileSync(join(f.state,'server.lock'),JSON.stringify({pid:child.pid,operation:'workspace-migration'}));
-    const {startSurface}=await import('../src/server/surface.ts');
+    const {startSurface}=await import('../src/lib/server/http/surface.ts');
     await expect(startSurface({stateDir:f.state,dataRoot:f.data,port:0})).rejects.toThrow('incomplete');
     expect(rollbackMigration(f.state,result.id).status).toBe('restored');
     expect(readFileSync(join(f.state,'project-bindings.json'),'utf8')).toBe(f.ledger);
@@ -76,9 +76,9 @@ test('interrupted migration recovery verifies its dead owner and restores the re
   }finally{rmSync(f.directory,{recursive:true,force:true});}
 });
 test('migrated service mounts the original namespace and keeps its accepted interaction identity',async()=>{
-  const f=await legacy();let app:Awaited<ReturnType<typeof import('../src/server/surface.ts').startSurface>>|undefined;
+  const f=await legacy();let app:Awaited<ReturnType<typeof import('../src/lib/server/http/surface.ts').startSurface>>|undefined;
   try {
-    await migrate(f.state,f.data);const {startSurface}=await import('../src/server/surface.ts');app=await startSurface({stateDir:f.state,dataRoot:f.data,port:0});
+    await migrate(f.state,f.data);const {startSurface}=await import('../src/lib/server/http/surface.ts');app=await startSurface({stateDir:f.state,dataRoot:f.data,port:0});
     const {token}=JSON.parse(readFileSync(join(f.state,'connection.json'),'utf8'));
     const response=await fetch(app.origin+'/api/v1/projects/operations',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:JSON.stringify({operation:'mount',projectRoot:f.main,artifactId:f.manifest.artifacts[0]!.id})});
     const mounted=await response.json();expect(mounted.ok).toBe(true);expect(mounted.data.namespace).toBe(f.namespace);

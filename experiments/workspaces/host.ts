@@ -1,7 +1,7 @@
 import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';
-import { startSurface } from '../../apps/surface/src/server/surface.ts';
-export { startSurface as startWorkspaceHost } from '../../apps/surface/src/server/surface.ts';
+import { startSurface } from '@decompozr/surface-app/server/http/surface';
+export { startSurface as startWorkspaceHost } from '@decompozr/surface-app/server/http/surface';
 if (import.meta.main) {
   const { values } = parseArgs({ options: { 'state-dir': { type: 'string' }, 'data-root': { type: 'string' }, port: { type: 'string' } } });
   if (!values['state-dir'] || !values['data-root']) throw new Error('Specify --state-dir and --data-root.');

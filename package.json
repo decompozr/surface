@@ -6,38 +6,16 @@
   "packageManager": "bun@1.4.0",
   "scripts": {
     "build:release": "bun scripts/release/build.ts",
-    "dev": "bun apps/surface/src/cli/index.ts serve",
-    "test": "bun run --cwd apps/surface test:core",
-    "test:singleton": "bun test apps/surface/runtime/interactions.test.ts",
+    "dev": "bun apps/cli/src/index.ts serve",
+    "test": "bun run --cwd apps/surface build && bun test apps/surface/tests tests/unit tests/e2e/runtime/interactions.test.ts",
     "check": "tsc --noEmit",
-    "check:ui": "bun run --bun --cwd examples/svelte-feedback check",
-    "build:ui": "bun run --bun --cwd examples/svelte-feedback build",
-    "verify:external": "bun scripts/verify-external.ts",
-    "singleton": "bun apps/surface/runtime/cli.ts",
-    "verify:singleton": "bun apps/surface/runtime/verify.ts",
-    "verify:singleton-interactions": "bun apps/surface/runtime/verify-interactions.ts",
-    "verify:dependencies": "bun apps/surface/runtime/verify-dependencies.ts",
-    "verify:soak": "bun apps/surface/runtime/verify-soak.ts",
-    "verify:mcp": "bun apps/surface/mcp/verify.ts",
-    "verify:sveltekit": "bun experiments/sveltekit/verify.ts",
-    "verify:projects": "bun experiments/projects/verify.ts",
-    "verify:installation": "bun experiments/lifecycle/verify.ts",
-    "verify:project-access": "bun apps/surface/mcp/verify-projects.ts",
-    "check:project-database": "tsc --noEmit -p experiments/project-database/tsconfig.json",
-    "verify:project-database": "bun experiments/project-database/verify.ts",
-    "check:server-contract": "tsc --noEmit -p experiments/server-contract/tsconfig.json",
-    "verify:server-contract": "bun experiments/server-contract/verify.ts",
-    "surface": "bun apps/surface/src/cli/index.ts",
-    "check:workspaces": "tsc --noEmit -p experiments/workspaces/tsconfig.json",
-    "verify:workspaces": "bun experiments/workspaces/verify.ts",
-    "verify:surface": "bun scripts/verify-surface.ts",
-    "verify:surface-workspaces": "bun experiments/workspaces/verify.ts --public-cli",
-    "check:multi-surface": "tsc --noEmit -p experiments/multi-surface/tsconfig.json",
-    "verify:multi-surface": "bun experiments/multi-surface/verify.ts",
-    "check:surface-sync": "tsc --noEmit -p experiments/surface-sync/tsconfig.json",
-    "verify:surface-sync": "bun experiments/surface-sync/verify.ts",
-    "reply": "bun apps/surface/comments/result.ts",
-    "test:e2e:comments": "bun scripts/test-comments-e2e.ts"
+    "verify:external": "bun tests/e2e/external.ts",
+    "verify:mcp": "bun tests/e2e/mcp/verify.ts",
+    "verify:project-access": "bun tests/e2e/mcp/verify-projects.ts",
+    "surface": "bun apps/cli/src/index.ts",
+    "verify:surface": "bun tests/e2e/surface/run.ts",
+    "reply": "bun apps/cli/src/reply.ts",
+    "test:e2e:comments": "bun tests/e2e/comments/run.ts"
   },
   "dependencies": {
     "@clack/prompts": "1.8.1",
@@ -48,12 +26,29 @@
     "@playwright/test": "1.63.0",
     "@types/bun": "1.4.2",
     "@types/ws": "8.18.1",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "@decompozr/surface-app": "workspace:*",
+    "@decompozr/surface-cli": "workspace:*",
+    "@decompozr/surface-installer": "workspace:*",
+    "@decompozr/surface-client": "workspace:*",
+    "@decompozr/surface-contracts": "workspace:*",
+    "@decompozr/surface-agent-adapters": "workspace:*",
+    "@decompozr/surface-page-runtime": "workspace:*",
+    "@modelcontextprotocol/client": "2.0.0"
   },
   "bin": {
-    "surface": "./apps/surface/src/cli/index.ts"
+    "surface": "./apps/cli/src/index.ts"
   },
   "exports": {
-    "./client": "./apps/surface/src/client/index.ts"
-  }
+    "./client": "./packages/client/src/index.ts"
+  },
+  "workspaces": [
+    "apps/surface",
+    "apps/cli",
+    "apps/installer",
+    "packages/client",
+    "packages/contracts",
+    "packages/agent-adapters",
+    "packages/page-runtime"
+  ]
 }

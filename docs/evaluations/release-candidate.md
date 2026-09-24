@@ -20,7 +20,7 @@ The source revision, provider pin, bundled runtime, file inventory and archive c
 Exercise installation and lifecycle through the shipped launcher:
 
 ```sh
-bun scripts/release/verify-candidate.ts \
+bun tests/e2e/release/candidate.ts \
   --previous /absolute/previous.tar.gz \
   --candidate /absolute/candidate.tar.gz \
   --output /absolute/new-evidence-directory

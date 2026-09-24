@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { createSurfaceClient, type Interaction } from 'virtual:surface-client';
-  import { selection } from '../selection';
+  import { selection } from '../selection.ts';
 
   type Payload = { experiment: string; title: string; density: string };
   let client: ReturnType<typeof createSurfaceClient>;

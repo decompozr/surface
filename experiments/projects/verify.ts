@@ -2,7 +2,7 @@ import { chromium } from '@playwright/test';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, realpathSync, renameSync, existsSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { startSingleton } from '../../apps/surface/runtime/server.ts';
+import { startSingleton } from '@decompozr/surface-app/server/host/runtime';
 import { manifestName, withLock } from './project.ts';
 
 const directory = realpathSync(mkdtempSync(join(tmpdir(), 'surface-projects-'))), stateDir = join(directory, 'server');

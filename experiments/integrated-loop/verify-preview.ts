@@ -3,7 +3,7 @@
 import { chromium, expect } from '@playwright/test';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { selection } from './selection';
+import { selection } from './selection.ts';
 
 const evidence = resolve('.decompozr/surface/integrated-loop');
 const request = JSON.parse(readFileSync(resolve(evidence, 'request.json'), 'utf8'));

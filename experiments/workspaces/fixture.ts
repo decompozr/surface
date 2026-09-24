@@ -19,7 +19,7 @@ export async function fixture() {
   writeFileSync(join(main, 'ui/package.json'), JSON.stringify({ name: 'workspace-scenarios', private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
   writeFileSync(join(main, 'ui/artifact.json'), JSON.stringify({ framework: 'svelte', components: 'src', props: { 'src/Scenarios.svelte': { label: 'Workspace' } } }));
   copyFileSync(join(import.meta.dir, '../project-database/fixtures/Scenarios.svelte'), join(main, 'ui/src/Scenarios.svelte'));
-  copyFileSync(join(import.meta.dir, '../../apps/surface/runtime/fixtures/InteractionForm.svelte'), join(main, 'ui/src/Form.svelte'));
+  copyFileSync(join(import.meta.dir, '../../tests/e2e/runtime/fixtures/InteractionForm.svelte'), join(main, 'ui/src/Form.svelte'));
   writeFileSync(join(main, 'backend.ts'), readFileSync(join(import.meta.dir, '../project-database/fixtures/backend.ts'), 'utf8') + '\nexport const apiVersion = 1;\n');
   writeFileSync(join(main, 'surface.backend.json'), JSON.stringify({ version: 1, api: 1, entry: 'backend.ts', operations: ['describeProject','listScenarios','saveScenario'] }));
   await git(main, 'init', '-q', '-b', 'main'); await git(main, 'config', 'commit.gpgsign', 'false');

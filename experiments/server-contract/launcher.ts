@@ -4,7 +4,7 @@ import { homedir } from 'node:os';
 import { parseArgs } from 'node:util';
 import { Installation } from '../lifecycle/manager.ts';
 import { validateRelease, migrate, restore } from './compatibility.ts';
-import { projectMain } from '../../apps/surface/src/cli/projects.ts';
+import { projectMain } from '@decompozr/surface-cli/projects';
 
 export function installationHome(explicit?: string, env: NodeJS.ProcessEnv = process.env, platform = process.platform, userHome = homedir()) {
   if (explicit || env.SURFACE_HOME) return resolve(explicit || env.SURFACE_HOME!);
@@ -23,7 +23,7 @@ async function installLauncher(home: string, release: string) {
   try { output = await Bun.build({ entrypoints: [join(source, 'experiments/server-contract/launcher.ts')], target: 'bun', format: 'esm', outdir: directory, banner: '#!/usr/bin/env bun', naming: 'launcher.js' }); }
   catch (error) { throw new Error('Launcher bundle failed: ' + String(error)); }
   if (!output.success) throw new Error('Launcher bundle failed: ' + output.logs.join('\n'));
-  copyFileSync(join(source, existsSync(join(source, 'apps/surface/src/installation/runner.ts')) ? 'apps/surface/src/installation/runner.ts' : 'experiments/lifecycle/runner.ts'), join(directory, 'runner.ts'));
+  copyFileSync(join(source, existsSync(join(source, 'apps/installer/src/runner.ts')) ? 'apps/installer/src/runner.ts' : 'experiments/lifecycle/runner.ts'), join(directory, 'runner.ts'));
   chmodSync(join(directory, 'launcher.js'), 0o700);
   const temporary = join(home, 'bin', `.surface-${crypto.randomUUID()}`);
   symlinkSync(join(directory, 'launcher.js'), temporary); renameSync(temporary, join(home, 'bin/surface'));

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { timingSafeEqual } from 'node:crypto';
 import { error } from '@sveltejs/kit';
-import { CommentDelivery, type Connection } from '../../../comments/delivery';
+import { CommentDelivery, type Connection } from './comments/delivery.ts';
 let live: CommentDelivery | undefined;
 export function delivery() {
   if (!env.SURFACE_COMMENTS_STATE_DIR) return undefined;

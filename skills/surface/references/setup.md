@@ -33,7 +33,7 @@ Repeating setup against the same running version verifies health and all selecte
 
 This checks the link and running installation, doctor output and matching app/service identity. It does not start or stop the service. Then, when the task includes user-flow acceptance, create/mount a disposable project-owned page, inspect it in a browser and test the intended interaction. Real conversation binding/delivery is a separate gate; health or MCP discovery is not proof of it. No automated submission should be presented as user intent.
 
-For release delivery regression, build the selected commit with `scripts/release/build.ts` and run `scripts/release/verify.ts ARCHIVE --default-home` in its isolated fixture. Do not substitute that fixture for testing the user's provider discovery.
+For release delivery regression, build the selected commit with `scripts/release/build.ts` and run `tests/e2e/release/bundle.ts ARCHIVE --default-home` in its isolated fixture. Do not substitute that fixture for testing the user's provider discovery.
 
 ## Update with setup
 

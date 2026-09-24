@@ -1,5 +1,12 @@
 {
   "extends": "./tsconfig.json",
-  "compilerOptions": { "allowImportingTsExtensions": true, "noEmit": true },
-  "include": ["server/**/*.ts", "scripts/**/*.ts"]
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  },
+  "include": [
+    "src/server.ts",
+    "src/lib/server/**/*.ts",
+    ".svelte-kit/ambient.d.ts"
+  ]
 }

@@ -1,0 +1,16 @@
+import { cpSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const templates = resolve(import.meta.dir, '../../../../templates');
+export function scaffold(directory: string, framework: string) {
+  if (framework !== 'svelte' && framework !== 'vanilla') throw new Error('Framework must be svelte or vanilla.');
+  const target = resolve(directory);
+  if (existsSync(target) && readdirSync(target).length) throw new Error('Choose an empty directory; Surface will not overwrite project files.');
+  mkdirSync(target, { recursive: true });
+  for (const entry of readdirSync(join(templates, framework))) {
+    cpSync(join(templates, framework, entry), join(target, entry), { recursive: true, errorOnExist: true, force: false });
+  }
+  cpSync(fileURLToPath(import.meta.resolve('@decompozr/surface-client')), join(target, 'src/surface-client.ts'), { errorOnExist: true, force: false });
+  writeFileSync(join(target, '.gitignore'), 'node_modules/\ndist/\n.env\n.env.*\n');
+  return { directory: target, framework, installed: false, next: 'Install dependencies explicitly in this directory, then register and mount it.' };
+}

@@ -1,7 +1,7 @@
 import { test, expect } from 'bun:test';
 import { mkdtempSync, realpathSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
-import { inventory, verifyBundle } from '../src/installation/bundle.ts';
+import { inventory, verifyBundle } from '@decompozr/surface-installer/bundle';
 
 test('prepared bundles reject changed bytes, extra files and foreign platform before installation',()=>{
   const directory=realpathSync(mkdtempSync('/tmp/surface-bundle-test-'));

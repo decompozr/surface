@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { navigationTree, type NavigationMount } from '../src/server/navigation';
+import { navigationTree, type NavigationMount } from '../src/lib/server/http/navigation.ts';
 test('navigation uses registered ready mounts and preserves worktree identity and nested folder indexes', () => {
   const mounts: NavigationMount[] = [
     { namespace: 'main', name: 'ui', source: '/repo/ui', projectRoot: '/repo', status: 'ready', publicPath: '/workspace/project/main/ui', pages: { '': 'routes/+page.svelte', 'review/detail': 'routes/review/detail/+page.svelte' } },

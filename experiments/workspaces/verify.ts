@@ -6,7 +6,7 @@ import { createServer } from 'node:net';
 import { fixture, git, command } from './fixture.ts';
 import { startWorkspaceHost } from './host.ts';
 import { workspaceDirectory, type Workspace } from './identity.ts';
-import type { AgentAdapter } from '../../apps/surface/src/adapters/codex.ts';
+import type { AgentAdapter } from '@decompozr/surface-agent-adapters/codex';
 
 function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
 const publicCli = process.argv.includes('--public-cli');
@@ -31,7 +31,7 @@ async function raw(path: string, input?: unknown, token = connection.token) {
   return { status: response.status, data: await response.json() };
 }
 async function api(path: string, input?: unknown) { const result = await raw(path,input); assert(result.status < 300, JSON.stringify(result)); return result.data; }
-async function cli(root: string, ...args: string[]) { const forwarded = publicCli ? (args[0] === 'retire' ? ['workspace', ...args] : ['project', ...args]) : args; return command([process.execPath, join(import.meta.dir, publicCli ? '../../apps/surface/src/cli/index.ts' : 'cli.ts'), ...forwarded], root, { SURFACE_STATE_DIR: f.state }); }
+async function cli(root: string, ...args: string[]) { const forwarded = publicCli ? (args[0] === 'retire' ? ['workspace', ...args] : ['project', ...args]) : args; return command([process.execPath, join(import.meta.dir, publicCli ? '../../apps/cli/src/index.ts' : 'cli.ts'), ...forwarded], root, { SURFACE_STATE_DIR: f.state }); }
 async function project(root: string, ...args: string[]) { const result = await cli(root,...args); assert(result.code === 0, result.err + result.out); const value = JSON.parse(result.out); assert(value.ok, result.out); return value.data; }
 async function register(root: string) { const result = await project(root,'register'); return directory.get(result.workspaceId); }
 async function mount(w: Workspace) { return project(w.root,'mount','--artifact',f.manifest.artifacts[0]!.id); }

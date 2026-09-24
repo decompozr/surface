@@ -15,7 +15,7 @@ Checkpoint: uncommitted comments WIP on HEAD `a97e34f`, in the existing linked w
 - Five model/access tests passed. The configured HTTPS origin is allowed; a different port, HTTP variant and unrelated origin are rejected. Production build passed.
 - The HTTP verifier passed through the actual private HTTPS URL from the hosting Mac: page 200, fixture batch receipt, identical receipt on repeated payload, foreign-origin rejection, real-recipient rejection, empty-batch rejection and body-size limit. Synthetic inputs never reached a real agent.
 
-Reproduction and lifecycle: [experiment README](../../apps/surface/comments/README.md). Verifiers: [model/access tests](../../apps/surface/comments/model.test.ts), [HTTP verification](../../apps/surface/comments/verify-http.ts). Ignored local `.decompozr/surface/comments-preview/preview.json` records the exact PID/origin/target; `server.log` records the process output.
+Reproduction and lifecycle: [experiment README](../../apps/surface/src/lib/server/comments/README.md). Verifiers: [model/access tests](../../apps/surface/tests/comments/model.test.ts), [HTTP verification](../../tests/e2e/comments/verify-http.ts). Ignored local `.decompozr/surface/comments-preview/preview.json` records the exact PID/origin/target; `server.log` records the process output.
 
 ## Limits and next gate
 

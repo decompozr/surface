@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Replica, watch } from './sync';
+  import { Replica, watch } from './sync.ts';
   type Row = { id: string; title: string; angle: number; revision: number };
   let title=$state('Near view'),angle=$state(35),revision=$state(0),dirty=$state(false),edits=0;
   let status=$state('Unsaved draft'),connection=$state('Connecting…'),pending=$state(false);

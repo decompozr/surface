@@ -1,4 +1,4 @@
-import type { Batch } from './model';
+import type { Batch } from './model.ts';
 const string = (v: unknown, max: number) => typeof v === 'string' && v.length > 0 && v.length <= max;
 export function validateBatch(value: unknown, recipient = 'local-fixture'): value is Batch {
   if (!value || typeof value !== 'object') return false;

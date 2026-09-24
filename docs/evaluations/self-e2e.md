@@ -19,7 +19,7 @@ From the repository root with the existing dependencies and Playwright Chromium/
 bun run test:e2e:comments
 ```
 
-This invokes `scripts/test-comments-e2e.ts`. It runs the app check, targeted delivery tests and build, copies the build into a fresh immutable test snapshot, and runs the browser matrix, toolbar scroll regressions, desktop/touch interaction audit and synthetic keyboard viewport checks against disposable loopback services and an isolated Unix-socket provider fixture. It does not start, stop, rebind or submit to the user's preview. A failing step exits nonzero. Evidence defaults to `.decompozr/surface/comments-e2e/<timestamp>/`; set `COMMENTS_E2E_OUTPUT` to a new directory to choose another destination. Do not reuse an existing snapshot directory.
+This invokes `tests/e2e/comments/run.ts`. It runs the app check, targeted delivery tests and build, copies the build into a fresh immutable test snapshot, and runs the browser matrix, toolbar scroll regressions, desktop/touch interaction audit and synthetic keyboard viewport checks against disposable loopback services and an isolated Unix-socket provider fixture. It does not start, stop, rebind or submit to the user's preview. A failing step exits nonzero. Evidence defaults to `.decompozr/surface/comments-e2e/<timestamp>/`; set `COMMENTS_E2E_OUTPUT` to a new directory to choose another destination. Do not reuse an existing snapshot directory.
 
 Playwright is the browser automation framework (`@playwright/test`); these verifiers are executable Bun scripts using its browser engines and assertions, not a conventional `playwright test` configuration. If engines are absent, install the pinned project's engines with `bunx playwright install chromium webkit`; do not upgrade dependencies or modify shared registration to make a test pass.
 
@@ -47,12 +47,12 @@ The lower-level verifier accepts the directory containing `build/index.js` and u
 COMMENTS_E2E_BUILD_DIR=/absolute/immutable/release \
 COMMENTS_E2E_OUTPUT=/absolute/new/evidence-directory \
 COMMENTS_E2E_ACTIVE=1 \
-bun apps/surface/comments/full-loop.e2e.ts
+bun tests/e2e/comments/full-loop.e2e.ts
 ```
 
 Use `COMMENTS_E2E_ACTIVE=0` for idle. Both modes include lost-acknowledgement recovery. An old broken build is expected to fail the current acceptance assertions. The script retains screenshots/traces and reports the tested release; it never uses the real preview connection file as its receiver.
 
-Other focused regressions are `apps/surface/comments/mobile-desktop.e2e.ts`, `viewport.e2e.ts` and `toolbar-scroll.e2e.ts`. They require an isolated loopback origin via `COMMENTS_E2E_ORIGIN`; inspect their setup and assertions before use. Run those relevant to a changed layout, viewport or selection behavior. Synthetic visual-viewport tests do not establish native keyboard behavior, and transform assertions do not establish physical-device frame timing.
+Other focused regressions are `tests/e2e/comments/mobile-desktop.e2e.ts`, `viewport.e2e.ts` and `toolbar-scroll.e2e.ts`. They require an isolated loopback origin via `COMMENTS_E2E_ORIGIN`; inspect their setup and assertions before use. Run those relevant to a changed layout, viewport or selection behavior. Synthetic visual-viewport tests do not establish native keyboard behavior, and transform assertions do not establish physical-device frame timing.
 
 ## Evidence boundaries
 
@@ -60,7 +60,7 @@ The fake provider exercises the real browser, HTTP routes, persistence, adapter 
 
 ## Ordinary mounted pages
 
-The same command also freezes the app host, compiler and comment sources into the test snapshot and runs `apps/surface/comments/mounted.e2e.ts` in idle/active × Chromium/WebKit profiles. It creates a separate temporary Git fixture project (no linked worktree), local service/storage and provider socket. The mounted fixture owns ordinary Svelte content and a domain request schema; it does not import a comment component.
+The same command also freezes the app host, compiler and comment sources into the test snapshot and runs `tests/e2e/comments/mounted.e2e.ts` in idle/active × Chromium/WebKit profiles. It creates a separate temporary Git fixture project (no linked worktree), local service/storage and provider socket. The mounted fixture owns ordinary Svelte content and a domain request schema; it does not import a comment component.
 
 In addition to the existing matrix, verify normal project controls before selection, selection of controls through nested presentation spans, 320px review and 400px-high editing, per-page/request draft separation, request-token isolation, browser-token rejection at the reply endpoint, and preservation of the original domain response/schema. Retain screenshots/traces and the snapshot file-hash manifest. The runtime compiler and the built shell are both part of the tested snapshot; a built experimental page alone cannot verify mounted behavior.
 

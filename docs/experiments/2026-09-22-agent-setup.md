@@ -1,6 +1,6 @@
 # Agent-managed setup, test and refresh
 
-The checkout now provides `AGENTS.md` and `scripts/agent/setup.ts` so an agent can inspect a clone and operate a selected installation without inventing the sequence. The updated Surface skill routes setup/refresh tasks to `references/setup.md`.
+The checkout now provides `AGENTS.md` and `apps/installer/src/setup/setup.ts` so an agent can inspect a clone and operate a selected installation without inventing the sequence. The updated Surface skill routes setup/refresh tasks to `references/setup.md`.
 
 The provider skills directory is explicit. Its `surface` entry is a symlink to the checkout's complete `skills/surface` directory. Re-running setup/refresh checks the target; it does not copy instructions or overwrite real directories, foreign links or broken links. Different providers can use the same source via separate explicit destinations. Provider discovery/reloading remains a separate observation.
 

@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CodexRpc } from '../src/adapters/rpc.ts';
+import { CodexRpc } from '@decompozr/surface-agent-adapters/rpc';
 
 test('initializes over Unix WebSocket without compression and correlates responses', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'surface-rpc-'));

@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
-import { CodexAdapter, DeliveryError, type Binding } from '../src/adapters/codex.ts';
-import { RpcError, TransportError, type Rpc } from '../src/adapters/rpc.ts';
+import { CodexAdapter, DeliveryError, type Binding } from '@decompozr/surface-agent-adapters/codex';
+import { RpcError, TransportError, type Rpc } from '@decompozr/surface-agent-adapters/rpc';
 import { realpathSync } from 'node:fs';
 
 const binding: Binding = { id: 'binding', projectRoot: realpathSync(process.cwd()), threadId: 'thread-exact', socketPath: '/test.sock' };
