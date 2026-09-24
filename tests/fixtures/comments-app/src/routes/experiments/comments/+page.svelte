@@ -5,7 +5,7 @@
   let fontSize = $state(42), compact = $state(false);
 </script>
 <svelte:head><title>Surface · Comment experiment</title></svelte:head>
-<CommentWorkspace {data}>
+<CommentWorkspace {data} currentPath="/experiments/comments" endpoint="/experiments/comments" storageKey="conversation" revision="comment-playground-v2">
 {#snippet children(mode: boolean)}
     <div class="workspace-meta"><Text as="span" size="eyebrow" tone="muted">Shared workspace</Text><Text as="span" size="small" tone="muted">Study 01 / Global layout</Text></div>
     <Text size="small" class="instruction">{mode ? 'Select an element to leave a comment. Press Esc to interact with the page.' : 'Explore the page. Turn on comment mode whenever something needs feedback.'}</Text>

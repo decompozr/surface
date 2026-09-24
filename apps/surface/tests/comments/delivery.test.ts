@@ -13,7 +13,7 @@ const fixture = async (adapter: AgentAdapter) => {
   const server: Server = createServer();
   await new Promise<void>(resolve => server.listen(socketPath, resolve));
   cleanup.push(() => { server.close(); rmSync(root, { recursive: true, force: true }); });
-  const config: Connection = { threadId: 'fixture-thread', projectRoot: root, socketPath, label: 'Fixture only', token: 'fixture', callbackToken: 'fixture-callback', origin: 'http://localhost', resultCli: '/fixture/result.ts' };
+  const config: Connection = { threadId: 'fixture-thread', projectRoot: root, socketPath, label: 'Fixture only', token: 'fixture', callbackToken: 'fixture-callback', origin: 'http://localhost', resultPath: '/fixture/result' };
   return { root, config, bridge: new CommentDelivery(root, config, adapter) };
 };
 

@@ -53,7 +53,7 @@ export const createMcpServer = (stateDir: string) => {
     });
   };
 
-  const server = new McpServer({ name: 'surface-singleton-experiment', version: '0.1.0' });
+  const server = new McpServer({ name: 'surface', version: '0.1.0' });
   register('surface_health', 'Read singleton health. Does not start a server.', {}, () => api('/api/health'), true);
   register('surface_namespace', 'Create a namespace in the existing singleton.', { name: slug }, input => api('/api/namespaces', input));
   register('surface_mount', 'Mount a source folder and prepare declared dependencies. Failed preparation is an error outcome even when the HTTP request succeeded.', {

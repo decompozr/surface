@@ -15,7 +15,7 @@ export const inspectGit = async (root: string) => {
     git(root, 'rev-parse', '--show-toplevel'), git(root, 'rev-parse', '--path-format=absolute', '--git-common-dir'),
     git(root, 'rev-parse', '--absolute-git-dir'), git(root, 'worktree', 'list', '--porcelain', '-z'), git(root, 'symbolic-ref', '--quiet', '--short', 'HEAD').catch(() => '(detached)'),
   ]);
-  if (realpathSync(top) !== root) throw new Error('Register the Git worktree root; nested projects are outside this experiment.');
+  if (realpathSync(top) !== root) throw new Error('Register the Git worktree root; nested projects are outside the supported project contract.');
   const roots = inventory.split('\0').filter(part => part.startsWith('worktree ')).map(part => part.slice(9));
   if (!roots.some(path => existsSync(path) && realpathSync(path) === root)) throw new Error('Directory is not a registered Git worktree. Copied Git pointers are not adopted.');
   const commonDir = realpathSync(common), gitDir = realpathSync(admin);

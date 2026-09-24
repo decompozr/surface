@@ -1,4 +1,4 @@
-import { REVISION, type Target } from './model.ts';
+import type { Target } from './model.ts';
 
 
 export const selectorFor = (element: HTMLElement, workspace: HTMLElement): string => {
@@ -16,7 +16,7 @@ export const selectorFor = (element: HTMLElement, workspace: HTMLElement): strin
   return `${workspace.tagName.toLowerCase()}#${CSS.escape(workspace.id)} > ${parts.join(' > ')}`;
 };
 
-export const describeTarget = (element: HTMLElement, workspace: HTMLElement): Target => {
+export const describeTarget = (element: HTMLElement, workspace: HTMLElement, revision: string): Target => {
   const selector = selectorFor(element, workspace);
   const text = (element.textContent ?? '').replace(/\s+/g, ' ').trim();
   let hash = 0;
@@ -24,7 +24,7 @@ export const describeTarget = (element: HTMLElement, workspace: HTMLElement): Ta
   return {
     id: element.id || `element-${(hash >>> 0).toString(16)}`,
     selector, label: element.id ? `${element.tagName.toLowerCase()}#${element.id}` : `${element.tagName.toLowerCase()}${text ? ' · ' + text.slice(0, 48) : ''}`,
-    text: text.slice(0, 1000), revision: REVISION,
+    text: text.slice(0, 1000), revision,
   };
 };
 

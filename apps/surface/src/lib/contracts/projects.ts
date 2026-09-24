@@ -35,5 +35,5 @@ export type ProjectOutcome = {
 export type ProjectArtifact = { id: string; name: string; source: string; archived: boolean };
 export type ProjectManifest = { version: 1; projectId: string; name: string; artifacts: ProjectArtifact[] };
 
-/** Opt-in experiment seam. Resolve/validate workspace identity before any manifest mutation. */
+/** Host-owned identity integration. Resolve/validate workspace identity before any manifest mutation. */
 export type ProjectIdentityResolver = (root: string, manifest: ProjectManifest, operation: ProjectOperation) => Promise<{ namespace: string; workspaceId: string }>;

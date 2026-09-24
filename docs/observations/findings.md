@@ -151,7 +151,7 @@ Versioned scripts and experiment records make the observations reviewable. New l
 
 ## Comments worktree reconciliation — September 23
 
-The current comments prototype was preserved in commit `f5daafc` before integrating main `6dd9083`. The [comment experiment](../experiments/2026-09-23-element-comments.md) retains its live user-submission evidence, private-preview changes, fixture checks and unverified browser acceptance. Its experimental interaction contract is retained in [agent interaction](../requirements/agent-interaction.md#contextual-comment-batches--experimental). The [earlier recipient experiment](../experiments/2026-09-23-agent-recipient.md) remains historical evidence; current recipient behavior follows the canonical requirements. This reconciliation does not adopt the comment playground as a public runtime feature.
+The current comments prototype was preserved in commit `f5daafc` before integrating main `6dd9083`. The [comment experiment](../experiments/2026-09-23-element-comments.md) retains its live user-submission evidence, private-preview changes, fixture checks and unverified browser acceptance. Its experimental interaction contract is retained in [agent interaction](../requirements/agent-interaction.md#mounted-page-contextual-comments-september-24-adoption). The [earlier recipient experiment](../experiments/2026-09-23-agent-recipient.md) remains historical evidence; current recipient behavior follows the canonical requirements. This reconciliation does not adopt the comment playground as a public runtime feature.
 
 ### Application consolidation
 
@@ -172,7 +172,7 @@ Follow-up: user feedback removed the redundant Workspace tag from the header. Th
 
 ### By-the-way comment preference — September 23
 
-The user selected immediate Steer as conversational input: acknowledge promptly, retain the original task and let the agent state its processing order. Queue remains an alternative. This is adopted for the comment experiment in [agent interaction](../requirements/agent-interaction.md#contextual-comment-batches--experimental). Transport delivery, agent acknowledgement and completed output remain separate. Browser/provider-fixture evidence is recorded in [the follow-up](../experiments/2026-09-23-by-the-way-comments.md); model behavior and physical-device acceptance are separate gates.
+The user selected immediate Steer as conversational input: acknowledge promptly, retain the original task and let the agent state its processing order. Queue remains an alternative. This is adopted for the comment experiment in [agent interaction](../requirements/agent-interaction.md#mounted-page-contextual-comments-september-24-adoption). Transport delivery, agent acknowledgement and completed output remain separate. Browser/provider-fixture evidence is recorded in [the follow-up](../experiments/2026-09-23-by-the-way-comments.md); model behavior and physical-device acceptance are separate gates.
 
 ### September 24: comment feedback correction
 

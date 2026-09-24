@@ -2,7 +2,7 @@
 
 ## Question and disposition
 
-Can users select an element, attach its image, accumulate comments and send one reviewable batch? The user requested this experiment and subsequently requested its Tailscale URL. Source direction: [contextual comment batches](../requirements/agent-interaction.md#contextual-comment-batches--experimental). Disposition: retained as experimental; browser and real-recipient acceptance remain open.
+Can users select an element, attach its image, accumulate comments and send one reviewable batch? The user requested this experiment and subsequently requested its Tailscale URL. Source direction: [contextual comment batches](../requirements/agent-interaction.md#mounted-page-contextual-comments-september-24-adoption). Disposition: retained as experimental; browser and real-recipient acceptance remain open.
 
 ## Implementation and observations
 

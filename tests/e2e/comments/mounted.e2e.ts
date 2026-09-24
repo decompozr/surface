@@ -294,10 +294,46 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       await page.getByRole('button', { name: /Open comments/ }).click();
       await expect(page.locator('.agent-reply')).toHaveText(`Recovered reply ${name}`);
       expect(posts).toBe(1);
+      if (process.env.COMMENTS_E2E_BASELINE !== '1') {
+      // A future stored format must never be silently replaced by an empty draft.
+      const unsupportedKey = await page.evaluate(async () => {
+        const key = JSON.parse(document.getElementById('artifact-preview-context')!.textContent!).commentsStorageKey;
+        await new Promise<void>((resolve, reject) => {
+          const open = indexedDB.open('surface-comment-experiment-v1', 1);
+          open.onerror = () => reject(open.error);
+          open.onsuccess = () => {
+            const db = open.result, tx = db.transaction('state', 'readwrite');
+            tx.objectStore('state').put({ version: 999, preserved: 'future user draft' }, key);
+            tx.oncomplete = () => { db.close(); resolve(); };
+            tx.onerror = () => { db.close(); reject(tx.error); };
+          };
+        });
+        return key;
+      });
+      await page.reload();
+      await page.getByRole('button', { name: /Open comments/ }).click();
+      await expect(page.getByRole('alert')).toContainText('Existing data is preserved');
+      const unsupportedState = await page.evaluate(key => new Promise<unknown>((resolve, reject) => {
+        const open = indexedDB.open('surface-comment-experiment-v1', 1);
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const db = open.result, tx = db.transaction('state', 'readonly');
+          const read = tx.objectStore('state').get(key);
+          tx.oncomplete = () => { db.close(); resolve(read.result); };
+          tx.onerror = () => { db.close(); reject(tx.error); };
+        };
+      }), unsupportedKey);
+      expect(unsupportedState).toEqual({ version: 999, preserved: 'future user draft' });
+      await expect.poll(async () => {
+        const bounds = await pane.boundingBox();
+        return !!bounds && bounds.width >= 296 && bounds.x >= 0 && bounds.x + bounds.width <= page.viewportSize()!.width + 1;
+      }).toBe(true);
+      await page.screenshot({ path: join(output, `${name}-unsupported-storage.png`), fullPage: true, animations: 'disabled' });
+      }
       expect(errors).toEqual([]);
       console.log(`PASS mounted ${name}: stale turn retains draft -> explicit refresh -> steer/queue + lost POST acknowledgement -> automatic monitoring -> concise result -> offline recovery -> reload; exactly one comment delivery, plus an independent domain form/result`);
     } catch (error) { await page.screenshot({ path: join(output, `${name}-failure.png`), fullPage: true }); throw error; }
     finally { await context.tracing.stop({ path: join(output, `${name}-trace.zip`) }); await browser.close(); }
   }
-  writeFileSync(join(output, 'report.json'), JSON.stringify({ status: 'passed', state, deliveries: deliveries.length, provider: 'isolated protocol fixture', activeRecipient, release, installedHome, project, origin, physicalDevice: false }, null, 2));
+  writeFileSync(join(output, 'report.json'), JSON.stringify({ status: 'passed', state, deliveries: deliveries.length, provider: 'isolated protocol fixture', activeRecipient, release, installedHome, project, origin, physicalDevice: false, storageGuard: process.env.COMMENTS_E2E_BASELINE !== '1' }, null, 2));
 } finally { await app?.stop(); ws.close(); http.close(); rmSync(project, { recursive: true, force: true }); if (!installedHome) rmSync(state, { recursive: true, force: true }); }

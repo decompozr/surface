@@ -49,7 +49,7 @@ The separate [dependency/lifecycle experiment](2026-09-21-dependencies.md) ident
 
 ## Reproduce
 
-Follow [the package guide](../../experiments/sveltekit/README.md) to install, check, build, and run:
+Follow [the package guide](../history/retired-experiments/sveltekit.md) to install, check, build, and run:
 
 ```sh
 bun run --cwd experiments/sveltekit check

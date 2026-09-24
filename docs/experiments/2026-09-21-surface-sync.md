@@ -6,7 +6,7 @@ Status: bounded experiment passed. This is independent experimental evidence, no
 
 After an Editor saves, can a previously loaded Comparison update automatically, recover from missed or delayed notifications, and preserve another editor's unsaved draft without breaking lazy SQLite or workspace isolation?
 
-The [experiment](../../experiments/surface-sync/README.md) extends the separate multi-Surface host. All new runtime and client code stays under `experiments/surface-sync/`. A temporary pinned installation runs it with explicit state/data directories and an ephemeral port.
+The [experiment](../history/retired-experiments/surface-sync.md) extends the separate multi-Surface host. All new runtime and client code stays under `experiments/surface-sync/`. A temporary pinned installation runs it with explicit state/data directories and an ephemeral port.
 
 ## Model tested
 

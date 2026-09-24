@@ -31,7 +31,7 @@ ws.on('connection', client => client.on('message', raw => {
   client.send(JSON.stringify({ id: message.id, result }));
 }));
 await new Promise<void>(r => http.listen(socket, r));
-writeFileSync(join(state, 'connection.json'), JSON.stringify({ threadId: 'e2e-fixture', projectRoot: root, socketPath: socket, label: 'Isolated E2E receiver', token, callbackToken, origin, resultPath: '/experiments/comments/result', resultCli: resolve('apps/cli/src/reply.ts') }), { mode: 0o600 });
+writeFileSync(join(state, 'connection.json'), JSON.stringify({ threadId: 'e2e-fixture', projectRoot: root, socketPath: socket, label: 'Isolated E2E receiver', token, callbackToken, origin, resultPath: '/experiments/comments/result' }), { mode: 0o600 });
 // Use the immutable, already-built preview release; never rebuild a running service.
 if (!process.env.COMMENTS_E2E_BUILD_DIR) throw new Error('Use the comments runner to provide an isolated fixture build.');
 const release = resolve(process.env.COMMENTS_E2E_BUILD_DIR);

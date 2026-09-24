@@ -1,11 +1,9 @@
 <script lang="ts">
  import Guide from '../../lib/Guide.svelte';
  const base = window.location.pathname.split('/examples')[0] + '/examples';
- const prepare = `# From the Surface repository root. Requires Bun 1.4.0 and Git.
-bun install --frozen-lockfile --ignore-scripts
-bun install --cwd experiments/singleton --frozen-lockfile --ignore-scripts
-bun install --cwd apps/surface --frozen-lockfile --ignore-scripts
-bun run --cwd apps/surface dev --state-dir "$HOME/.surface-development/state"`;
+ const prepare = `# From the Surface repository root. Follow SETUP.md to prepare dependencies.
+# Requires Git and Bun >=1.4.0 <1.5.0.
+bun run surface serve --state-dir "$HOME/.surface-development/state"`;
  const structure = `my-project/
 ├── artifact.project.json     # Created by project init
 └── panels/
@@ -33,5 +31,5 @@ bun /path/to/surface/apps/cli/src/index.ts project mount --artifact ARTIFACT_UUI
  <section class="step"><span class="number">03</span><div><h2>Register the project and mount the folder</h2><pre><code>{mount}</code></pre><p>Run <code>init</code> only when the project manifest is absent. Replace <code>ARTIFACT_UUID</code> with the ID returned by <code>add</code> or <code>list</code>. Open the returned preview URL and choose <strong>hello</strong>.</p><p class="note">The route is <code>/workspace/my-project/main/panels/hello</code>. A linked worktree uses its folder name instead of <code>main</code>. UUIDs stay internal; the readable route remains stable across branch switches.</p></div></section>
  <section class="step"><span class="number">04</span><div><h2>Edit, interact and see the update</h2><p>Save a change to your page and the shared Vite compiler updates the browser. State you explicitly store with <code>previewState</code> can survive component replacement.</p><a class="button secondary" href={base + '/counter'}>Try the counter and draft →</a><p style="margin-top:20px">The counter is a local interaction. Sending input to an agent additionally requires an exact conversation binding, a request schema and its private preview URL. Merely opening a page does not bind a conversation or send a message.</p></div></section>
  <section class="step"><span class="number">05</span><div><h2>Unmount when you are done</h2><pre><code>{cleanup}</code></pre><p>Use the same state directory and artifact ID. Unmounting removes access to the page; your source and interaction records remain. Registration and mounting do not create a project SQLite database.</p></div></section>
- <section class="section"><h2>Opening it on another device</h2><p>A loopback URL works only on the host computer. This running preview has a Tailscale HTTPS address: connect the other device to the same tailnet and open this page’s URL. For a new host, configure Tailscale Serve and the host’s explicit <code>--browser-origin</code>; see <code>apps/surface/README.md</code> for the commands.</p><p class="note">Supported page routes are static <code>+page.svelte</code> files. Layouts, dynamic route parameters, server load functions and form actions are not part of this mounted-page runtime yet.</p></section>
+ <section class="section"><h2>Opening it on another device</h2><p>A loopback URL works only on the host computer. For a configured private Tailscale HTTPS endpoint, connect the other device to the same tailnet and use the returned HTTPS URL. For a new host, configure Tailscale Serve and the host’s explicit <code>--browser-origin</code>; follow <code>SETUP.md</code> and the Surface skill’s page guide.</p><p class="note">Supported page routes are static <code>+page.svelte</code> files. Layouts, dynamic route parameters, server load functions and form actions are not part of this mounted-page runtime yet.</p></section>
 </Guide>

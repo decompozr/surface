@@ -6,7 +6,7 @@
   import { composerPlacement, readViewport } from '../comments/viewport.ts';
   import { describeTarget, resolveTarget } from '../comments/selection.ts';
   import { captureElement } from '../comments/capture.ts';
-  import { emptyState, readState, writeState, REVISION, type Target, type Comment, type Batch } from '../comments/model.ts';
+  import { emptyState, readState, writeState, type Target, type Comment, type Batch } from '../comments/model.ts';
 
   const refreshRecipient = async (signal?: AbortSignal) => {
     const generation = ++inspection;
@@ -92,7 +92,7 @@
     }
   };
 
-  const metadata = (el: HTMLElement): Target => { return { ...describeTarget(el, workspace), revision: observedRevision || revision }; };
+  const metadata = (el: HTMLElement): Target => { return { ...describeTarget(el, workspace, observedRevision || revision) }; };
 
   const restoreTarget = (target: Target | null) => {
     const element = resolveTarget(target, workspace);
@@ -284,9 +284,9 @@
     }
   };
 
-  let { data, children, mounted = false, currentPath = '/experiments/comments', endpoint = '/experiments/comments', storageKey = 'conversation', revision = REVISION }: {
+  let { data, children, mounted = false, currentPath, endpoint, storageKey, revision }: {
     data: { recipient: string; label: string; live: boolean; navigation?: import('../server/http/navigation.ts').NavigationNode[] };
-    children?: Snippet<[boolean]>; mounted?: boolean; currentPath?: string; endpoint?: string; storageKey?: string; revision?: string;
+    children?: Snippet<[boolean]>; mounted?: boolean; currentPath: string; endpoint: string; storageKey: string; revision: string;
   } = $props();
   const capabilityKey = $derived(mounted ? `surface-comments-connection:${storageKey}` : 'surface-comments-connection');
   let observedRevision = $state('');
@@ -301,6 +301,7 @@
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
   let liveAbort: AbortController | undefined;
   let connectionPhase: 'initial' | 'connected' | 'disconnected' = 'initial';
+  let storageReady = $state(false);
   let ready = $state(false), mode = $state(false), panel = $state(false), busy = $state(false), sending = $state(false);
   let notice = $state(''), storageError = $state('');
   let selected = $state<HTMLElement | null>(null), hovered = $state<HTMLElement | null>(null);
@@ -331,7 +332,7 @@
   });
   $effect(() => { selectionToolsWidth; selectionToolsHeight; schedulePosition(); });
   $effect(() => {
-    if (!ready) return;
+    if (!ready || !storageReady) return;
     const snapshot = $state.snapshot(review);
     persistQueue = persistQueue.catch(() => {}).then(() => writeState(snapshot, storageKey)).then(() => { storageError = ''; }, () => { storageError = 'Could not save comments. Keep this page open.'; });
   });
@@ -376,8 +377,8 @@
     agentStatus = data.live ? (connectionKey ? 'Checking…' : 'Open connection link') : 'Local test';
     const workspaceSize = new ResizeObserver(schedulePosition);
     workspaceSize.observe(workspace);
-    readState(storageKey).then(saved => { if (!active) return; review = saved; ready = true; if (saved.draft.target) selected = restoreTarget(saved.draft.target); updateBox(); updatesTask = watchUpdates(updates.signal); })
-      .catch(() => { if (active) { ready = true; notice = 'Browser storage could not be opened. Keep this page open.'; updatesTask = watchUpdates(updates.signal); } });
+    readState(storageKey).then(saved => { if (!active) return; review = saved; storageReady = true; ready = true; if (saved.draft.target) selected = restoreTarget(saved.draft.target); updateBox(); updatesTask = watchUpdates(updates.signal); })
+      .catch(() => { if (active) { ready = true; storageError = 'Stored comments could not be read. Existing data is preserved; new edits are not saved. Keep this page open.'; updatesTask = watchUpdates(updates.signal); } });
     let gesture: { x: number; y: number; moved: boolean } | null = null;
     let suppressClick = false;
     const press = (event: PointerEvent) => {
@@ -439,7 +440,7 @@
       {#if !review.comments.length && !review.batches.length}<div class="empty"><Text size="small">No comments yet. Select an element to start.</Text></div>{/if}
       {#each review.batches as batch (batch.id)}<SurfaceCard as="section" class="batch" tone="subtle" aria-label="Submitted batch"><div class="batch-label"><strong>You · {batch.comments.length} comments</strong><span>{batch.recipient === 'local-fixture' ? 'Local test' : batch.result ? batch.result.stage === 'acknowledged' ? 'Agent acknowledged' : 'Agent replied' : batch.status === 'accepted' ? batch.deliveryMode === 'queue' ? 'Queued' : 'Delivered' : batch.status === 'failed' ? 'Not delivered' : 'Unconfirmed'}</span></div>
         {#each batch.comments as comment}<div class="sent-comment"><strong>{comment.target.label}</strong>{#if comment.capture}<a href={comment.capture.png} download={`${comment.target.id}.png`} aria-label={`Download screenshot of ${comment.target.label}`}><img src={comment.capture.png} alt={`Captured ${comment.target.label}`} /></a>{/if}<Text size="small">{comment.text}</Text></div>{/each}
-        {#if batch.recipient === 'local-fixture' && batch.status === 'accepted'}<Divider /><Text size="small" class="fixture-reply">Local test only. This was not sent to an agent.</Text>{:else if batch.result}<Divider /><Text size="small" class="agent-reply">{batch.result.message}</Text>{#if batch.result.stage === 'acknowledged' && batch.result.next}<Text size="small" tone="muted">{batch.result.next === 'continue-original' ? 'Continuing the original task' : batch.result.next === 'address-now' ? 'Addressing this now' : 'Handling this later'}</Text>{/if}{:else if batch.status === 'accepted'}{:else if batch.status === 'pending'}<Text size="small">Submission unconfirmed. Nothing is resent automatically.</Text>{#if batch.recipient === 'local-fixture'}<Button size="compact" disabled={sending} onclick={() => deliver(batch.id)}>Retry local test</Button>{/if}{:else if batch.status === 'unknown' || batch.status === 'failed'}<Text size="small" class="notice">{batch.error ?? 'Delivery needs reconciliation. Nothing is resent automatically.'}</Text>{/if}
+        {#if batch.recipient === 'local-fixture' && batch.status === 'accepted'}<Divider /><Text size="small" class="fixture-reply">Local test only. This was not sent to an agent.</Text>{:else if batch.result}<Divider /><Text size="small" class="agent-reply">{batch.result.message}</Text>{:else if batch.status === 'accepted'}{:else if batch.status === 'pending'}<Text size="small">Submission unconfirmed. Nothing is resent automatically.</Text>{#if batch.recipient === 'local-fixture'}<Button size="compact" disabled={sending} onclick={() => deliver(batch.id)}>Retry local test</Button>{/if}{:else if batch.status === 'unknown' || batch.status === 'failed'}<Text size="small" class="notice">{batch.error ?? 'Delivery needs reconciliation. Nothing is resent automatically.'}</Text>{/if}
         {#if batch.recipient !== 'local-fixture' && (batch.status === 'accepted' || batch.status === 'pending') && (!batch.result || batch.result.stage === 'acknowledged')}<div class="reply-wait" role="status"><span class="reply-spinner" aria-hidden="true"></span>{streamConnected ? 'Waiting for reply…' : 'Reconnecting…'}</div>{/if}
       </SurfaceCard>{/each}
       {#if review.comments.length}<Text size="eyebrow" tone="muted">Draft · not sent</Text>{/if}

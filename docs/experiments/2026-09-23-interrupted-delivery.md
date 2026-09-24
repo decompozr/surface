@@ -79,9 +79,9 @@ were bypassed and no fixed readiness sleep was introduced. Failed logs were kept
 Final evidence: ignored
 `.decompozr/surface/interrupted-delivery/2026-09-23T20-49-53.407Z/summary.json`,
 per-case reports and owned host logs. Reproduction source:
-[verifier](../../experiments/interrupted-delivery/verify.ts),
-[host](../../experiments/interrupted-delivery/host.ts),
-[reconciler](../../experiments/interrupted-delivery/reconcile.ts).
+[verifier](../../tests/e2e/interrupted-delivery/verify.ts),
+[host](../../tests/e2e/interrupted-delivery/host.ts),
+[reconciler](../../tests/e2e/interrupted-delivery/reconcile.ts).
 
 | Source | SHA-256 |
 | --- | --- |

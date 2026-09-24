@@ -43,7 +43,7 @@ if (values.inspect) {
     message: message === '-' ? await Bun.stdin.text() : message,
     stage: values.ack ? 'acknowledged' : 'completed',
   };
-  if (!result.message || result.message.length > 20_000) throw new Error('Reply must contain 1–20000 characters.');
+  if (!result.message?.trim() || result.message.length > 20_000) throw new Error('Reply must contain 1–20000 characters.');
   const response = await fetch(replyEndpoint(config), {
     method: 'POST',
     redirect: 'error',

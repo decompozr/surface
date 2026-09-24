@@ -1,3 +1,4 @@
+import { interactionMessage } from './message.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join } from 'node:path';
 import { realpathSync as canonical } from 'node:fs';
@@ -108,7 +109,7 @@ export const createInteractions = (options: {
   let closing = false;
   const operations = new Set<Promise<unknown>>();
   const store = new Store(join(options.stateDir, 'interactions.json'));
-  const service = new Service(store, options.adapter ?? new CodexAdapter(), join(import.meta.dir, '../../../../../cli/src/index.ts'), options.stateDir);
+  const service = new Service(store, options.adapter ?? new CodexAdapter(), interactionMessage(join(import.meta.dir, '../../../../../cli/src/index.ts'), options.stateDir));
   const comments = mountedComments(options.stateDir, service, options.adapter ?? new CodexAdapter());
   return { route, checkPage, commentContext(id: string) {
     const record = service.get(id);

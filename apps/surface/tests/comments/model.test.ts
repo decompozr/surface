@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { validateBatch } from '../../src/lib/comments/validate.ts';
-import { emptyState, type Batch } from '../../src/lib/comments/model.ts';
+import { emptyState, restoreState, type Batch } from '../../src/lib/comments/model.ts';
 const batch = (): Batch => ({ id: 'batch-1', createdAt: '2026-09-23T00:00:00Z', page: '/experiments/comments', revision: 'v1', recipient: 'local-fixture', status: 'pending', comments: [{ id: 'comment-1', target: { id: 'headline', label: 'Heading', selector: '#headline', text: 'Original title', revision: 'v1' }, text: 'Smaller, please.' }] });
 describe('comment batch boundary', () => {
   test('retains target context and groups multiple comments in one batch', () => {
@@ -38,4 +38,14 @@ describe('explicit private preview origin', () => {
     expect(allowsCommentOrigin(new URL('http://preview.example.ts.net:8466'), origin)).toBe(false);
     expect(allowsCommentOrigin(new URL('https://unrelated.example'), origin)).toBe(false);
   });
+});
+
+test('unsupported browser state is rejected instead of replaced with an empty draft', () => {
+  const future = { ...emptyState(), version: 2, preserved: 'user draft' };
+  expect(() => restoreState(future)).toThrow('Existing data was not changed');
+  expect(future.preserved).toBe('user draft');
+  expect(() => restoreState({ version: 1 })).toThrow();
+  expect(restoreState(undefined)).toEqual(emptyState());
+  const saved = emptyState(); saved.draft.text = 'Keep this';
+  expect(restoreState(saved).draft.text).toBe('Keep this');
 });

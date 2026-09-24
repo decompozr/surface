@@ -12,7 +12,7 @@ Status: implemented and verified as experiments. These findings do not promote t
 
 ## Implementation
 
-[Source and reproduction commands](../../experiments/server-contract/README.md) live in `experiments/server-contract/`. The experiment composes existing ownership-aware lifecycle management, the built SvelteKit shell, the singleton resource hook, shared project operations, and the project-owned lazy SQLite fixture.
+[Source and reproduction commands](../history/retired-experiments/server-contract.md) live in `experiments/server-contract/`. The experiment composes existing ownership-aware lifecycle management, the built SvelteKit shell, the singleton resource hook, shared project operations, and the project-owned lazy SQLite fixture.
 
 The existing installation manager gained optional pre-activation/start validation and a stopped-only state-operation hook sharing its management lock. Launcher preparation runs under that lock before release activation. Existing singleton and SvelteKit callers retain their defaults. The Kit wrapper now composes the optional application/resource hooks. No global CLI links, user defaults, login services, or production project files are changed.
 

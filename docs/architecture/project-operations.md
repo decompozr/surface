@@ -1,18 +1,13 @@
-# Milestone 1: shared project operations
+# Shared project operations
 
-Current commands and defaults in this document use Surface after [Decision 0002](../decisions/0002-surface-name-and-local-state.md). Earlier checkpoints and experiment records retain their original Artifact names, commands, and evidence paths; renaming does not constitute a new verification run.
-
-Status: adopted bounded operation contract. The verification narrative below is historical, not a new run at the documentation baseline. Current public installation and workspace behavior is in [workspace service](workspace-service.md). Original baseline: `5b77096` (September 21, 2026).
-
-The readiness experiments left project management in a filesystem-aware CLI wrapper. That makes it difficult for MCP or a management page to share project identity, writer ownership, and archive behavior without duplicating them. This first implementation increment moves those decisions into a transport-independent core and connects it to the existing singleton host.
+The Surface-owned project service provides one operation contract to CLI, HTTP and MCP. [Workspace service](workspace-service.md) owns identity and service selection; this document owns manifest operations and mutation ordering.
 
 ## Ownership and authority
 
 - The project owns its versioned `artifact.project.json`, artifact source, dependency declarations, lockfiles, and installed dependencies. The manifest is authoritative for artifact identity, labels, relative source definitions, and archive flags.
-- The service owns its private project binding ledger and runtime registry. The default compatibility policy pins project IDs to canonical roots; the public workspace host uses a shared project/workspace ledger through the optional identity resolver. The runtime registry describes observed mount lifecycle; it does not overwrite project definitions.
+- The service owns its private project binding ledger and runtime registry. The low-level service pins project IDs to canonical roots; the public workspace host uses a shared project/workspace ledger through the optional identity resolver. The runtime registry describes observed mount lifecycle; it does not overwrite project definitions.
 - Project and artifact UUIDs are stable. Labels do not determine route identity. An absolute project-root alias is canonicalized before identity checks; copying the same UUID to a different canonical root remains a conflict. The public workspace host additionally recognizes proven linked Git worktrees under the same project ID, using distinct workspace scopes. Relocation requires explicit reconciliation.
 - All implemented project operations enter the authenticated singleton and its existing mutation queue. Core writer locks retain the project-then-ledger acquisition order. The CLI and MCP adapter never write project manifests or the ledger themselves.
-- The original experimental project manager remains a comparison fixture. It is not the new shared API implementation and should not be run concurrently as an alternative authority.
 
 The project manifest keeps its tested version 1 format. The new operation envelope is separately versioned. This increment does not introduce a silent schema migration or claim downgrade compatibility for future formats.
 
@@ -49,56 +44,22 @@ The client rereads the connection per call, requires an exact loopback HTTP orig
 
 ## Use from a checkout
 
-Install root and singleton dependencies using their frozen lockfiles, then keep `bun run singleton serve --state-dir /absolute/state` running. The existing Kit wrapper can serve the same operations with its own explicitly selected state directory.
-
-```sh
-bun run surface project init --project /absolute/project --name "My project" --state-dir /absolute/state
-bun run surface project add --project /absolute/project --source artifacts/panel --name "Controls" --state-dir /absolute/state
-bun run surface project register --project /absolute/project --state-dir /absolute/state
-bun run surface project list --project /absolute/project --state-dir /absolute/state
-bun run surface project mount --project /absolute/project --artifact ARTIFACT_UUID --state-dir /absolute/state
-```
-
-Create the source folder and its Svelte package before `add`; this operation does not scaffold source. Use IDs from response `data`. `surface project --help` lists the flags. Unlike the earlier experimental wrapper, these commands require the server even for init/add/list. For MCP, launch the existing adapter with that same state directory and use the corresponding `surface_project_*` tools.
+Follow the [page authoring guide](../../skills/surface/references/pages.md). CLI and MCP send the same authenticated project operation; they do not implement independent manifest mutation.
 
 ## Failure and recovery boundaries
 
 Archive is deliberately ordered unmount → manifest flag. Failure before unmount completion leaves the manifest active. Failure after unmount but before saving the flag can leave the runtime stopped while the manifest remains active; inspect and reconcile explicitly. Atomic individual file replacement and writer locks do not make this sequence a distributed transaction.
 
-Direct administrative mount operations still exist for compatibility. The core must refuse to act on a mount whose source/project identity differs from the manifest. Archive, close, and unmount do not cancel an agent turn or delete callback records. Installation/release cleanup remains governed by the separate lifecycle work.
+Low-level mount operations are internal host/test mechanisms. The core must refuse to act on a mount whose source/project identity differs from the manifest. Archive, close, and unmount do not cancel an agent turn or delete callback records. Installation/release cleanup remains governed by the separate lifecycle work.
 
 ## Completion criteria
 
-- The reusable implementation lives under `src/core`, without transport or framework imports.
+- The reusable implementation lives under `apps/surface/src/lib/server/services`, with transport and host integration outside the operation layer.
 - Deterministic tests cover strict input validation, canonical identity, path containment, writer ownership, competing copied IDs, non-destructive lifecycle, and failure visibility.
 - The authenticated project endpoint uses the real singleton runtime and respects admission/shutdown ordering.
 - CLI and real MCP SDK calls observe and mutate the same project/mount records; uncertain transport outcomes do not trigger retries.
 - Existing interaction, compiler/HMR, dependency, and SvelteKit behavior remains covered by appropriate regressions.
 
-This increment establishes a shared project-operation foundation. Public launcher packaging and default install/state selection were subsequently delivered in [workspace service](workspace-service.md). Further internal runtime consolidation, management UI write flows and resource budgets remain open. It is not a production-release claim.
-
 ## Verification record
 
-The implementation was developed in three independent worktrees (core, HTTP host integration, and CLI/MCP access), then integrated at `febff54`. The combined root suite passed **48 tests / 285 assertions**; the singleton suite passed **4 tests / 44 assertions**. Root, singleton, and MCP TypeScript checks passed.
-
-The new real SDK ↔ CLI ↔ Chrome verification exercised two project identities through the shared core: init/add/register/list/mount, actual browser interaction, same-document HMR with retained draft/counter, archive with an unaffected neighbor, restore without implicit mounting, stable-route remount, and connection refresh after server restart. Its screenshot was visually inspected. The existing MCP interaction regression, singleton interaction browser suite, and SvelteKit browser suite also passed. These runs used fixture sources and adapters; no new live-agent delivery claim is made.
-
-Reproduce after installing the root and experiment dependencies:
-
-```sh
-bun run check
-bun test tests
-bun run test:singleton
-bun run --cwd experiments/singleton check
-bun run --cwd experiments/mcp check
-bun run verify:project-access
-bun run verify:mcp
-bun run verify:singleton-interactions
-bun run verify:sveltekit
-```
-
-The root browser test requires the bundled example UI build (`bun run build:ui`); the Kit browser verifier requires its shell build (`bun run --cwd experiments/sveltekit build`). New private receipts and screenshots use ignored `.decompozr/surface/` directories; the original verification ran before the rename and used the former state/evidence paths. Test-owned servers and browsers are stopped by their verifiers.
-
-The installed SvelteKit lifecycle suite passed against the same integrated source commit `febff5404cf798099b70823c43c505fc1b097c97`. A clean archived release built the Kit shell and loaded the new server core. Its installed MCP advertised all 19 tools, including the eight expected project operations, and existing installed health/inspection calls used the same host. Upgrade/rollback, restart, crash recovery, uninstall/reinstall, and source/state preservation passed; all eight owned host processes exited. The new project-operation browser proof above ran from the integrated checkout, separately from this installed-host check.
-
-Independent cross-review found no remaining material blockers in the reviewed project core, API admission/queue integration, CLI routing, or MCP/client transport. This is a bounded implementation milestone; the original follow-up milestones are preserved in the [historical implementation sequence](../experiments/first-server-readiness.md#implementation-sequence-and-exit-criteria), with current gaps in [runtime requirements](../requirements/runtime.md).
+Run `bun run verify:project-access` for real CLI/MCP/browser project operations and `bun run verify:surface` for installed workspace lifecycle. App tests cover manifest validation, path containment, writer ownership and failure handling. Historical integration checkpoints and their limits remain in [history](../history/2026-09-24-workspace-boundaries.md); they do not prove later revisions.

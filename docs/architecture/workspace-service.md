@@ -4,20 +4,7 @@ Status: implemented. The root/package `surface` CLI and the installed bootstrap 
 
 ## Install and use
 
-Requires a compatible Bun patch version (currently `>=1.4.0 <1.5.0`). From this repository, prepare the root CLI and install a committed release:
-
-```sh
-bun install --frozen-lockfile
-bun link
-surface install --repo "$PWD" --ref HEAD
-surface start
-surface status
-surface doctor
-```
-
-`install` resolves the Git ref to a full commit, installs frozen dependencies with lifecycle scripts disabled, builds the SvelteKit shell, prepares a self-contained bootstrap and activates last. Uncommitted checkout changes are not installed. `bin/surface` in the selected home works from any cwd without the original checkout; it dispatches application commands to the selected installed release. Its lifecycle commands survive uninstall, enabling reinstall.
-
-The existing package/global link also points at `apps/cli/src/index.ts`, exposing the same public command contract. `surface --help` lists commands. `surface mcp` runs the installed/source-matched stdio adapter with its existing 19 tools against the selected service. It does not install an MCP-host configuration.
+[SETUP.md](../../SETUP.md) owns installation commands and prerequisites. The installed `bin/surface` selects committed release code independently of cwd and the original checkout. `surface --help` lists current commands; `surface mcp` runs the same release's stdio transport against the selected host without configuring an MCP client.
 
 ## Shared selection and layout
 
@@ -36,20 +23,11 @@ Surface/
 
 Client and foreground commands additionally allow `--state-dir` or `SURFACE_STATE_DIR`. Explicit home overrides the state environment; explicit state overrides home environment. Supplying both `--home` and `--state-dir` is rejected. Lifecycle operations use the selected installation's `state/`. The default does not change with cwd or worktree and does not copy checkout-local evidence/state into the installation.
 
-The built shell, one compiler and HTTP listener remain the tested SvelteKit/singleton foundation. Identity, backend dispatch, migration and installation orchestration now live under `src/`; historical experiment entry points forward to them where appropriate. The current built application shell lives in `apps/surface`; compiler foundation code remains reused from `experiments/singleton`. See [components](components.md) for current ownership.
+Surface owns the built shell, live compiler, identity, backend dispatch and services. CLI owns installation and lifecycle. See [module ownership](package-boundaries.md) for current locations.
 
 ## Worktree workflow
 
-Within a Git project, including a subdirectory of a linked worktree:
-
-```sh
-surface project init --name "My project"  # only if the manifest is absent
-surface project register
-surface project add --source ui --name Controls
-surface project list
-surface project mount --artifact ARTIFACT_UUID
-surface workspace current
-```
+The [page authoring guide](../../skills/surface/references/pages.md) owns project creation and mount commands.
 
 Create the ordinary Svelte source folder first; `add` records it. Read UUIDs and actual namespaces from the results. Project/artifact identity is versioned in Git; each proven linked worktree has a stable workspace identity and separate namespace. Registration precedes add/list/mount on this host. Existing manifests are not reinitialized. The current contract supports Git-root projects; arbitrary clones with copied identities, nested projects, relocations and reused retired paths are not silently adopted.
 
@@ -57,7 +35,7 @@ No worktree receives its own service `.decompozr/surface`. A small marker in eac
 
 `surface workspace retire` addresses the current workspace, or use `--workspace ID`. It blocks new resource admission, unmounts that workspace and checks unresolved deliveries. Accepted/delivering/unknown work without a result blocks final retirement, even if closed. History and data retain their original workspace/session identity. Reconcile the original request, then retry. Retirement does not delete source or merge databases; Git merge and worktree removal remain explicit operations with separate cleanliness/ancestry checks.
 
-## Interaction and compatibility commands
+## Interaction commands
 
 Use `surface bind`, `request`, `requests`, `inspect`, `send`, `result` and `close` for the selected service. A new request supplies its returned namespace/mount, discovered component and explicit schema file. Bind the exact existing conversation and canonical project root. Acceptance is not agent completion; follow the exact callback command supplied with an interaction, including any retained internal CLI path and state directory.
 
@@ -73,13 +51,6 @@ Install/upgrade/rollback/uninstall require a stopped owned host. Release activat
 
 Uninstall retains service metadata, Git source, persistent project data, backups and the bootstrap. Unresolved callback work blocks removal of needed release executables. The owned host runs in its own process group, so the launching terminal/tool session can exit without terminating it. No launchd/systemd service, login item or shell-profile modification is installed. `recover` is conservative about stale process ownership. Compiler budgets, longer uptime evidence, multiple backend mounts per workspace and general data promotion remain separate work.
 
-## Historical verification before compatibility removal
+## Verification
 
-- `bun test tests experiments/singleton/interactions.test.ts experiments/project-database/backend.test.ts experiments/server-contract/contract.test.ts experiments/workspaces/identity.test.ts`
-- `bun run check`, plus affected experiment typechecks.
-- `bun run verify:surface-workspaces`: public CLI, Git branch/detached identity, browser isolation, exact fixture interaction, source merge/retirement/removal and lazy persistence.
-- `bun run verify:surface`: a pinned installed release and executable bootstrap from unrelated cwd after source move and launch-session process-group teardown; main plus two worktrees; real Chrome save; real stdio MCP/CLI agreement; retirement, restart, uninstall/reinstall and no owned hosts left running.
-
-The combined regression checkpoint passed **66 tests / 430 assertions**. Migration checks include a real post-migration mount at the original namespace, preserved accepted interaction identity, injected write failure, and verified-dead-owner recovery. Typechecks and the Surface skill validator passed.
-
-Private evidence is in `.decompozr/surface/public-workspaces-proof/` and `public-entry-proof/`. Tests use disposable repositories and deterministic fixtures; no live agent input is delivered. Source snapshot hashes identify the installed verification input independently from the final repository commit.
+`bun run verify:surface` verifies the installed launcher after source relocation and launching-session teardown, route-page browser storage, CLI/MCP identity agreement, retirement, restart and uninstall/reinstall. Tests use disposable Git fixtures and provider data. [Release acceptance](../evaluations/release-candidate.md) adds immutable package and upgrade/rollback gates. Historical milestones are retained in [history](../history/2026-09-24-workspace-boundaries.md).

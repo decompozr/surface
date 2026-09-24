@@ -1,6 +1,6 @@
 # Runtime and artifact service requirements
 
-Status: current bounded contracts consolidated at source baseline `7fceefc` on September 23, 2026. This is documentation/source reconciliation, not a new test run. Detailed behavior is owned by the linked architecture contracts. Historical verifiers retain their own revisions and limits.
+These bounded runtime requirements guide implementation. Architecture documents own detailed mechanisms; evaluation records identify the revisions and scenarios actually tested.
 
 | ID | Observable requirement | Implementation contract and limits |
 | --- | --- | --- |
@@ -17,4 +17,4 @@ Interaction requirements R-08–R-11 are in [agent interaction](agent-interactio
 
 Supported workload size/duration, compiler recreation policy, general service-store migrations, multi-mount backend ownership, project data promotion and fully integrated first-user acceptance remain unresolved. The isolated [multiple-view](../experiments/2026-09-21-multi-surface.md) and [synchronization](../experiments/2026-09-21-surface-sync.md) pilots do not automatically extend the ordinary runtime.
 
-Current setup and distribution are delivered bounded contracts. Older plans naming installation as the next milestone are historical. The missing UI behavior is itemized in [design](../design/README.md), with proposed acceptance criteria distinct from implemented behavior. This documentation task selects no new implementation backlog or operating budget.
+Current setup and distribution are delivered bounded contracts. Older plans naming installation as the next milestone are historical. The missing UI behavior is itemized in [design](../design/README.md), with proposed acceptance criteria distinct from implemented behavior.

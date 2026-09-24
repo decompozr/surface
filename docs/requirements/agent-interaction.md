@@ -1,6 +1,6 @@
 # Agent interaction
 
-Status: current bounded contract reconciled against `src/core/service.ts`, `src/client/index.ts`, `src/adapters/codex.ts` and the shared recipient panel at `7fceefc` on September 23, 2026. Dated provider evidence below remains historical; no new live delivery was run. [UI states](../design/interactions.md) and [evaluations](../evaluations/runtime-eval.md) separate implementation from acceptance.
+The Surface interaction service, page client and Codex adapter implement this bounded contract. [UI states](../design/interactions.md) and [evaluations](../evaluations/runtime-eval.md) distinguish required behavior from observed acceptance.
 
 ## Requirement index
 
@@ -152,36 +152,11 @@ Request history and provider inspection are independent. A provider outage must 
 
 Browser fixture evidence: `verify-recipients.ts` drops an acknowledgement after one provider acceptance, reads the original record, publishes a fixture result while provider inspection fails, and reloads without a second POST or provider delivery. It also checks stale choices remain disabled until refreshed.
 
-## Contextual comment batches — experimental
-
-The user-selected experiment collects element comments and optional frozen element images into one reviewable draft, then submits the batch in an explicit action. Preserve each comment's target, source revision and capture context; distinguish unsent edits, a transport receipt and an actual agent result. Selection and capture alone do not instruct an agent. A preview requested for another device must use the selected private browser origin, and submission must enforce that same origin.
-
-This is an experimental interaction direction, not an adopted general chat API or a replacement for the exact-session request binding above. The [September 23 experiment](../experiments/2026-09-23-element-comments.md) implements a limited playground and local fixture receiver. Adoption requires observed element capture, draft recovery and batch interaction in the intended browser, plus a separately authorized exact-recipient delivery run. HTTPS reachability or a fixture receipt does not satisfy those gates.
-
-
-### September 23 review correction
-
-User feedback refined the experiment: keep global controls compact and icon-only with accessible names, use a small icon/text connection status, hide the comment drawer until requested, and allow selection of the actual DOM element rather than a manually marked card. Generate a selector from IDs, suitable classes and structural position; a friendly label is presentation metadata, not required instrumentation. Preserve text, revision and an optional image alongside that selector. A selector is not stable identity after arbitrary DOM edits, so unmatched or changed context needs review rather than silent retargeting.
-
-The user explicitly authorized binding manual submissions to the originating conversation. The current experiment uses a private browser capability, a server-owned exact thread/worktree/socket binding, the existing Surface interaction store and Codex adapter, and a separate result callback. Prior fixture records retain their fixture identity and are never automatically forwarded. The [v2 evidence record](../experiments/2026-09-23-element-comments.md#v2-user-review-and-exact-conversation-binding) distinguishes tested delivery logic and read-only live connectivity from an observed user submission. This remains an experimental page, not a general mounted-page or chat API adoption.
-
-The hover/selection identifier in this experiment must show the DOM selector (tag, ID, suitable classes and structural path), not the element's prose. Element text remains separate evidence in the submitted payload. Long paths should wrap rather than hide the selected target behind content-derived labels.
-
-For this minimal review experiment, select elements directly in the workspace; do not show an element dropdown or a persistent step-by-step footer. Draft persistence remains automatic and silent on success. Show storage failures rather than a routine “saved on this browser” status.
-
-### Comment experiment push updates (September 23)
-
-The opt-in comment preview uses authenticated fetch-based SSE for durable batch receipts and complete results. Subscribe before taking the initial snapshot; each committed store update emits a new snapshot. Reconnection reads current state and never resubmits input. Keep the bearer capability in a header, not a stream URL. Heartbeats maintain transport liveness only. Agent availability is checked at connection time and labeled accordingly; it is not continuous agent presence or work progress. Token streaming and execution-event subscriptions remain unimplemented.
-
-The experiment reply shorthand is `bun run reply REQUEST_PREFIX "Message"` from its bound checkout. The prefix must uniquely identify a stored request belonging to the configured conversation and project; there is no latest-request fallback. The CLI wraps text in JSON and retains the legacy callback format.
-
-After integration with main `6dd9083`, identical concurrent comment submissions share the pending bridge operation; a changed payload is rejected. Core preflight remains authoritative. The comment playground currently supplies no explicit delivery intent, so only an idle recipient can accept its submission; an active recipient is rejected with its draft unsent until the page supports an explicit queue/steer choice. Earlier live evidence belongs to the earlier revision. See the [integration evidence](../experiments/2026-09-23-element-comments.md#main-integration-follow-up).
-
-### Typed comments and concise replies
+## Typed comments and concise replies
 
 Comment delivery uses the design-system Switch: on is Steer (default), off is Queue. For an idle/not-loaded recipient use Start. Preserve observed status/turn preflight, exact batch identity, draft retention on stale rejection and no automatic replay.
 
-Deliver a minimal `surface.comments` JSON event containing requestId and comments (selector, text, optional imagePath). Include replyTo only for a non-default state directory. Full context remains in durable storage, accessible on demand. Do not embed handling prose, repeated reply commands or mandatory acknowledgement instructions. Reply behavior belongs in the Surface skill: match the user's language, give one concise result for a simple test, and use interim acknowledgement only when useful. Existing callback commands and recorded submissions remain compatible.
+Deliver a minimal `surface.comments` JSON event containing requestId and comments (selector, text, optional imagePath). Include replyTo only for a non-default state directory. Full context remains in durable storage, accessible on demand. Do not embed handling prose, repeated reply commands or mandatory acknowledgement instructions. Reply behavior belongs in the Surface skill: match the user's language, give one concise result for a simple test, and use interim acknowledgement only when useful. Current reply commands are defined by the Surface skill; persisted records retain their original identities.
 
 Use SSE snapshots and automatic reconnection to monitor results. Show a spinner while an accepted submission awaits a reply (including an optional interim acknowledgement); remove the manual Check submission button. Failed or unknown delivery must remain truthful and must never trigger a resend. Transport acceptance is not an agent reply.
 
@@ -197,7 +172,7 @@ The compact selection strip retains one keyboard tab stop with ArrowLeft/Right a
 
 ## Mounted-page contextual comments (September 24 adoption)
 
-The same-worktree continuation explicitly authorizes adopting the validated selection, screenshot and comment UI on ordinary mounted Svelte pages. This is a bounded extension of R-08–R-11, with [implementation and evidence](../experiments/2026-09-24-mounted-comments.md). Earlier experiment-only statements above describe their dated baselines.
+The same-worktree continuation explicitly authorizes adopting the validated selection, screenshot and comment UI on ordinary mounted Svelte pages. This is a bounded extension of R-08–R-11, with [implementation and evidence](../experiments/2026-09-24-mounted-comments.md).
 
 - A component page supplies its own content, controls and domain schema. Shared chrome supplies optional element selection, a frozen PNG capture, a comment draft and result review. Normal page interaction is the initial mode; selection intercepts actions only inside the mounted content while enabled. Folder indexes remain navigation pages.
 - An existing page request and its request capability bind comments to that exact worktree, mount, component and conversation. A plain readable page can collect local drafts but cannot send. A missing or invalid capability cannot deliver; a valid `#token` fragment can connect in the same document without discarding comments. No latest-thread lookup, implicit binding, recipient change or management token enters this flow.
