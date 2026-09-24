@@ -45,8 +45,8 @@ Historical `experiments/` source is excluded from production workspaces, imports
 
 ## Verification
 
-Use an isolated source export, frozen workspace dependencies and the exact selected design-system package. Run types, SvelteKit checks, app/installer tests, MCP verifiers, the full comments matrix and installed upgrade/rollback acceptance. Exercise the new interaction API and preserved aliases. Verify direct service operations share shutdown admission and the management client remains inaccessible from mounted pages.
+Use an isolated source export, frozen workspace dependencies and the exact selected design-system package. Run types, SvelteKit checks, app/CLI tests, MCP verifiers, the full comments matrix and installed upgrade/rollback acceptance. Exercise the current interaction API. Verify direct service operations share shutdown admission and the management client remains inaccessible from mounted pages.
 
 The earlier seven-workspace migration and its bounded acceptance are summarized in [history](../history/2026-09-24-workspace-boundaries.md). Those results do not validate the revised layout. Current consolidation evidence is retained under `.decompozr/surface/module-consolidation-20260924/`.
 
-The three-app candidate passed source checks, 111 tests, actual CLI/MCP/browser flows, the immutable comments matrix and installed upgrade/rollback. See the [dated acceptance and limits](../history/2026-09-24-workspace-boundaries.md#three-app-consolidation-acceptance). Browser SDK aliases preserve older mounted projects; new fixtures exercise `virtual:surface-interactions`.
+The three-app candidate passed source checks, 111 tests, actual CLI/MCP/browser flows, the immutable comments matrix and installed upgrade/rollback. See the [dated acceptance and limits](../history/2026-09-24-workspace-boundaries.md#three-app-consolidation-acceptance). That historical candidate retained browser SDK aliases; the current development contract removes them.

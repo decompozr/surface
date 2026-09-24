@@ -128,6 +128,8 @@ try {
   await expect(page.getByLabel('Your message')).toBeVisible();
   await page.screenshot({ path: join(output, 'generated-desktop.png') });
   await page.setViewportSize({ width: 390, height: 720 });
+  await expect(page.getByRole('button', { name: 'Toggle navigation', exact: true })).toHaveAttribute('aria-expanded', 'false');
+  await page.waitForFunction(() => document.getElementById('surface-page-content')!.getBoundingClientRect().x <= 1);
   await page.screenshot({ path: join(output, 'generated-phone.png') });
   await page.setViewportSize({ width: 1280, height: 900 });
   const payload = join(installationHome, 'releases', next.release);

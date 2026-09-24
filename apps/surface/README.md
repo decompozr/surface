@@ -74,8 +74,8 @@ Project operations at `/api/v1/projects/operations` now use the existing Git wor
 Use the existing public CLI with `SURFACE_STATE_DIR` pointing to this app's explicit state directory. From a Git project root with a Surface project manifest:
 
 ```sh
-SURFACE_STATE_DIR=/tmp/surface-app-development bun /absolute/path/to/surface/src/cli/index.ts project register
-SURFACE_STATE_DIR=/tmp/surface-app-development bun /absolute/path/to/surface/src/cli/index.ts project mount --artifact ARTIFACT_UUID
+SURFACE_STATE_DIR=/tmp/surface-app-development bun /absolute/path/to/surface/apps/cli/src/index.ts project register
+SURFACE_STATE_DIR=/tmp/surface-app-development bun /absolute/path/to/surface/apps/cli/src/index.ts project mount --artifact ARTIFACT_UUID
 ```
 
 `--data-root PATH` selects the external location reserved for future workspace data; its default is `project-data` beside the state directory. The choice is persisted, but the directory and SQLite files are not allocated by registration or mounting. Changing it or reconciling unsupported single-root bindings requires a separately scoped explicit data operation. Branch renames and detached HEAD preserve identity; independent clones with copied project UUIDs are rejected.
