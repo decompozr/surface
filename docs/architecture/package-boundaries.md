@@ -40,7 +40,7 @@ Templates stay app-owned and can be generated with the service stopped. CLI call
 
 ## Tests and repository tooling
 
-App-owned unit and integration tests live in each app's `tests/`; agent adapter tests belong to Surface, and installation tests belong to CLI. Root `tests/e2e` owns cross-app browser, MCP and installed lifecycle verification. Root `tests/unit` enforces repository dependency boundaries. Root `scripts/` contains only repository-wide release and documentation tools.
+Colocate module-owned unit and integration tests with the implementation using `<module>.test.ts`, for example `capture.ts` and `capture.test.ts`. Do not create app-level `tests/` or `__tests__/` trees. Agent adapter tests belong beside Surface adapters; installation tests belong beside CLI installation modules; template generation tests belong beside the Surface generator. Repository boundary checks live in `scripts/package-boundaries.test.ts`. Root `tests/e2e` owns cross-app browser, MCP and installed lifecycle verification; reusable fixtures stay in `tests/fixtures`, with fixture-specific tests beside their implementation. Root `scripts/` contains only repository-wide tooling. Production entry points must never import test modules.
 
 Completed experiment source is retained in Git and dated documentation; useful regression fixtures live under `tests/`. Installation resolves only the current Surface and CLI layout.
 

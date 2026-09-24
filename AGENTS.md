@@ -30,6 +30,10 @@ Prefer arrow functions for new or modified JavaScript and TypeScript functions, 
 
 Follow `docs/architecture/package-boundaries.md`. Use only the Surface and CLI workspaces under `apps/`; do not split internal modules into packages without concrete independent consumers. Surface owns interactions, contracts, services, agent adapters, page runtime, MCP and templates. Use declared exports across apps and keep the dependency graph acyclic. Surface must not import CLI. Installation and lifecycle implementation belongs in `apps/cli/src/installation`, with no independent installer package. Use the root frozen Bun workspace lockfile. Root scripts are repository-wide tooling only; integrated verifiers belong in `tests/e2e`.
 
+## Test placement
+
+Colocate module tests beside their implementation as `<module>.test.ts`; do not create app-level test directories. Follow [test ownership](docs/architecture/package-boundaries.md#tests-and-repository-tooling) for cross-app E2E, fixtures and repository checks.
+
 ## Development compatibility policy
 
 Support the current source layout and public API only. When renaming or moving code, update all owned callers, tests and current documentation together. Do not add compatibility aliases, historical path probing, retired host modes or old command dispatch solely to keep an earlier experiment working. Compatibility requires a concrete external consumer and an explicit support decision. Preserve user data: reject unsupported formats without overwriting them; any required migration is a separately scoped, explicit operation. Keep historical evidence as dated documentation or Git history, not as production runtime branches.

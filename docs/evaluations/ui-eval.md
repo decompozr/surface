@@ -8,7 +8,7 @@ For future isolated execution, use the dependencies/build required by the app an
 
 Covers [R-02](../requirements/consumers.md), [D-01/D-02](../design/navigation.md). Pass if home SSR includes registered ready routes, exact worktrees stay distinct, nested route/folder index and breadcrumbs resolve, the current link retains its capability and unrelated links stay clean. Fail if navigation enumerates arbitrary files, leaks credentials to another page or blurs worktree identity.
 
-Available: `bun test tests/navigation.test.ts`; `bun tests/e2e/surface/verify-navigation.ts`; capability retention is exercised by `bun tests/e2e/surface/verify-recipients.ts`. [Tree tests](../../apps/surface/tests/navigation.test.ts) and [navigation browser script](../../tests/e2e/surface/verify-navigation.ts) encode ready-only grouping, nested pages/folders, collapse and overflow. Large/deep trees, duplicate labels, stale mounted URLs and all empty-state distinctions still need cases; no new pass is claimed.
+Available: `bun test apps/surface/src/lib/server/http/navigation.test.ts`; `bun tests/e2e/surface/verify-navigation.ts`; capability retention is exercised by `bun tests/e2e/surface/verify-recipients.ts`. [Tree tests](../../apps/surface/src/lib/server/http/navigation.test.ts) and [navigation browser script](../../tests/e2e/surface/verify-navigation.ts) encode ready-only grouping, nested pages/folders, collapse and overflow. Large/deep trees, duplicate labels, stale mounted URLs and all empty-state distinctions still need cases; no new pass is claimed.
 
 ## E-08: delivery choice
 
@@ -20,7 +20,7 @@ Available: `bun tests/e2e/surface/verify-recipients.ts`, plus E-05 service/adapt
 
 Covers [R-10](../requirements/agent-interaction.md#requirement-index), D-03/D-04. Pass if opt-in same-worktree selection requires confirmation, the URL receives the new request/token, old request closes, no delivery occurs merely from change, and submitted requests expose no takeover action. Fail on transferred response/result, cross-worktree routing or implied draft retention.
 
-Available: `bun tests/e2e/surface/verify-recipients.ts`, `bun test tests/service.test.ts`. The browser fixture asserts one explicit successful change and no replay; authorization/locking use service checks. Unavailable/removed candidate, lost acknowledgement and unknown submitted state presentation need added shared-panel browser cases. Live directory inspection alone is not delivery evidence.
+Available: `bun tests/e2e/surface/verify-recipients.ts`, `bun test apps/surface/src/lib/server/services/service.test.ts`. The browser fixture asserts one explicit successful change and no replay; authorization/locking use service checks. Unavailable/removed candidate, lost acknowledgement and unknown submitted state presentation need added shared-panel browser cases. Live directory inspection alone is not delivery evidence.
 
 ## E-10: failure and freshness presentation
 

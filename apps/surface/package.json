@@ -7,7 +7,7 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc --noEmit -p tsconfig.server.json",
     "build": "bun --bun vite build",
     "start": "bun src/server.ts",
-    "test": "bun test tests",
+    "test": "bun test src",
     "check:core": "tsc --noEmit -p tsconfig.core.json"
   },
   "dependencies": {

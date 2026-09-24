@@ -14,12 +14,12 @@
   "include": [
     "apps/cli/src/**/*.ts",
     "apps/surface/src/lib/server/**/*.ts",
-    "apps/*/tests/**/*.ts",
     "tests/**/*.ts",
     "scripts/**/*.ts",
     "apps/surface/.svelte-kit/ambient.d.ts",
     "apps/surface/src/lib/contracts/**/*.ts",
-    "apps/surface/src/lib/interactions/**/*.ts"
+    "apps/surface/src/lib/interactions/**/*.ts",
+    "apps/surface/src/lib/comments/**/*.ts"
   ],
   "exclude": [
     "tests/fixtures/comments-app"

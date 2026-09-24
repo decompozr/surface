@@ -17,7 +17,7 @@
     "check": "tsc --noEmit -p tsconfig.json",
     "start": "bun src/index.ts",
     "reply": "bun src/reply.ts",
-    "test": "bun test tests"
+    "test": "bun test src"
   },
   "dependencies": {
     "@decompozr/surface-app": "workspace:*",

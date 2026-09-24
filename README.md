@@ -20,7 +20,7 @@ Private Tailscale browser access is supported by source setup. Browser access, p
 | `apps/cli` | Commands, installation and service lifecycle |
 | `tests/e2e` | Cross-app browser, MCP and installed lifecycle verification |
 | `tests/fixtures` | Isolated test projects and fixture-only app overlays |
-| `tests/unit` | Repository boundaries and shared fixture regression tests |
+| `*.test.ts` beside source | Module regression tests; repository checks live under `scripts/` |
 | `scripts` | Repository-wide release and documentation tooling |
 | `docs` | Current specifications plus dated evidence and concise history |
 

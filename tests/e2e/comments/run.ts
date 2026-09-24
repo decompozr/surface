@@ -15,7 +15,7 @@ const run = async (args: string[], env: Record<string, string> = {}, cwd = root)
 const root = process.cwd();
 const output = resolve(process.env.COMMENTS_E2E_OUTPUT ?? `.decompozr/surface/comments-e2e/${Date.now()}`);
 mkdirSync(output, { recursive: true });
-await run(['bun', 'test', 'apps/surface/tests/comments/delivery.test.ts', 'apps/surface/tests/comments/mounted.test.ts']);
+await run(['bun', 'test', 'apps/surface/src/lib/server/comments/delivery.test.ts', 'apps/surface/src/lib/server/comments/mounted.test.ts']);
 const prepared = process.env.COMMENTS_E2E_PREPARED_RELEASE && resolve(process.env.COMMENTS_E2E_PREPARED_RELEASE);
 const bundle = prepared ? verifyBundle(prepared) : undefined;
 const temporary = mkdtempSync(join(tmpdir(), 'surface-comments-verification-'));

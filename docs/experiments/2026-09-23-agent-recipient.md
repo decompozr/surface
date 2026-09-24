@@ -1,6 +1,6 @@
 # Agent discovery, recipient selection and takeover
 
-Status: bounded experiments with separate live read-only discovery and fixture-backed lifecycle evidence. Source checkpoints: `25b7944` (picker), `30f3bad` / `0d2a736` (directory and app import correction), and `dea65c1` (lifecycle), integrated through `a97e34f`. This record preserves the completed experiment; it does not claim a new run. The lab routes and duplicate workflow were retired during the September 24 production review. Their source remains in Git at `087b043622fc6ad2044d22c8cc73b531dccfab90`. Discovery regression tests now live under `apps/surface/tests/agent-adapters`; current recipient behavior is tested against the production Service.
+Status: bounded experiments with separate live read-only discovery and fixture-backed lifecycle evidence. Source checkpoints: `25b7944` (picker), `30f3bad` / `0d2a736` (directory and app import correction), and `dea65c1` (lifecycle), integrated through `a97e34f`. This record preserves the completed experiment; it does not claim a new run. The lab routes and duplicate workflow were retired during the September 24 production review. Their source remains in Git at `087b043622fc6ad2044d22c8cc73b531dccfab90`. Discovery regression tests now live under `apps/surface/src/lib/server/agent-adapters`; current recipient behavior is tested against the production Service.
 
 ## Question and observations
 
