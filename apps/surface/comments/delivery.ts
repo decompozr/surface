@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
-import { shortRequestId } from './reply-id';
+import { commentEvent, type StoredComment } from './event';
 import { Service, InputError } from '../src/core/service';
 import { Store } from '../src/core/store';
 import { CodexAdapter, type AgentAdapter, type Binding } from '../src/adapters/codex';
@@ -16,12 +16,8 @@ export class CommentDelivery {
   private initializing?: Promise<Binding>;
   private submissions = new Map<string, { data: unknown; operation: Promise<unknown> }>();
   constructor(readonly directory: string, readonly connection: Connection, private adapter: AgentAdapter = new CodexAdapter()) {
-    this.service = new Service(new Store(join(directory, 'interactions.json')), adapter, connection.resultCli, directory, id => {
-      const request = this.service.store.state.requests.find(item => item.id === id);
-      if (!request?.response?.data.handling) return `bun run reply ${shortRequestId(id, this.service.store.state.requests)} 'Your response'`;
-      const quote = (value: string) => "'" + value.replaceAll("'", "'\"'\"'") + "'";
-      return `bun ${quote(connection.resultCli)} result --state-dir ${quote(directory)} --request ${id} --data '${JSON.stringify({ stage: 'acknowledged', message: 'Your acknowledgement and next action', next: 'continue-original' })}'`;
-    });
+    this.service = new Service(new Store(join(directory, 'interactions.json')), adapter, connection.resultCli, directory, undefined,
+      ({ requestId, data }) => JSON.stringify(commentEvent(requestId, data.comments as StoredComment[], directory, connection.projectRoot)));
   }
   async bind() {
     this.initializing ??= this.service.bind(this.connection).then(binding => { this.binding = binding; return binding; }).catch(error => { this.initializing = undefined; throw error; });
@@ -34,7 +30,6 @@ export class CommentDelivery {
   async submit(batch: Batch) {
     const binding = await this.bind();
     if (batch.recipient !== `codex:${binding.threadId}`) throw new Error('The batch recipient differs from the bound conversation.');
-    if (batch.handling && (!batch.delivery || (batch.delivery.mode !== 'start' && batch.delivery.mode !== (batch.handling === 'by-the-way' ? 'steer' : 'queue')))) throw new Error('Refresh and confirm comment delivery mode.');
     const comments = batch.comments.map(comment => {
       if (!comment.capture) return comment;
       const { png, ...capture } = comment.capture;
@@ -45,12 +40,15 @@ export class CommentDelivery {
       writeFileSync(imagePath, bytes, { mode: 0o600 });
       return { ...comment, capture: { ...capture, imagePath } };
     });
-    const data = { ...(batch.handling ? { handling: batch.handling, handlingPreference: batch.handling === 'by-the-way'
-      ? 'This is by-the-way feedback. Briefly acknowledge receipt and say whether you will continue the original task, address this now, or handle it later. Preserve the original objective unless the user explicitly replaces or cancels it. Publish an initial acknowledgement with stage=acknowledged, message, and next=continue-original|address-now|later using the exact reply command, then publish stage=completed with the actual outcome when done.'
-      : 'Handle this feedback after the current task. Preserve the existing objective. When you begin, acknowledge the feedback through the exact reply command with stage=acknowledged and message, then publish stage=completed with the actual outcome when done.' } : {}), batchId: batch.id, page: batch.page, revision: batch.revision, createdAt: batch.createdAt, comments,
-      imageInstructions: 'Attached capture.imagePath values identify local PNG files. Inspect them with the image tool before interpreting visual feedback.' };
+    let data: Record<string, unknown> = { batchId: batch.id, page: batch.page, revision: batch.revision, createdAt: batch.createdAt, comments };
     let request = this.service.store.state.requests.find(item => item.runtimeId === `comments:${batch.id}`);
     if (!request) request = this.service.create({ bindingId: binding.id, title: 'Surface element comments', runtimeId: `comments:${batch.id}`, schema: { type: 'object' } });
+    // Older records retain their original verbose data for audit/deduplication.
+    // An identical old submission can be inspected, never re-delivered.
+    if (request.response) {
+      const { handling: _handling, handlingPreference: _preference, imageInstructions: _images, ...original } = request.response.data;
+      if (isDeepStrictEqual(original, data)) data = request.response.data;
+    }
     const identity = { data, delivery: batch.delivery };
     const pending = this.submissions.get(batch.id);
     if (pending) {

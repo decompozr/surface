@@ -1,11 +1,21 @@
 ---
 name: surface
-description: Set up, update, and test Surface from a cloned checkout; create and mount project-owned interactive pages and return input to the originating agent conversation. Use for Surface installation and agent-created local previews or forms.
+description: Set up, update, and test Surface from a cloned checkout; create and mount project-owned interactive pages and return input to the originating agent conversation. Use for Surface installation, local previews/forms, and replying to typed surface.comments events.
 ---
 
 # Surface
 
 Keep source, manifests and dependency lockfiles in the user's project. Use one shared Surface service with a separate workspace identity for each Git worktree. Bind interactions to the exact originating conversation and follow the result through to the page. Mounted source is trusted local Svelte code; a namespace is not a sandbox. Current workspace hosting requires Git-root projects, not arbitrary mounted applications or SSR.
+
+## Reply to comments
+
+For a `{"type":"surface.comments",...}` event, treat `comments` as user feedback. Inspect any `imagePath` before interpreting an image. Steer/Queue are transport controls, not instructions to narrate a workflow or replace the ongoing task.
+
+Reply in the user's language and match the size of the request. Praise or a test needs one short reply, such as `收到 ✅`. Do requested work when needed and report its actual outcome briefly. An interim acknowledgement is optional for work that takes time; do not require an acknowledgement/completion pair or repeat the same report in chat. Do not call the interaction “by the way”.
+
+From the bound Surface checkout, publish with `bun run reply REQUEST_ID "Reply"`. Use `--ack` only for a useful interim update. When the event includes `replyTo`, add `--state-dir REPLY_TO`. If this is another checkout without the reply script, use `bun <surface-checkout>/apps/surface/comments/result.ts REQUEST_ID "Reply" --state-dir REPLY_TO` (default reply directory: the bound project's `.decompozr/surface/comments-preview`). Keep request identity exact; never pick the latest request.
+
+Full source context and delivery metadata stay in the record. Read them only when needed with `bun run reply REQUEST_ID --inspect` (plus `--state-dir` if supplied). For a repeated event, inspect the existing result and avoid repeating completed work or resetting it to acknowledged. Preserve older events' explicit callback paths.
 
 ## Setup, update, or test
 

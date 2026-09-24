@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
-  import { Badge, Button, ToggleGroup, Toolbar, ToggleButton, Tag, IconButton, TextArea, Slider, Icon, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
+  import { Badge, Button, Switch, Toolbar, ToggleButton, Tag, IconButton, TextArea, Slider, Icon, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
   import Toast from '$lib/components/Toast.svelte';
   import SurfaceShell from '$lib/components/SurfaceShell.svelte';
   import { composerPlacement, readViewport } from '$lib/comment-experiment/viewport';
@@ -11,7 +11,7 @@
   let review = $state(emptyState());
   let connectionKey = $state(''), agentAvailable = $state(false), agentStatus = $state('Checking…');
   let streamConnected = $state(false);
-  let handling = $state<'by-the-way' | 'after-current'>('by-the-way');
+  let steer = $state(true);
   let recipientObservation = $state<{ status: 'active' | 'idle' | 'notLoaded'; turnId?: string }>();
   let inspecting = $state(false);
   let inspection = 0;
@@ -36,20 +36,6 @@
     batch.deliveryMode = result.deliveryMode; batch.queuedSubmissionId = result.queuedSubmissionId;
     batch.error = result.error;
     if (result.result) batch.result = result.result;
-  }
-  async function checkBatch(id: string) {
-    const batch = review.batches.find(item => item.id === id);
-    if (!batch || sending) return;
-    sending = true;
-    try {
-      const response = await fetch(`/experiments/comments/batch?id=${encodeURIComponent(id)}`, { headers: { authorization: `Bearer ${connectionKey}` }, signal: AbortSignal.timeout(10000) });
-      if (!response.ok) throw new Error('Could not check submission.');
-      const result = await response.json();
-      if (result?.batchId === id && result.destination === batch.recipient) receive(batch, result);
-      notice = result ? 'Existing submission checked. Nothing was resent.' : 'No submission record yet. The outcome is still unconfirmed; nothing was resent.';
-      await flush();
-    } catch { notice = 'Could not check submission. Your batch is retained; nothing was resent.'; }
-    finally { sending = false; }
   }
   let toast = $state<{ message: string; tone: 'info' | 'success' | 'warning' } | null>(null);
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
@@ -167,7 +153,7 @@
   async function flush() { await persistQueue; await writeState($state.snapshot(review)); }
   async function send() {
     if (locked || (data.live && (!agentAvailable || !recipientObservation || inspecting)) || pending || review.draft.text.trim() || review.draft.capture || !review.comments.length) return;
-    const batch: Batch = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), page: location.pathname, revision: REVISION, recipient: data.recipient as Batch['recipient'], comments: $state.snapshot(review.comments), ...(data.live && recipientObservation ? { handling, delivery: { mode: recipientObservation.status === 'active' ? (handling === 'by-the-way' ? 'steer' as const : 'queue' as const) : 'start' as const, expectedStatus: recipientObservation.status, expectedTurnId: recipientObservation.turnId } } : {}), status: 'pending' };
+    const batch: Batch = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), page: location.pathname, revision: REVISION, recipient: data.recipient as Batch['recipient'], comments: $state.snapshot(review.comments), ...(data.live && recipientObservation ? { delivery: { mode: recipientObservation.status === 'active' ? (steer ? 'steer' as const : 'queue' as const) : 'start' as const, expectedStatus: recipientObservation.status, expectedTurnId: recipientObservation.turnId } } : {}), status: 'pending' };
     if (JSON.stringify(batch).length > 7_500_000) { notice = 'This batch is too large. Remove a screenshot before sending.'; return; }
     review.batches.push(batch); review.comments = []; review.draft = { target: null, text: '' }; selected = null; updateBox(); await deliver(batch.id);
   }
@@ -192,12 +178,12 @@
       const stored = review.batches.find(b => b.id === id)!;
       receive(stored, batch.recipient === 'local-fixture' ? { ...result, status: 'accepted' } : result);
       await flush();
-      notice = batch.recipient === 'local-fixture' ? 'Local test received. No agent contacted.' : stored.status === 'accepted' ? stored.deliveryMode === 'queue' ? 'Queued for this conversation. The agent has not acknowledged it yet.' : 'Delivered to this conversation. The agent has not acknowledged it yet.' : 'Delivery is not confirmed. Your batch is retained.';
+      notice = batch.recipient === 'local-fixture' ? 'Local test received. No agent contacted.' : stored.status === 'accepted' ? stored.deliveryMode === 'queue' ? 'Queued for this conversation. Waiting for reply.' : 'Delivered to this conversation. Waiting for reply.' : 'Delivery is not confirmed. Your batch is retained.';
     } catch (error) {
       const stored = review.batches.find(item => item.id === id);
       notice = stored?.status === 'accepted' || stored?.result
         ? 'Submission confirmed through live updates. Nothing was resent.'
-        : `${error instanceof Error ? error.message : 'Delivery could not be confirmed.'} The batch is retained. Check the existing submission; do not resend.`;
+        : `${error instanceof Error ? error.message : 'Delivery could not be confirmed.'} The batch is retained. Status updates automatically.`;
     }
     finally { sending = false; }
   }
@@ -340,8 +326,8 @@
       {#if !review.comments.length && !review.batches.length}<div class="empty"><Text size="small">No comments yet. Select an element to start.</Text></div>{/if}
       {#each review.batches as batch (batch.id)}<SurfaceCard as="section" class="batch" tone="subtle" aria-label="Submitted batch"><div class="batch-label"><strong>You · {batch.comments.length} comments</strong><span>{batch.recipient === 'local-fixture' ? 'Local test' : batch.result ? batch.result.stage === 'acknowledged' ? 'Agent acknowledged' : 'Agent replied' : batch.status === 'accepted' ? batch.deliveryMode === 'queue' ? 'Queued' : 'Delivered' : batch.status === 'failed' ? 'Not delivered' : 'Unconfirmed'}</span></div>
         {#each batch.comments as comment}<div class="sent-comment"><strong>{comment.target.label}</strong>{#if comment.capture}<a href={comment.capture.png} download={`${comment.target.id}.png`} aria-label={`Download screenshot of ${comment.target.label}`}><img src={comment.capture.png} alt={`Captured ${comment.target.label}`} /></a>{/if}<Text size="small">{comment.text}</Text></div>{/each}
-        {#if batch.recipient === 'local-fixture' && batch.status === 'accepted'}<Divider /><Text size="small" class="fixture-reply">Local test only. This was not sent to an agent.</Text>{:else if batch.result}<Divider /><Text size="small" class="agent-reply">{batch.result.message}</Text>{#if batch.result.stage === 'acknowledged' && batch.result.next}<Text size="small" tone="muted">{batch.result.next === 'continue-original' ? 'Continuing the original task' : batch.result.next === 'address-now' ? 'Addressing this now' : 'Handling this later'}</Text>{/if}{:else if batch.status === 'accepted'}<Text size="small" tone="muted">Waiting for the agent to acknowledge.</Text>{:else if batch.status === 'pending'}<Text size="small">Submission unconfirmed. Nothing is resent automatically.</Text>{#if batch.recipient === 'local-fixture'}<Button size="compact" disabled={sending} onclick={() => deliver(batch.id)}>Retry local test</Button>{/if}{:else if batch.status === 'unknown' || batch.status === 'failed'}<Text size="small" class="notice">{batch.error ?? 'Delivery needs reconciliation. Nothing is resent automatically.'}</Text>{/if}
-        {#if batch.recipient !== 'local-fixture' && !batch.result}<Button size="compact" disabled={sending} onclick={() => checkBatch(batch.id)}>Check submission</Button>{/if}
+        {#if batch.recipient === 'local-fixture' && batch.status === 'accepted'}<Divider /><Text size="small" class="fixture-reply">Local test only. This was not sent to an agent.</Text>{:else if batch.result}<Divider /><Text size="small" class="agent-reply">{batch.result.message}</Text>{#if batch.result.stage === 'acknowledged' && batch.result.next}<Text size="small" tone="muted">{batch.result.next === 'continue-original' ? 'Continuing the original task' : batch.result.next === 'address-now' ? 'Addressing this now' : 'Handling this later'}</Text>{/if}{:else if batch.status === 'accepted'}{:else if batch.status === 'pending'}<Text size="small">Submission unconfirmed. Nothing is resent automatically.</Text>{#if batch.recipient === 'local-fixture'}<Button size="compact" disabled={sending} onclick={() => deliver(batch.id)}>Retry local test</Button>{/if}{:else if batch.status === 'unknown' || batch.status === 'failed'}<Text size="small" class="notice">{batch.error ?? 'Delivery needs reconciliation. Nothing is resent automatically.'}</Text>{/if}
+        {#if batch.recipient !== 'local-fixture' && (batch.status === 'accepted' || batch.status === 'pending') && (!batch.result || batch.result.stage === 'acknowledged')}<div class="reply-wait" role="status"><span class="reply-spinner" aria-hidden="true"></span>{streamConnected ? 'Waiting for reply…' : 'Reconnecting…'}</div>{/if}
       </SurfaceCard>{/each}
       {#if review.comments.length}<Text size="eyebrow" tone="muted">Draft · not sent</Text>{/if}
       {#each review.comments as comment, i (comment.id)}<SurfaceCard as="article" class="comment-card"><div class="comment-heading"><Badge>{i + 1}</Badge><strong>{comment.target.label}</strong></div>{#if comment.capture}<a href={comment.capture.png} download={`${comment.target.id}.png`} aria-label={`Download screenshot of ${comment.target.label}`}><img src={comment.capture.png} alt={`Captured ${comment.target.label}`} /></a><Text as="span" size="small" tone="muted" class="image-meta">{comment.capture.width} × {comment.capture.height} · frozen capture</Text>{/if}<Text size="small">{comment.text}</Text><div class="card-actions"><IconButton size="compact" icon="pencil" label={`Edit comment ${i + 1}`} title="Edit comment" disabled={locked || review.draft.editing === comment.id} onclick={() => edit(comment)} /><IconButton size="compact" icon="trash-2" label={`Remove comment ${i + 1}`} title="Remove comment" disabled={locked || review.draft.editing === comment.id} onclick={() => review.comments = review.comments.filter(c => c.id !== comment.id)} /></div></SurfaceCard>{/each}
@@ -353,12 +339,10 @@
       {#if data.live && !connectionKey}<Text size="small" class="hint">Open the private connection link to enable sending.</Text>{/if}
       {#if review.draft.text.trim() || review.draft.capture}<Text size="small" class="hint">Add this comment to the draft before sending the batch.</Text>{/if}
       {#if data.live && review.comments.length}
-        <ToggleGroup label="Delivery mode" size="compact" value={handling} disabled={locked || pending}
-          options={[{ value: 'by-the-way', label: 'Steer', icon: 'arrow-right', showLabel: true }, { value: 'after-current', label: 'Queue', icon: 'files', showLabel: true }]}
-          onValueChange={(value) => { if (value === 'by-the-way' || value === 'after-current') handling = value; }} />
+        <Switch label={steer ? 'Steer' : 'Queue'} aria-label="Steer delivery" bind:checked={steer} disabled={locked || pending} />
         <Button size="compact" disabled={locked || inspecting} onclick={() => refreshRecipient()}>Refresh agent</Button>
       {/if}
-      <div class="send-action"><IconButton size="compact" icon="arrow-up" variant="primary" appearance="default" label={`Send ${review.comments.length} comments together`} title={`Send ${review.comments.length} comments together`} disabled={locked || (data.live && (!agentAvailable || !recipientObservation || inspecting)) || pending || !review.comments.length || !!review.draft.text.trim() || !!review.draft.capture} onclick={send} /></div>
+      <div class="send-action"><Button size="compact" variant="primary" appearance="default" aria-label={`Send ${review.comments.length} comments together`} title={`Send ${review.comments.length} comments together`} disabled={locked || (data.live && (!agentAvailable || !recipientObservation || inspecting)) || pending || !review.comments.length || !!review.draft.text.trim() || !!review.draft.capture} onclick={send} ><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4v7a4 4 0 0 1-4 4H4m5-5-5 5 5 5" /></svg></Button></div>
       <div class="export-actions">{#if storageError}<span role="alert">{storageError}</span>{/if}<IconButton size="compact" icon="download" label="Export conversation JSON" title="Export conversation" disabled={!ready} onclick={download} /></div>
     </div>
 {/snippet}
@@ -388,6 +372,8 @@
 {#if mode && selected && box && !editorOpen}
   <div class="selection-tools" bind:clientWidth={selectionToolsWidth} bind:clientHeight={selectionToolsHeight} style:left={`${Math.max(12, Math.min(box.x, innerWidth - selectionToolsWidth - 12))}px`} style:top={`${Math.max(64, Math.min(box.y + box.height + 8, innerHeight - selectionToolsHeight - 32))}px`}>
     <SurfaceCard padding="0"><Toolbar label="Selected element actions">
+    <strong class="selection-label">{metadata(selected).selector}</strong>
+      {#if selected?.parentElement && selected.parentElement !== workspace}<IconButton size="compact" icon="chevron-up" label="Select parent element" title="Select parent element" disabled={locked} onclick={() => { const parent = selected?.parentElement; if (parent && workspace.contains(parent) && parent !== workspace) { selected = parent; review.draft = { ...review.draft, target: metadata(parent), capture: undefined }; hovered = null; updateBox(); } }} />{/if}
     <IconButton size="compact" icon="camera" label="Capture selected element" title="Screenshot" disabled={locked} onclick={async () => { await capture(); editorOpen = true; updateBox(); }} />
     <IconButton size="compact" icon="message-square" label="Comment on selected element" title="Comment" disabled={locked} onclick={openComment} />
     <IconButton size="compact" icon="close" label="Clear selection" title="Clear selection" disabled={locked} onclick={() => { selected = null; hovered = null; updateBox(); }} />
@@ -407,7 +393,7 @@
 {#snippet actions()}
     <div class="editor-actions">
       <IconButton size="compact" icon="camera" label={review.draft.capture ? 'Retake element screenshot' : 'Capture element screenshot'} title={busy ? 'Capturing…' : 'Capture selected element'} disabled={locked || !selected} onclick={capture} />
-      {#if selected?.parentElement && selected.parentElement !== workspace}<IconButton size="compact" icon="chevron-up" label="Select parent element" title="Select parent element" disabled={locked} onclick={() => { const parent = selected?.parentElement; if (parent && workspace.contains(parent) && parent !== workspace) { selected = parent; review.draft = { ...review.draft, target: metadata(parent), capture: undefined }; hovered = null; updateBox(); } }} />{/if}
+
       {#if review.draft.capture}<IconButton size="compact" icon="trash-2" label="Remove screenshot" title="Remove screenshot" disabled={locked} onclick={() => review.draft.capture = undefined} />{/if}
       <span class="editor-status">{busy ? 'Capturing…' : ''}</span>
       <IconButton size="compact" icon="check" variant="primary" appearance="default" label={review.draft.editing ? 'Save comment' : 'Add comment to draft'} aria-keyshortcuts="Meta+Enter Control+Enter" title={review.draft.editing ? 'Save comment (⌘/Ctrl + Enter)' : 'Add comment (⌘/Ctrl + Enter)'} disabled={locked || (!review.draft.text.trim() && !review.draft.capture)} onclick={() => addComment()} />
@@ -465,4 +451,10 @@
   .options { grid-template-columns:1fr; }
   .controls { align-items:flex-start; flex-direction:column; }
 }
+
+.reply-wait { display:flex; align-items:center; gap:.5rem; font-size:.875rem; padding-top:.75rem; }
+.reply-spinner { width:14px; height:14px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:reply-spin .8s linear infinite; }
+.selection-label { max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-left:.5rem; }
+@keyframes reply-spin { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .reply-spinner { animation:none; } }
 </style>
