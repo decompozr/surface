@@ -46,8 +46,17 @@ try {
     const count = deliveries.length;
     try {
       await page.goto(origin + '/experiments/comments#connect=' + token);
+      await page.locator('#option-a h2').click();
+      const parentAction = page.getByRole('button', { name: 'Select parent element' });
+      await expect(parentAction).toBeVisible();
+      await parentAction.click();
+      await expect(parentAction).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+      expect(await page.locator('.element-label').evaluate(node => {
+        const button = node.querySelector('button')!.getBoundingClientRect();
+        const label = node.querySelector(':scope > span:last-child')!.getBoundingClientRect();
+        return button.right <= label.left + 1;
+      })).toBe(true);
       await page.locator('#headline').click();
-      await expect(page.getByRole('button', { name: 'Select parent element' })).toBeVisible();
       await page.screenshot({ path: join(output, name + '-selection.png'), fullPage: true });
       await page.getByRole('button', { name: 'Capture selected element', exact: true }).click();
       await expect(page.getByRole('button', { name: 'Select parent element' })).toHaveCount(0);
@@ -132,6 +141,19 @@ try {
       expect(errors).toEqual([]);
       const pane = page.getByRole('complementary', { name: 'Comments and conversation' });
       await expect(pane).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Export conversation JSON' })).toHaveCount(0);
+      await expect(page.getByRole('contentinfo', { name: 'Connection status' }).getByRole('button', { name: 'Refresh agent' })).toBeVisible();
+      await page.getByRole('button', { name: 'Close comments', exact: true }).click();
+      await page.locator('#headline').click();
+      await page.getByRole('button', { name: 'Comment on selected element', exact: true }).click();
+      await page.locator('#comment').fill('Latest draft ' + name);
+      await page.getByRole('button', { name: 'Add comment to draft' }).click();
+      await page.getByRole('button', { name: /Open comments/ }).click();
+      await expect.poll(() => page.locator('.conversation').evaluate(node => {
+        const scroller = node.parentElement!;
+        return scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop;
+      })).toBeLessThan(2);
+      await expect(page.getByText('Latest draft ' + name, { exact: true })).toBeInViewport();
       // Capture settled geometry, not an intermediate drawer animation frame.
       await expect.poll(async () => {
         const bounds = await pane.boundingBox();

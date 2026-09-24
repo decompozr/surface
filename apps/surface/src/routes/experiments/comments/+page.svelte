@@ -91,6 +91,14 @@
   }
   function metadata(el: HTMLElement): Target { return describeTarget(el, workspace); }
   function closeEditor() { editorOpen = false; hovered = null; updateBox(); }
+  function followLatest(node: HTMLElement) {
+    const body = node.parentElement!;
+    const scroll = () => { body.scrollTop = body.scrollHeight; };
+    const resize = new ResizeObserver(scroll);
+    resize.observe(node); resize.observe(body);
+    void tick().then(scroll);
+    return { destroy() { resize.disconnect(); } };
+  }
   async function togglePanel() {
     panel = !panel;
     if (panel) editorOpen = false;
@@ -230,14 +238,10 @@
       });
     }
   }
-  function download() {
-    const url = URL.createObjectURL(new Blob([JSON.stringify($state.snapshot(review), null, 2)], { type: 'application/json' })), a = document.createElement('a');
-    a.href = url; a.download = 'surface-comment-experiment.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
   $effect(() => {
     if (!ready) return;
     const snapshot = $state.snapshot(review);
-    persistQueue = persistQueue.catch(() => {}).then(() => writeState(snapshot)).then(() => { storageError = ''; }, () => { storageError = 'Could not save — export before leaving'; });
+    persistQueue = persistQueue.catch(() => {}).then(() => writeState(snapshot)).then(() => { storageError = ''; }, () => { storageError = 'Could not save comments. Keep this page open.'; });
   });
   onMount(() => {
     let active = true;
@@ -263,7 +267,7 @@
     const workspaceSize = new ResizeObserver(updateBox);
     workspaceSize.observe(workspace);
     readState().then(saved => { if (!active) return; review = saved; ready = true; if (saved.draft.target) selected = resolveTarget(saved.draft.target, workspace); updateBox(); void watchUpdates(updates.signal); })
-      .catch(() => { if (active) { ready = true; notice = 'Browser storage could not be opened. Export your work before leaving.'; void watchUpdates(updates.signal); } });
+      .catch(() => { if (active) { ready = true; notice = 'Browser storage could not be opened. Keep this page open.'; void watchUpdates(updates.signal); } });
     let gesture: { x: number; y: number; moved: boolean } | null = null;
     let suppressClick = false;
     const press = (event: PointerEvent) => {
@@ -322,7 +326,7 @@
     <div class="panel-heading"><Text as="h2" size="body">Comments <Badge>{review.comments.length}</Badge></Text><IconButton size="compact" icon="close" label="Close comments" title="Close comments" onclick={() => panel = false} /></div>
     <div class="recipient">{#if agentAvailable}<Icon name="circle-dot" />{:else}<Icon name="unplug" />{/if}<Text as="span" size="small" tone="muted">{data.live ? data.label : "Local test only"}</Text></div>
 {/snippet}
-    <div class="conversation">
+    <div class="conversation" use:followLatest>
       {#if !review.comments.length && !review.batches.length}<div class="empty"><Text size="small">No comments yet. Select an element to start.</Text></div>{/if}
       {#each review.batches as batch (batch.id)}<SurfaceCard as="section" class="batch" tone="subtle" aria-label="Submitted batch"><div class="batch-label"><strong>You · {batch.comments.length} comments</strong><span>{batch.recipient === 'local-fixture' ? 'Local test' : batch.result ? batch.result.stage === 'acknowledged' ? 'Agent acknowledged' : 'Agent replied' : batch.status === 'accepted' ? batch.deliveryMode === 'queue' ? 'Queued' : 'Delivered' : batch.status === 'failed' ? 'Not delivered' : 'Unconfirmed'}</span></div>
         {#each batch.comments as comment}<div class="sent-comment"><strong>{comment.target.label}</strong>{#if comment.capture}<a href={comment.capture.png} download={`${comment.target.id}.png`} aria-label={`Download screenshot of ${comment.target.label}`}><img src={comment.capture.png} alt={`Captured ${comment.target.label}`} /></a>{/if}<Text size="small">{comment.text}</Text></div>{/each}
@@ -338,18 +342,20 @@
       <Text size="small" class="notice" role="status">{notice}</Text>
       {#if data.live && !connectionKey}<Text size="small" class="hint">Open the private connection link to enable sending.</Text>{/if}
       {#if review.draft.text.trim() || review.draft.capture}<Text size="small" class="hint">Add this comment to the draft before sending the batch.</Text>{/if}
+      <div class="delivery-actions">
       {#if data.live && review.comments.length}
         <Switch label={steer ? 'Steer' : 'Queue'} aria-label="Steer delivery" bind:checked={steer} disabled={locked || pending} />
-        <Button size="compact" disabled={locked || inspecting} onclick={() => refreshRecipient()}>Refresh agent</Button>
       {/if}
       <div class="send-action"><Button size="compact" variant="primary" appearance="default" aria-label={`Send ${review.comments.length} comments together`} title={`Send ${review.comments.length} comments together`} disabled={locked || (data.live && (!agentAvailable || !recipientObservation || inspecting)) || pending || !review.comments.length || !!review.draft.text.trim() || !!review.draft.capture} onclick={send} ><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4v7a4 4 0 0 1-4 4H4m5-5-5 5 5 5" /></svg></Button></div>
-      <div class="export-actions">{#if storageError}<span role="alert">{storageError}</span>{/if}<IconButton size="compact" icon="download" label="Export conversation JSON" title="Export conversation" disabled={!ready} onclick={download} /></div>
+      </div>
+      {#if storageError}<span role="alert">{storageError}</span>{/if}
     </div>
 {/snippet}
 </SidePanel>
 {/snippet}
 {#snippet connectionStatus()}
-<StatusBar label="Connection status">
+<StatusBar label="Connection status" height="44px">
+  {#if data.live && connectionKey}<Button size="compact" disabled={locked || inspecting} onclick={() => refreshRecipient()}>Refresh agent</Button>{/if}
   <span class="live-indicator"><IconButton size="compact" icon="radio" label={streamConnected ? 'Live updates connected' : 'Live updates disconnected'} title={streamConnected ? 'Live updates connected' : connectionKey ? 'Reconnecting' : 'Open the private connection link'} onclick={() => notify(streamConnected ? `Live updates connected. ${agentStatus}.` : connectionKey ? 'Disconnected. Reconnecting automatically.' : 'Open the private connection link to connect.', streamConnected ? 'info' : 'warning')} /></span>
 </StatusBar>
 {/snippet}
@@ -404,10 +410,10 @@
 {#if box}
   <div class="selection-outline"><SelectionOutline {...box} state={hovered && hovered !== selected ? 'hover' : 'selected'} /></div>
   <div class="element-label" style:left={`${Math.max(12, Math.min(box.x, innerWidth - 220))}px`} style:top={`${box.y}px`} style:--label-background={colorShades.sage.base} style:--label-color={colorShades.neutral.white}>
-    <span>{(hovered ?? selected) ? metadata((hovered ?? selected)!).selector : ''}</span>
     {#if !editorOpen && selected && (!hovered || hovered === selected)}
 {#if selected?.parentElement && selected.parentElement !== workspace}<IconButton size="compact" icon="chevron-up" label="Select parent element" title="Select parent element" disabled={locked} onclick={() => { const parent = selected?.parentElement; if (parent && workspace.contains(parent) && parent !== workspace) { selected = parent; review.draft = { ...review.draft, target: metadata(parent), capture: undefined }; hovered = null; updateBox(); } }} />{/if}
     {/if}
+    <span>{(hovered ?? selected) ? metadata((hovered ?? selected)!).selector : ''}</span>
   </div>
 {/if}
 
@@ -417,7 +423,7 @@
 :global(body) { margin:0; }
 #comment-workspace { box-sizing:border-box; height:100%; min-width:0; overflow:auto; padding:24px 38px; }
 #comment-workspace :global(*) { box-sizing:border-box; }
-.workspace-meta, .option-top, .controls, .panel-heading, .recipient, .comment-heading, .batch-label, .card-actions, .send-action, .export-actions, .selected-title, .editor-actions { display:flex; align-items:center; gap:.5rem; }
+.workspace-meta, .option-top, .controls, .panel-heading, .recipient, .comment-heading, .batch-label, .card-actions, .send-action, .selected-title, .editor-actions { display:flex; align-items:center; gap:.5rem; }
 .workspace-meta, .option-top, .panel-heading, .batch-label { justify-content:space-between; }
 #comment-workspace :global(.instruction) { margin:18px 0 26px; }
 .study { max-width:820px; margin:0 auto; }
@@ -438,8 +444,10 @@
 .conversation :global(p) { white-space:pre-wrap; overflow-wrap:anywhere; margin:.75rem 0; }
 .conversation img, .capture-preview { display:block; max-width:100%; max-height:150px; object-fit:contain; object-position:left top; margin-top:.75rem; }
 .conversation :global(.image-meta) { display:block; margin:.25rem 0; }
-.card-actions, .send-action, .export-actions { justify-content:flex-end; }
-.send-action, .export-actions { margin-top:.5rem; }
+.card-actions, .send-action { justify-content:flex-end; }
+.send-action { margin-left:auto; }
+.delivery-actions { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.composer { padding-bottom:36px; }
 .composer :global(p) { margin:.5rem 0; overflow-wrap:anywhere; }
 .batch-label { flex-wrap:wrap; }
 .sent-comment { margin-top:1rem; overflow-wrap:anywhere; }
@@ -462,7 +470,7 @@
 .reply-spinner { width:14px; height:14px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:reply-spin .8s linear infinite; }
 .element-label { position:fixed; z-index:61; display:flex; align-items:center; max-width:min(340px, calc(100vw - 24px)); transform:translateY(-100%); border-radius:.1875rem .1875rem 0 0; background:var(--label-background); color:var(--label-color); padding:0 .4375rem; }
 .element-label > span { min-width:0; overflow-wrap:anywhere; font:.625rem/1.5 ui-monospace,monospace; }
-.element-label :global(button) { color:inherit; }
+.element-label :global(button.dz-button), .element-label :global(button.dz-button:hover), .element-label :global(button.dz-button:active) { color:var(--label-color); background:transparent; border-color:transparent; }
 .element-label :global(.icon-button) { flex-shrink:0; }
 @keyframes reply-spin { to { transform:rotate(360deg); } }
 @media(prefers-reduced-motion:reduce) { .reply-spinner { animation:none; } }
