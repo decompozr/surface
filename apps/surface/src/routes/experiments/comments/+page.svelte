@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
-  import { Badge, Button, Toolbar, ToggleButton, Tag, IconButton, TextArea, Slider, Icon, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
+  import { Badge, Button, Select, Toolbar, ToggleButton, Tag, IconButton, TextArea, Slider, Icon, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
   import Toast from '$lib/components/Toast.svelte';
   import SurfaceShell from '$lib/components/SurfaceShell.svelte';
   import { composerPlacement, readViewport } from '$lib/comment-experiment/viewport';
@@ -11,6 +11,46 @@
   let review = $state(emptyState());
   let connectionKey = $state(''), agentAvailable = $state(false), agentStatus = $state('Checking…');
   let streamConnected = $state(false);
+  let handling = $state<'by-the-way' | 'after-current'>('by-the-way');
+  let recipientObservation = $state<{ status: 'active' | 'idle' | 'notLoaded'; turnId?: string }>();
+  let inspecting = $state(false);
+  let inspection = 0;
+  async function refreshRecipient(signal?: AbortSignal) {
+    const generation = ++inspection;
+    inspecting = true; recipientObservation = undefined; agentAvailable = false;
+    try {
+      const response = await fetch('/experiments/comments/batch', { headers: { authorization: `Bearer ${connectionKey}` }, signal: signal ?? AbortSignal.timeout(10000) });
+      if (!response.ok) throw new Error('Recipient unavailable');
+      const status = await response.json();
+      if (generation !== inspection) return;
+      if (!status.available || status.recipient !== data.recipient || !['active', 'idle', 'notLoaded'].includes(status.status) || (status.status === 'active' && !status.turnId)) throw new Error('Recipient unavailable');
+      recipientObservation = { status: status.status, turnId: status.turnId };
+      agentAvailable = true; agentStatus = `Agent ${status.status} when checked`;
+    } catch {
+      if (generation === inspection) { agentAvailable = false; agentStatus = 'Agent needs refresh'; }
+    } finally { if (generation === inspection) inspecting = false; }
+  }
+  function receive(batch: Batch, result: any) {
+    batch.status = result.status === 'delivering' ? 'pending' : result.status;
+    batch.receipt = result.receipt; batch.requestId = result.requestId;
+    batch.deliveryMode = result.deliveryMode; batch.queuedSubmissionId = result.queuedSubmissionId;
+    batch.error = result.error;
+    if (result.result) batch.result = result.result;
+  }
+  async function checkBatch(id: string) {
+    const batch = review.batches.find(item => item.id === id);
+    if (!batch || sending) return;
+    sending = true;
+    try {
+      const response = await fetch(`/experiments/comments/batch?id=${encodeURIComponent(id)}`, { headers: { authorization: `Bearer ${connectionKey}` }, signal: AbortSignal.timeout(10000) });
+      if (!response.ok) throw new Error('Could not check submission.');
+      const result = await response.json();
+      if (result?.batchId === id && result.destination === batch.recipient) receive(batch, result);
+      notice = result ? 'Existing submission checked. Nothing was resent.' : 'No submission record yet. The outcome is still unconfirmed; nothing was resent.';
+      await flush();
+    } catch { notice = 'Could not check submission. Your batch is retained; nothing was resent.'; }
+    finally { sending = false; }
+  }
   let toast = $state<{ message: string; tone: 'info' | 'success' | 'warning' } | null>(null);
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
   let liveAbort: AbortController | undefined;
@@ -126,8 +166,8 @@
   }
   async function flush() { await persistQueue; await writeState($state.snapshot(review)); }
   async function send() {
-    if (locked || (data.live && !agentAvailable) || pending || review.draft.text.trim() || review.draft.capture || !review.comments.length) return;
-    const batch: Batch = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), page: location.pathname, revision: REVISION, recipient: data.recipient as Batch['recipient'], comments: $state.snapshot(review.comments), status: 'pending' };
+    if (locked || (data.live && (!agentAvailable || !recipientObservation || inspecting)) || pending || review.draft.text.trim() || review.draft.capture || !review.comments.length) return;
+    const batch: Batch = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), page: location.pathname, revision: REVISION, recipient: data.recipient as Batch['recipient'], comments: $state.snapshot(review.comments), ...(data.live && recipientObservation ? { handling, delivery: { mode: recipientObservation.status === 'active' ? (handling === 'by-the-way' ? 'steer' as const : 'queue' as const) : 'start' as const, expectedStatus: recipientObservation.status, expectedTurnId: recipientObservation.turnId } } : {}), status: 'pending' };
     if (JSON.stringify(batch).length > 7_500_000) { notice = 'This batch is too large. Remove a screenshot before sending.'; return; }
     review.batches.push(batch); review.comments = []; review.draft = { target: null, text: '' }; selected = null; updateBox(); await deliver(batch.id);
   }
@@ -137,15 +177,28 @@
     try {
       await flush();
       const response = await fetch('/experiments/comments/batch', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${connectionKey}` }, body: JSON.stringify(batch), signal: AbortSignal.timeout(15000) });
-      if (!response.ok) throw new Error(`The batch was not accepted (${response.status}).`);
       const result = await response.json();
+      if (!response.ok) {
+        if (response.status === 409 && result.notSubmitted === true) {
+          review.batches = review.batches.filter(item => item.id !== id);
+          review.comments = [...batch.comments, ...review.comments];
+          ++inspection; recipientObservation = undefined; agentAvailable = false; inspecting = false;
+          notice = `${result.message} Comments remain unsent. Refresh the agent, review the choice, then send again.`;
+          await flush(); return;
+        }
+        throw new Error(result.message ?? `Submission could not be confirmed (${response.status}).`);
+      }
       if (result.batchId !== id || result.destination !== batch.recipient) throw new Error('Unexpected delivery receipt.');
       const stored = review.batches.find(b => b.id === id)!;
-      stored.status = batch.recipient === 'local-fixture' ? 'accepted' : result.status === 'delivering' ? 'pending' : result.status;
-      stored.receipt = result.receipt; stored.requestId = result.requestId; stored.error = result.error; stored.result = result.result;
+      receive(stored, batch.recipient === 'local-fixture' ? { ...result, status: 'accepted' } : result);
       await flush();
-      notice = batch.recipient === 'local-fixture' ? 'Local test received. No agent contacted.' : stored.status === 'accepted' ? 'Delivered to this conversation. Waiting for the agent’s result.' : 'Delivery is not confirmed. Your batch is retained.';
-    } catch (error) { notice = `${error instanceof Error ? error.message : 'Delivery could not be confirmed.'} The batch is retained; retry uses the same identity.`; }
+      notice = batch.recipient === 'local-fixture' ? 'Local test received. No agent contacted.' : stored.status === 'accepted' ? stored.deliveryMode === 'queue' ? 'Queued for this conversation. The agent has not acknowledged it yet.' : 'Delivered to this conversation. The agent has not acknowledged it yet.' : 'Delivery is not confirmed. Your batch is retained.';
+    } catch (error) {
+      const stored = review.batches.find(item => item.id === id);
+      notice = stored?.status === 'accepted' || stored?.result
+        ? 'Submission confirmed through live updates. Nothing was resent.'
+        : `${error instanceof Error ? error.message : 'Delivery could not be confirmed.'} The batch is retained. Check the existing submission; do not resend.`;
+    }
     finally { sending = false; }
   }
   async function watchUpdates(signal: AbortSignal) {
@@ -154,11 +207,7 @@
       liveAbort = new AbortController();
       const transportSignal = AbortSignal.any([signal, liveAbort.signal]);
       try {
-        const check = await fetch('/experiments/comments/batch', { headers: { authorization: `Bearer ${connectionKey}` }, signal: transportSignal });
-        if (!check.ok) throw new Error('Connection unavailable');
-        const status = await check.json();
-        agentAvailable = status.available && status.recipient === data.recipient;
-        agentStatus = agentAvailable ? 'Agent verified at connection' : 'Agent unavailable';
+        await refreshRecipient(transportSignal);
         const response = await fetch('/experiments/comments/events', { headers: { authorization: `Bearer ${connectionKey}` }, signal: transportSignal });
         if (!response.ok || !response.body) throw new Error('Stream unavailable');
         streamConnected = true;
@@ -181,15 +230,13 @@
               for (const batch of review.batches.filter(b => b.recipient === data.recipient)) {
                 const result = snapshot.batches.find((item: { batchId: string; destination: string }) => item.batchId === batch.id && item.destination === batch.recipient);
                 if (!result) continue;
-                batch.status = result.status === 'delivering' ? 'pending' : result.status;
-                batch.receipt = result.receipt; batch.requestId = result.requestId;
-                batch.error = result.error; if (result.result) batch.result = result.result;
+                receive(batch, result);
               }
             }
           }
         } finally { await reader.cancel().catch(() => {}); }
       } catch { /* Reconnect reads a fresh durable snapshot; never resubmit. */ }
-      streamConnected = false; agentAvailable = false; agentStatus = 'Agent not verified';
+      streamConnected = false; recipientObservation = undefined; agentAvailable = false; agentStatus = 'Agent not verified';
       if (!signal.aborted && connectionPhase !== 'disconnected') { notify('Connection lost. Reconnecting…', 'warning'); connectionPhase = 'disconnected'; }
       if (!signal.aborted) await new Promise<void>(resolve => {
         const finish = () => { clearTimeout(timer); signal.removeEventListener('abort', finish); resolve(); };
@@ -291,9 +338,10 @@
 {/snippet}
     <div class="conversation">
       {#if !review.comments.length && !review.batches.length}<div class="empty"><Text size="small">No comments yet. Select an element to start.</Text></div>{/if}
-      {#each review.batches as batch (batch.id)}<SurfaceCard as="section" class="batch" tone="subtle" aria-label="Submitted batch"><div class="batch-label"><strong>You · {batch.comments.length} comments</strong><span>{batch.recipient === 'local-fixture' ? 'Local test' : batch.result ? 'Agent replied' : batch.status === 'accepted' ? 'Delivered' : batch.status === 'failed' ? 'Not delivered' : 'Unconfirmed'}</span></div>
+      {#each review.batches as batch (batch.id)}<SurfaceCard as="section" class="batch" tone="subtle" aria-label="Submitted batch"><div class="batch-label"><strong>You · {batch.comments.length} comments</strong><span>{batch.recipient === 'local-fixture' ? 'Local test' : batch.result ? batch.result.stage === 'acknowledged' ? 'Agent acknowledged' : 'Agent replied' : batch.status === 'accepted' ? batch.deliveryMode === 'queue' ? 'Queued' : 'Delivered' : batch.status === 'failed' ? 'Not delivered' : 'Unconfirmed'}</span></div>
         {#each batch.comments as comment}<div class="sent-comment"><strong>{comment.target.label}</strong>{#if comment.capture}<a href={comment.capture.png} download={`${comment.target.id}.png`} aria-label={`Download screenshot of ${comment.target.label}`}><img src={comment.capture.png} alt={`Captured ${comment.target.label}`} /></a>{/if}<Text size="small">{comment.text}</Text></div>{/each}
-        {#if batch.recipient === 'local-fixture' && batch.status === 'accepted'}<Divider /><Text size="small" class="fixture-reply">Local test only. This was not sent to an agent.</Text>{:else if batch.result}<Divider /><Text size="small" class="agent-reply">{batch.result.message}</Text>{:else if batch.status === 'pending'}<Button size="compact" disabled={sending} onclick={() => deliver(batch.id)}>Check / retry same batch</Button>{:else if batch.status === 'unknown' || batch.status === 'failed'}<Text size="small" class="notice">{batch.error ?? 'Delivery needs reconciliation. Nothing is resent automatically.'}</Text>{/if}
+        {#if batch.recipient === 'local-fixture' && batch.status === 'accepted'}<Divider /><Text size="small" class="fixture-reply">Local test only. This was not sent to an agent.</Text>{:else if batch.result}<Divider /><Text size="small" class="agent-reply">{batch.result.message}</Text>{#if batch.result.stage === 'acknowledged' && batch.result.next}<Text size="small" tone="muted">{batch.result.next === 'continue-original' ? 'Continuing the original task' : batch.result.next === 'address-now' ? 'Addressing this now' : 'Handling this later'}</Text>{/if}{:else if batch.status === 'accepted'}<Text size="small" tone="muted">Waiting for the agent to acknowledge.</Text>{:else if batch.status === 'pending'}<Text size="small">Submission unconfirmed. Nothing is resent automatically.</Text>{#if batch.recipient === 'local-fixture'}<Button size="compact" disabled={sending} onclick={() => deliver(batch.id)}>Retry local test</Button>{/if}{:else if batch.status === 'unknown' || batch.status === 'failed'}<Text size="small" class="notice">{batch.error ?? 'Delivery needs reconciliation. Nothing is resent automatically.'}</Text>{/if}
+        {#if batch.recipient !== 'local-fixture' && !batch.result}<Button size="compact" disabled={sending} onclick={() => checkBatch(batch.id)}>Check submission</Button>{/if}
       </SurfaceCard>{/each}
       {#if review.comments.length}<Text size="eyebrow" tone="muted">Draft · not sent</Text>{/if}
       {#each review.comments as comment, i (comment.id)}<SurfaceCard as="article" class="comment-card"><div class="comment-heading"><Badge>{i + 1}</Badge><strong>{comment.target.label}</strong></div>{#if comment.capture}<a href={comment.capture.png} download={`${comment.target.id}.png`} aria-label={`Download screenshot of ${comment.target.label}`}><img src={comment.capture.png} alt={`Captured ${comment.target.label}`} /></a><Text as="span" size="small" tone="muted" class="image-meta">{comment.capture.width} × {comment.capture.height} · frozen capture</Text>{/if}<Text size="small">{comment.text}</Text><div class="card-actions"><IconButton size="compact" icon="pencil" label={`Edit comment ${i + 1}`} title="Edit comment" disabled={locked || review.draft.editing === comment.id} onclick={() => edit(comment)} /><IconButton size="compact" icon="trash-2" label={`Remove comment ${i + 1}`} title="Remove comment" disabled={locked || review.draft.editing === comment.id} onclick={() => review.comments = review.comments.filter(c => c.id !== comment.id)} /></div></SurfaceCard>{/each}
@@ -304,7 +352,13 @@
       <Text size="small" class="notice" role="status">{notice}</Text>
       {#if data.live && !connectionKey}<Text size="small" class="hint">Open the private connection link to enable sending.</Text>{/if}
       {#if review.draft.text.trim() || review.draft.capture}<Text size="small" class="hint">Add this comment to the draft before sending the batch.</Text>{/if}
-      <div class="send-action"><IconButton size="compact" icon="arrow-up" variant="primary" appearance="default" label={`Send ${review.comments.length} comments together`} title={`Send ${review.comments.length} comments together`} disabled={locked || (data.live && !agentAvailable) || pending || !review.comments.length || !!review.draft.text.trim() || !!review.draft.capture} onclick={send} /></div>
+      {#if data.live && review.comments.length}
+        <Select label="How to send" value={handling} onchange={(event) => handling = event.currentTarget.value as typeof handling} disabled={locked || pending}
+          options={[{ value: 'by-the-way', label: 'By the way · tell the agent now' }, { value: 'after-current', label: 'After the current task' }]} />
+        <Text size="small" tone="muted">{handling === 'by-the-way' ? 'Ask the agent to acknowledge, keep the original task, and decide when to handle this.' : 'Queue this feedback until the current turn finishes.'}{recipientObservation && recipientObservation.status !== 'active' ? ' The agent is not currently working; this starts a new turn.' : ''}</Text>
+        <Button size="compact" disabled={locked || inspecting} onclick={() => refreshRecipient()}>Refresh agent</Button>
+      {/if}
+      <div class="send-action"><IconButton size="compact" icon="arrow-up" variant="primary" appearance="default" label={`Send ${review.comments.length} comments together`} title={`Send ${review.comments.length} comments together`} disabled={locked || (data.live && (!agentAvailable || !recipientObservation || inspecting)) || pending || !review.comments.length || !!review.draft.text.trim() || !!review.draft.capture} onclick={send} /></div>
       <div class="export-actions">{#if storageError}<span role="alert">{storageError}</span>{/if}<IconButton size="compact" icon="download" label="Export conversation JSON" title="Export conversation" disabled={!ready} onclick={download} /></div>
     </div>
 {/snippet}

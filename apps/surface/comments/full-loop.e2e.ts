@@ -15,12 +15,16 @@ const reservation = createNetServer(); await new Promise<void>(r => reservation.
 const port = (reservation.address() as { port: number }).port; await new Promise<void>(r => reservation.close(() => r()));
 const origin = `http://127.0.0.1:${port}`;
 const http = createServer(); const ws = new WebSocketServer({ server: http });
+let activeTurn = 'fixture-active-1';
 let deliveries: { method: string; params: any }[] = [];
 ws.on('connection', client => client.on('message', raw => {
   const message = JSON.parse(raw.toString()); if (message.id === undefined) return;
   let result: unknown;
   if (message.method === 'initialize') result = {};
-  else if (message.method === 'thread/read') result = { thread: { id: 'e2e-fixture', cwd: root, status: { type: 'idle' } } };
+  else if (message.method === 'thread/read') result = { thread: { id: 'e2e-fixture', cwd: root, status: { type: 'active' } } };
+  else if (message.method === 'thread/turns/list') result = { data: [{ id: activeTurn, status: 'inProgress' }] };
+  else if (message.method === 'turn/steer') { deliveries.push(message); result = { turnId: activeTurn }; }
+  else if (message.method === 'thread/queue/add') { deliveries.push(message); result = { queuedSubmission: { id: `queue-${deliveries.length}` } }; }
   else if (message.method === 'turn/start') { deliveries.push(message); result = { turn: { id: `fixture-turn-${deliveries.length}`, status: 'completed' } }; }
   else { client.send(JSON.stringify({ id: message.id, error: { code: -32601, message: 'Fixture does not implement ' + message.method } })); return; }
   client.send(JSON.stringify({ id: message.id, result }));
@@ -48,8 +52,32 @@ try {
       await page.locator('#comment').fill(`E2E ${name}: fixture submission`);
       await page.getByRole('button', { name: 'Add comment to draft' }).click();
       await page.getByRole('button', { name: /Open comments/ }).click();
-      await page.getByRole('button', { name: 'Send 1 comments together' }).click();
-      await expect(page.getByText('Delivered', { exact: true })).toBeVisible();
+      const send = page.getByRole('button', { name: 'Send 1 comments together' });
+      await expect(page.getByLabel('How to send')).toHaveValue('by-the-way');
+      await expect(send).toBeEnabled();
+      // A turn change must retain the unsent draft until an explicit refresh/send.
+      activeTurn = `changed-${name}`;
+      await send.click();
+      await expect(page.getByRole('region', { name: 'Comment review' }).getByRole('status')).toContainText('Comments remain unsent');
+      expect(deliveries.length).toBe(count);
+      await expect(send).toBeDisabled();
+      await page.getByRole('button', { name: 'Refresh agent', exact: true }).click();
+      await expect(send).toBeEnabled();
+      if (mobile) await page.getByLabel('How to send').selectOption('after-current');
+      await page.screenshot({ path: join(output, `${name}-send-choice.png`), fullPage: true });
+      // Drop the POST acknowledgement after server acceptance; inspection is GET-only.
+      let posts = 0;
+      await page.route('**/experiments/comments/batch', async route => {
+        if (route.request().method() !== 'POST') return route.continue();
+        posts++; const response = await route.fetch(); expect(response.status()).toBe(200);
+        await route.abort('connectionreset');
+      });
+      await send.click();
+      await expect(page.getByText(mobile ? 'Queued' : 'Delivered', { exact: true })).toBeVisible();
+      await expect(page.getByText('Agent acknowledged', { exact: true })).toHaveCount(0);
+      await page.getByRole('button', { name: 'Check submission', exact: true }).click();
+      expect(posts).toBe(1);
+      expect(deliveries.at(-1)?.method).toBe(mobile ? 'thread/queue/add' : 'turn/steer');
       expect(deliveries.length).toBe(count + 1);
       const stateData = () => JSON.parse(readFileSync(join(state, 'interactions.json'), 'utf8'));
       const request = stateData().requests.at(-1);
@@ -57,10 +85,15 @@ try {
       const image = request.response.data.comments[0].capture.imagePath;
       expect(readFileSync(image).subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
       // Publish through the actual callback CLI and assert push without refreshing.
-      const reply = async (message: string) => {
-        const command = Bun.spawn(['bun', resolve('apps/surface/comments/result.ts'), 'result', '--state-dir', state, '--request', request.id, '--data', JSON.stringify({ message })], { stdout: 'pipe', stderr: 'pipe' });
+      const reply = async (message: string, stage = 'completed', next?: string) => {
+        const command = Bun.spawn(['bun', resolve('apps/surface/comments/result.ts'), 'result', '--state-dir', state, '--request', request.id, '--data', JSON.stringify({ message, stage, ...(next ? { next } : {}) })], { stdout: 'pipe', stderr: 'pipe' });
         expect(await command.exited).toBe(0);
       };
+      await reply(`Received ${name}; continuing the original task.`, 'acknowledged', 'continue-original');
+      await expect(page.getByText('Agent acknowledged', { exact: true })).toBeVisible();
+      await expect(page.getByText('Continuing the original task', { exact: true })).toBeVisible();
+      await expect(page.getByText('Agent replied', { exact: true })).toHaveCount(0);
+      await page.screenshot({ path: join(output, `${name}-acknowledged.png`), fullPage: true });
       await reply(`Fixture reply ${name}`);
       await expect(page.locator('.agent-reply')).toHaveText(`Fixture reply ${name}`);
       // Receive a changed durable result while offline, then reconnect without replay.
@@ -75,6 +108,7 @@ try {
       await page.getByRole('button', { name: /Open comments/ }).click();
       await expect(page.locator('.agent-reply')).toHaveText(`Recovered reply ${name}`);
       expect(deliveries.length).toBe(count + 1);
+      expect(posts).toBe(1);
       expect(errors).toEqual([]);
       const pane = page.getByRole('complementary', { name: 'Comments and conversation' });
       await expect(pane).toBeVisible();
@@ -84,7 +118,7 @@ try {
         return !!bounds && bounds.x >= 0 && bounds.x + bounds.width <= page.viewportSize()!.width + 1;
       }).toBe(true);
       await page.screenshot({ path: join(output, `${name}-result.png`), fullPage: true });
-      console.log(`PASS ${name}: browser submit + PNG -> provider receipt -> CLI result -> SSE -> offline recovery -> reload; exactly one delivery`);
+      console.log(`PASS ${name}: stale turn retains draft -> explicit refresh -> steer/queue + lost POST acknowledgement -> read-only inspection -> agent acknowledgement -> result -> offline recovery -> reload; exactly one delivery`);
     } catch (error) { await page.screenshot({ path: join(output, `${name}-failure.png`), fullPage: true }); throw error; }
     finally { await context.tracing.stop({ path: join(output, `${name}-trace.zip`) }); await browser.close(); }
   }

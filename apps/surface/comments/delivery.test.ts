@@ -63,6 +63,40 @@ describe('exact conversation comment delivery using a fake adapter', () => {
     expect((await bridge.submit(batch()))?.status).toBe('unknown');
     expect(calls).toBe(1);
   });
+  test('by-the-way steers the observed turn and preserves acknowledgement separately from completion', async () => {
+    let calls = 0, prompt = '';
+    const { bridge } = await fixture({ inspect: async () => ({ status: 'active', turnId: 'active-turn' }), deliver: async (_binding, message, intent, id) => {
+      calls++; prompt = message; expect(id).toBe('batch-1');
+      expect(intent).toEqual({ mode: 'steer', expectedStatus: 'active', expectedTurnId: 'active-turn' });
+      return { mode: 'steer', turnId: 'active-turn' };
+    } });
+    const value: Batch = { ...batch(), handling: 'by-the-way', delivery: { mode: 'steer', expectedStatus: 'active', expectedTurnId: 'active-turn' } };
+    const received = await bridge.submit(value);
+    expect(received?.deliveryMode).toBe('steer'); expect(received?.result).toBeUndefined();
+    expect(prompt).toContain('Preserve the original objective'); expect(prompt).toContain('stage=acknowledged'); expect(prompt).toContain('--data'); expect(prompt).toContain('--request ' + received!.requestId);
+    bridge.service.result(received!.requestId, { stage: 'acknowledged', message: 'Received; continuing the original task.', next: 'continue-original' });
+    expect(bridge.view(value.id)?.result?.stage).toBe('acknowledged');
+    bridge.service.result(received!.requestId, { stage: 'completed', message: 'Done.' });
+    expect(bridge.view(value.id)?.result?.stage).toBe('completed');
+    await bridge.submit(value); expect(calls).toBe(1);
+    await expect(bridge.submit({ ...value, handling: 'after-current', delivery: { ...value.delivery!, mode: 'queue' } })).rejects.toThrow('already has a submission');
+  });
+  test('after-current queues and exposes the queue receipt without claiming acknowledgement', async () => {
+    const { bridge } = await fixture({ inspect: async () => ({ status: 'active', turnId: 'active-turn' }), deliver: async (_binding, _message, intent) => {
+      expect(intent?.mode).toBe('queue'); return { mode: 'queue', queuedSubmissionId: 'queued-1' };
+    } });
+    const result = await bridge.submit({ ...batch(), handling: 'after-current', delivery: { mode: 'queue', expectedStatus: 'active', expectedTurnId: 'active-turn' } });
+    expect(result?.queuedSubmissionId).toBe('queued-1'); expect(result?.receipt).toBe('queued-1'); expect(result?.result).toBeUndefined();
+  });
+  test('stale turn rejects before reservation and permits an explicitly refreshed submission', async () => {
+    let calls = 0;
+    const { bridge } = await fixture({ inspect: async () => ({ status: 'active', turnId: 'new-turn' }), deliver: async () => { calls++; return { mode: 'steer', turnId: 'new-turn' }; } });
+    const value: Batch = { ...batch(), handling: 'by-the-way', delivery: { mode: 'steer', expectedStatus: 'active', expectedTurnId: 'old-turn' } };
+    await expect(bridge.submit(value)).rejects.toThrow('Recipient state changed');
+    expect(calls).toBe(0); expect(bridge.service.store.state.requests[0].response).toBeUndefined();
+    await bridge.submit({ ...value, delivery: { ...value.delivery!, expectedTurnId: 'new-turn' } });
+    expect(calls).toBe(1);
+  });
   test('stores images for agent inspection without embedding base64 in the delivered prompt', async () => {
     let prompt = '';
     const { bridge } = await fixture({ inspect: async () => ({ status: 'idle' }), deliver: async (_, message) => { prompt = message; return { mode: 'start', turnId: 'fake-turn' }; } });
