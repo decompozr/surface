@@ -50,3 +50,7 @@ Keep records sufficient for continuation: objective, source links, current revis
 [DOCS-TAKEOVER-01](experiments/2026-09-23-docs-takeover.md) demonstrated one fresh-session continuation using a repository checkpoint, with independent review. For a similar handoff, record the exact source baseline and WIP, objective and acceptance gates, existing authority, evidence limits, active writer, pending effects and next action. Ask the successor to record its reconstruction before substantive edits. Keep predecessor input, successor completion and independent review separate; update current status when review finishes so another session does not repeat completed work.
 
 This is a bounded working method, not proof of automatic recovery after a crash or uncertain mutation. Those cases need their own fixture experiments and reconciliation evidence.
+
+## UI/UX completion gate
+
+Every UI/UX change automatically requires a visual and interaction audit before delivery. Functional/E2E success is necessary where relevant but never substitutes for judging the rendered experience. Capture the affected flow at phone and desktop sizes, inspect hierarchy, spacing, overlap, readable labels, touch targets, focus, scrolling, empty/error/waiting states and keyboard-constrained space. Fix findings, then capture and inspect the changed states again. Repeat until the scoped issues are resolved; report remaining limits honestly. Preserve screenshots and a brief findings/disposition record. Do not advance unrelated feature work while a requested audit is unfinished.

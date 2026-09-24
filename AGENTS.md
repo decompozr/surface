@@ -11,3 +11,5 @@ The source workflow requires Git and a compatible Bun patch version (currently `
 Use the selected installation consistently. Keep project-owned source, service metadata and optional database data separate. Do not replace an existing service/home implicitly. Never send a fixture interaction into a real user conversation. Setup health, provider discovery, browser interaction and agent delivery are separate acceptance checks.
 
 Repository documentation is English. Preserve the canonical checkout and existing worktrees. For shell searches use `/opt/homebrew/bin/rg` when available; otherwise report its absence before selecting another tool.
+
+Every UI/UX change must complete the automatic visual and interaction audit gate in `docs/source-workflow.md`: inspect rendered phone/desktop states, fix findings, and inspect again before delivery. E2E success alone is not UX acceptance.

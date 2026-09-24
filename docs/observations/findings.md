@@ -183,3 +183,7 @@ Validation: TypeScript and Svelte checks passed; 39 focused unit tests passed, i
 Follow-up correction: the user meant the existing green outline label, not a duplicate selector in the lower toolbar. Place parent navigation in that original label and keep the action toolbar free of duplicate selector text.
 
 Mobile feedback identified review opening at old history and an incoherent composer with Refresh agent and overlapping export/status controls. Removed JSON export, moved refresh beside connection status, aligned delivery and Send, and scroll review to its latest content on opening/layout. Desktop Chromium and mobile WebKit checks passed with retained history, a newly added draft visible at the bottom, no export action and refresh in the status bar.
+
+### Automatic UX audit gate and iterative comment repair
+
+The user required automatic auditing after UI/UX changes and asked for several audit/fix iterations. The [five-iteration record](../experiments/2026-09-24-comments-ux-audit.md) distinguishes functional tests from visual acceptance and records repairs to selection labels, overlapping actions/status, touch targets, hover styling, empty-draft actions and constrained-height editing. Adopted in source-workflow.md and AGENTS.md; physical iPhone acceptance remains separate.

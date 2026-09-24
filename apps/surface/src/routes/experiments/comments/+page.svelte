@@ -55,7 +55,6 @@
   let persistQueue: Promise<void> = Promise.resolve();
   const pending = $derived(review.batches.some(b => b.status === 'pending' || b.status === 'unknown'));
   const locked = $derived(busy || sending || !ready);
-  let selectionToolsWidth = $state(180), selectionToolsHeight = $state(60);
   let editorOpen = $state(false);
   let editorPosition = $state({ x: 16, y: 100, width: 310, maxHeight: 400 });
   let visibleViewport = $state({ x: 0, y: 0, width: 390, height: 844 });
@@ -91,14 +90,22 @@
   }
   function metadata(el: HTMLElement): Target { return describeTarget(el, workspace); }
   function closeEditor() { editorOpen = false; hovered = null; updateBox(); }
+  let reviewScroller: HTMLElement | undefined;
   function followLatest(node: HTMLElement) {
     const body = node.parentElement!;
-    const scroll = () => { body.scrollTop = body.scrollHeight; };
+    reviewScroller = body;
+    let following = true;
+    const onScroll = () => { following = body.scrollHeight - body.clientHeight - body.scrollTop < 48; };
+    const scroll = () => { if (following) body.scrollTop = body.scrollHeight; };
     const resize = new ResizeObserver(scroll);
-    resize.observe(node); resize.observe(body);
+    resize.observe(node);
+    body.addEventListener('scroll', onScroll, { passive: true });
     void tick().then(scroll);
-    return { destroy() { resize.disconnect(); } };
+    return { destroy() { resize.disconnect(); body.removeEventListener('scroll', onScroll); reviewScroller = undefined; } };
   }
+  $effect(() => {
+    if (panel) void tick().then(() => { if (reviewScroller) reviewScroller.scrollTop = reviewScroller.scrollHeight; });
+  });
   async function togglePanel() {
     panel = !panel;
     if (panel) editorOpen = false;
@@ -107,7 +114,7 @@
   function updateEditor() {
     if (!editorOpen) return;
     const anchor = selected?.getBoundingClientRect() ?? { left: editorPosition.x, bottom: editorPosition.y - 10 };
-    editorPosition = composerPlacement(visibleViewport, anchor, measuredEditorHeight, workspace?.getBoundingClientRect().top ?? 60);
+    editorPosition = composerPlacement({ ...visibleViewport, height: Math.min(visibleViewport.height, Math.max(1, window.innerHeight - 44 - visibleViewport.y)) }, anchor, measuredEditorHeight, workspace?.getBoundingClientRect().top ?? 60);
   }
   function updateBox() {
     visibleViewport = readViewport(window);
@@ -121,7 +128,7 @@
   }
   function targetFrom(event: Event) {
     const raw = event.target instanceof Element ? event.target : null;
-    const el = raw instanceof HTMLElement ? raw : raw?.closest<HTMLElement>('button, a, p, section');
+    const el = raw?.closest<HTMLElement>('button, a, input, select, textarea, [role="button"]') ?? (raw instanceof HTMLElement ? raw : raw?.closest<HTMLElement>('p, section'));
     return el && el !== workspace && workspace?.contains(el) && !['BR', 'SCRIPT', 'STYLE'].includes(el.tagName) ? el : null;
   }
   async function select(el: HTMLElement) {
@@ -140,7 +147,7 @@
     if (d.editing) review.comments = review.comments.map(c => c.id === d.editing ? comment : c);
     else review.comments.push(comment);
     review.draft = { target: null, text: '' }; selected = null; hovered = null; editorOpen = false; updateBox();
-    if (clearNotice) notice = 'Added to your draft. Nothing has been sent.';
+    if (clearNotice) { notice = ''; notify('Added to draft', 'success'); }
     return true;
   }
   async function capture() {
@@ -338,8 +345,8 @@
     </div>
 {#snippet footer()}
     <div class="composer">
-      {#if review.draft.target}<Button size="compact" onclick={() => { panel = false; editorOpen = true; selected = resolveTarget(review.draft.target, workspace); selected?.scrollIntoView({ block: 'nearest' }); updateBox(); tick().then(() => composer?.focus()); }}>Continue draft: {review.draft.target.label}</Button>{/if}
-      <Text size="small" class="notice" role="status">{notice}</Text>
+      {#if review.draft.target && (review.draft.text.trim() || review.draft.capture)}<Button size="compact" onclick={() => { panel = false; editorOpen = true; selected = resolveTarget(review.draft.target, workspace); selected?.scrollIntoView({ block: 'nearest' }); updateBox(); tick().then(() => composer?.focus()); }}>Continue draft: {review.draft.target.label}</Button>{/if}
+      {#if notice}<Text size="small" class="notice" role="status">{notice}</Text>{/if}
       {#if data.live && !connectionKey}<Text size="small" class="hint">Open the private connection link to enable sending.</Text>{/if}
       {#if review.draft.text.trim() || review.draft.capture}<Text size="small" class="hint">Add this comment to the draft before sending the batch.</Text>{/if}
       <div class="delivery-actions">
@@ -354,12 +361,12 @@
 </SidePanel>
 {/snippet}
 {#snippet connectionStatus()}
-<StatusBar label="Connection status" height="44px">
-  {#if data.live && connectionKey}<Button size="compact" disabled={locked || inspecting} onclick={() => refreshRecipient()}>Refresh agent</Button>{/if}
-  <span class="live-indicator"><IconButton size="compact" icon="radio" label={streamConnected ? 'Live updates connected' : 'Live updates disconnected'} title={streamConnected ? 'Live updates connected' : connectionKey ? 'Reconnecting' : 'Open the private connection link'} onclick={() => notify(streamConnected ? `Live updates connected. ${agentStatus}.` : connectionKey ? 'Disconnected. Reconnecting automatically.' : 'Open the private connection link to connect.', streamConnected ? 'info' : 'warning')} /></span>
-</StatusBar>
+<div class="connection-bar"><StatusBar label="Connection status" height="44px">
+  {#if data.live && connectionKey}<Button size="compact" appearance="quiet" disabled={locked || inspecting} onclick={() => refreshRecipient()}>Refresh agent</Button>{/if}
+  <span class="connection-summary">{streamConnected ? agentAvailable ? 'Connected' : 'Agent unavailable' : 'Reconnecting…'}</span><span class="live-indicator"><IconButton size="compact" icon="radio" label={streamConnected ? 'Live updates connected' : 'Live updates disconnected'} title={streamConnected ? 'Live updates connected' : connectionKey ? 'Reconnecting' : 'Open the private connection link'} onclick={() => notify(streamConnected ? `Live updates connected. ${agentStatus}.` : connectionKey ? 'Disconnected. Reconnecting automatically.' : 'Open the private connection link to connect.', streamConnected ? 'info' : 'warning')} /></span>
+</StatusBar></div>
 {/snippet}
-<SurfaceShell panelContent={commentPanel} bind:panelOpen={panel} status={connectionStatus} navigation={data.navigation} currentPath="/experiments/comments" {headerTools} surfaceIdentity overlayNavigation showBreadcrumbs={false}>
+<SurfaceShell panelContent={commentPanel} bind:panelOpen={panel} status={connectionStatus} statusHeight="44px" navigation={data.navigation} currentPath="/experiments/comments" {headerTools} surfaceIdentity overlayNavigation showBreadcrumbs={false}>
   <section id="comment-workspace" class:selecting={mode} bind:this={workspace} aria-label="Shared workspace">
     <div class="workspace-meta"><Text as="span" size="eyebrow" tone="muted">Shared workspace</Text><Text as="span" size="small" tone="muted">Study 01 / Global layout</Text></div>
     <Text size="small" class="instruction">{mode ? 'Select an element to leave a comment. Press Esc to interact with the page.' : 'Explore the page. Turn on comment mode whenever something needs feedback.'}</Text>
@@ -375,20 +382,11 @@
       <div id="decision" class="decision"><strong>What would you simplify?</strong><Text size="small">Select a heading, card, or control and show your agent.</Text></div>
     </article>
   </section>
-{#if mode && selected && box && !editorOpen}
-  <div class="selection-tools" bind:clientWidth={selectionToolsWidth} bind:clientHeight={selectionToolsHeight} style:left={`${Math.max(12, Math.min(box.x, innerWidth - selectionToolsWidth - 12))}px`} style:top={`${Math.max(64, Math.min(box.y + box.height + 8, innerHeight - selectionToolsHeight - 32))}px`}>
-    <SurfaceCard padding="0"><Toolbar label="Selected element actions">
-    <IconButton size="compact" icon="camera" label="Capture selected element" title="Screenshot" disabled={locked} onclick={async () => { await capture(); editorOpen = true; updateBox(); }} />
-    <IconButton size="compact" icon="message-square" label="Comment on selected element" title="Comment" disabled={locked} onclick={openComment} />
-    <IconButton size="compact" icon="close" label="Clear selection" title="Clear selection" disabled={locked} onclick={() => { selected = null; hovered = null; updateBox(); }} />
-    </Toolbar></SurfaceCard>
-  </div>
-{/if}
 {#if editorOpen && review.draft.target}
   <div class="editor-anchor" use:measureEditor>
   <FloatingComposer label="Comment on selected element" x={editorPosition.x} y={editorPosition.y} width={`${editorPosition.width}px`} maxHeight={`${editorPosition.maxHeight}px`}>
 {#snippet header()}
-    <div class="selected-title"><strong title={review.draft.target?.selector}>{review.draft.target?.selector}</strong><IconButton size="compact" icon="close" label="Close comment editor" title="Close (draft retained)" disabled={locked} onclick={closeEditor} /></div>
+    <div class="selected-title"><strong title={review.draft.target?.selector}>{review.draft.target?.label}</strong><IconButton size="compact" icon="close" label="Close comment editor" title="Close (draft retained)" disabled={locked} onclick={closeEditor} /></div>
 {/snippet}
     <div class="editor-body">
     {#if review.draft.capture}<img class="capture-preview" src={review.draft.capture.png} alt="Selected element screenshot preview" />{/if}
@@ -407,13 +405,18 @@
   </FloatingComposer>
   </div>
 {/if}
-{#if box}
+{#if box && !panel}
   <div class="selection-outline"><SelectionOutline {...box} state={hovered && hovered !== selected ? 'hover' : 'selected'} /></div>
-  <div class="element-label" style:left={`${Math.max(12, Math.min(box.x, innerWidth - 220))}px`} style:top={`${box.y}px`} style:--label-background={colorShades.sage.base} style:--label-color={colorShades.neutral.white}>
+  <div class="element-label" style:left={`${Math.max(12, Math.min(box.x, innerWidth - 340))}px`} style:top={`${Math.max(112, box.y)}px`} style:--label-background={colorShades.sage.base} style:--label-color={colorShades.neutral.white}>
     {#if !editorOpen && selected && (!hovered || hovered === selected)}
 {#if selected?.parentElement && selected.parentElement !== workspace}<IconButton size="compact" icon="chevron-up" label="Select parent element" title="Select parent element" disabled={locked} onclick={() => { const parent = selected?.parentElement; if (parent && workspace.contains(parent) && parent !== workspace) { selected = parent; review.draft = { ...review.draft, target: metadata(parent), capture: undefined }; hovered = null; updateBox(); } }} />{/if}
     {/if}
-    <span>{(hovered ?? selected) ? metadata((hovered ?? selected)!).selector : ''}</span>
+    <span class="element-name" title={(hovered ?? selected) ? metadata((hovered ?? selected)!).selector : ''}>{(hovered ?? selected) ? metadata((hovered ?? selected)!).label : ''}</span>
+    {#if !editorOpen && selected && (!hovered || hovered === selected)}
+    <IconButton size="compact" icon="camera" label="Capture selected element" title="Screenshot" disabled={locked} onclick={async () => { await capture(); editorOpen = true; updateBox(); }} />
+    <IconButton size="compact" icon="message-square" label="Comment on selected element" title="Comment" disabled={locked} onclick={openComment} />
+    <IconButton size="compact" icon="close" label="Clear selection" title="Clear selection" disabled={locked} onclick={() => { selected = null; hovered = null; updateBox(); }} />
+    {/if}
   </div>
 {/if}
 
@@ -446,8 +449,9 @@
 .conversation :global(.image-meta) { display:block; margin:.25rem 0; }
 .card-actions, .send-action { justify-content:flex-end; }
 .send-action { margin-left:auto; }
+.delivery-actions :global(button.dz-button), .card-actions :global(button.dz-button), .editor-actions :global(button.dz-button) { min-width:44px; min-height:44px; }
 .delivery-actions { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
-.composer { padding-bottom:36px; }
+.composer { padding-bottom:0; }
 .composer :global(p) { margin:.5rem 0; overflow-wrap:anywhere; }
 .batch-label { flex-wrap:wrap; }
 .sent-comment { margin-top:1rem; overflow-wrap:anywhere; }
@@ -458,7 +462,7 @@
 .capture-preview { max-height:110px; }
 .editor-actions { width:100%; }
 .editor-status { flex:1; text-align:right; }
-.selection-tools { position:fixed; z-index:60; }
+
 @media(max-width:680px) {
   #comment-workspace { padding:20px; }
   .workspace-meta :global(:last-child) { display:none; }
@@ -468,10 +472,14 @@
 
 .reply-wait { display:flex; align-items:center; gap:.5rem; font-size:.875rem; padding-top:.75rem; }
 .reply-spinner { width:14px; height:14px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:reply-spin .8s linear infinite; }
-.element-label { position:fixed; z-index:61; display:flex; align-items:center; max-width:min(340px, calc(100vw - 24px)); transform:translateY(-100%); border-radius:.1875rem .1875rem 0 0; background:var(--label-background); color:var(--label-color); padding:0 .4375rem; }
-.element-label > span { min-width:0; overflow-wrap:anywhere; font:.625rem/1.5 ui-monospace,monospace; }
-.element-label :global(button.dz-button), .element-label :global(button.dz-button:hover), .element-label :global(button.dz-button:active) { color:var(--label-color); background:transparent; border-color:transparent; }
+.element-label { position:fixed; z-index:61; display:flex; align-items:center; width:min(340px, calc(100vw - 24px)); box-sizing:border-box; transform:translateY(-100%); border-radius:.1875rem .1875rem 0 0; background:var(--label-background); color:var(--label-color); padding:0 .4375rem; }
+.element-label .element-name { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:.75rem/1.5 ui-monospace,monospace; }
+.element-label :global(button.dz-button), .element-label :global(button.dz-button:hover), .element-label :global(button.dz-button:active) { color:var(--label-color) !important; background:transparent !important; border-color:transparent !important; }
 .element-label :global(.icon-button) { flex-shrink:0; }
+.element-label :global(button.dz-button) { min-width:44px; min-height:44px; padding:0; }
+.connection-bar :global(footer) { background:white; border-top:1px solid #E7EBE7; align-items:center; }
+.connection-bar :global(button.dz-button) { font-size:.75rem; padding:.25rem .5rem; min-height:44px; }
+.connection-summary { font-size:.75rem; color:#59615C; }
 @keyframes reply-spin { to { transform:rotate(360deg); } }
 @media(prefers-reduced-motion:reduce) { .reply-spinner { animation:none; } }
 </style>
