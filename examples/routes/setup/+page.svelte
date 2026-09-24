@@ -19,12 +19,12 @@ bun run --cwd apps/surface dev --state-dir "$HOME/.surface-development/state"`;
  const page = `<h1>Hello from my project</h1>\n<p>This page is mounted by Surface.</p>`;
  const mount = `# Run from your Git project's root. Replace /path/to/surface.
 export SURFACE_STATE_DIR="$HOME/.surface-development/state"
-bun /path/to/surface/src/cli/index.ts project init --name "My project"
-bun /path/to/surface/src/cli/index.ts project register
-bun /path/to/surface/src/cli/index.ts project add --source panels --name "Panels"
-bun /path/to/surface/src/cli/index.ts project list
-bun /path/to/surface/src/cli/index.ts project mount --artifact ARTIFACT_UUID`;
- const cleanup = `bun /path/to/surface/src/cli/index.ts project unmount --artifact ARTIFACT_UUID`;
+bun /path/to/surface/apps/cli/src/index.ts project init --name "My project"
+bun /path/to/surface/apps/cli/src/index.ts project register
+bun /path/to/surface/apps/cli/src/index.ts project add --source panels --name "Panels"
+bun /path/to/surface/apps/cli/src/index.ts project list
+bun /path/to/surface/apps/cli/src/index.ts project mount --artifact ARTIFACT_UUID`;
+ const cleanup = `bun /path/to/surface/apps/cli/src/index.ts project unmount --artifact ARTIFACT_UUID`;
 </script>
 <Guide section="Setup & use">
  <p class="eyebrow">A practical walkthrough</p><h1>Your source.<br />Your first Surface.</h1><p class="lead">Start a development host, register your Git project, then mount a folder of pages. Keep the same state directory throughout the workflow.</p>
