@@ -13,7 +13,7 @@
   },
   "include": [
     "src/lib/server/**/*.ts",
-    "tests/**/*.ts",
-    ".svelte-kit/ambient.d.ts"
+    ".svelte-kit/ambient.d.ts",
+    "src/lib/comments/**/*.ts"
   ]
 }

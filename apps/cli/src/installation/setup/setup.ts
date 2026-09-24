@@ -102,7 +102,7 @@ for(const folder of [''])await run([process.execPath,'install','--frozen-lockfil
 step('Checking source and installation contracts');
 await run([process.execPath,'run','check']);
 await run([process.execPath,'run','check'],join(root,'apps/surface'));
-await run([process.execPath,'test','apps/cli/tests/installation/release-bundle.test.ts','apps/cli/tests/installation/agent-skill-link.test.ts']);
+await run([process.execPath,'test','apps/cli/src/installation/bundle.test.ts','apps/cli/src/installation/setup/skill-link.test.ts']);
 if(wasRunning){step('Stopping the selected service for update');await cli('stop');}
 try {
   step('Building and installing Surface');
