@@ -132,6 +132,19 @@ try {
       expect(errors).toEqual([]);
       const pane = page.getByRole('complementary', { name: 'Comments and conversation' });
       await expect(pane).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Export conversation JSON' })).toHaveCount(0);
+      await expect(page.getByRole('contentinfo', { name: 'Connection status' }).getByRole('button', { name: 'Refresh agent' })).toBeVisible();
+      await page.getByRole('button', { name: 'Close comments', exact: true }).click();
+      await page.locator('#headline').click();
+      await page.getByRole('button', { name: 'Comment on selected element', exact: true }).click();
+      await page.locator('#comment').fill('Latest draft ' + name);
+      await page.getByRole('button', { name: 'Add comment to draft' }).click();
+      await page.getByRole('button', { name: /Open comments/ }).click();
+      await expect.poll(() => page.locator('.conversation').evaluate(node => {
+        const scroller = node.parentElement!;
+        return scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop;
+      })).toBeLessThan(2);
+      await expect(page.getByText('Latest draft ' + name, { exact: true })).toBeInViewport();
       // Capture settled geometry, not an intermediate drawer animation frame.
       await expect.poll(async () => {
         const bounds = await pane.boundingBox();

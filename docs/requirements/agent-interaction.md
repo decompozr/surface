@@ -186,3 +186,5 @@ Deliver a minimal `surface.comments` JSON event containing requestId and comment
 Use SSE snapshots and automatic reconnection to monitor results. Show a spinner while an accepted submission awaits a reply (including an optional interim acknowledgement); remove the manual Check submission button. Failed or unknown delivery must remain truthful and must never trigger a resend. Transport acceptance is not an agent reply.
 
 Selection navigation belongs inside the existing green element label beside its selector, before opening the comment editor. Do not duplicate that label in the lower action toolbar. Use an Enter-style send icon for chat submission. The user's mobile feedback supersedes the earlier native selector, ToggleGroup and mandatory two-stage reply design.
+
+Opening comment review must reveal the latest draft at the bottom, including when history already exists. Keep delivery Switch and Send on one compact row. Recipient refresh belongs beside connection status, outside the composer. Remove the experiment JSON export action from the normal comment interface and reserve space so status controls cannot overlap Send.
