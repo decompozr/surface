@@ -11,3 +11,9 @@ The source workflow requires Git and a compatible Bun patch version (currently `
 Use the selected installation consistently. Keep project-owned source, service metadata and optional database data separate. Do not replace an existing service/home implicitly. Never send a fixture interaction into a real user conversation. Setup health, provider discovery, browser interaction and agent delivery are separate acceptance checks.
 
 Repository documentation is English. Preserve the canonical checkout and existing worktrees. For shell searches use `/opt/homebrew/bin/rg` when available; otherwise report its absence before selecting another tool.
+
+## Self-owned E2E verification
+
+For interaction or UI bug fixes, follow `docs/evaluations/self-e2e.md`. Reproduce the reported conditions before claiming the cause, add a failing regression where feasible, and run the relevant integrated browser flow yourself before asking the user to retry. A type check, build, unit test or HTTP health check is not E2E evidence. For comment delivery, use `bun run test:e2e:comments`: cover missing/invalid/fragment-updated authorization, idle and active recipients with explicit queue/steer, changed active turns, lost-acknowledgement recovery, SSE, offline recovery and reload without duplicate delivery. Match the user's conditions instead of relying only on a happy-path idle fixture.
+
+Keep E2E providers and storage isolated; never send fixture messages to real tasks or alter preview recipients. Build and test immutable snapshots, preserve user drafts, inspect rendered evidence for visual changes, and record the exact tested build, scenarios, failures, results and device limitations. Update the relevant docs and evidence records when findings change the implementation or verification contract. Physical-device acceptance is separate; do not shift automatable verification to the user.

@@ -49,6 +49,8 @@
   let notice = $state(''), storageError = $state('');
   let selected = $state<HTMLElement | null>(null), hovered = $state<HTMLElement | null>(null);
   let box = $state<{ x: number; y: number; width: number; height: number } | null>(null);
+  let selectionBox = $state<typeof box>(null);
+  let toolsPosition = $state({ x: 12, y: 64 });
   let workspace = $state<HTMLElement>(null!);
   let composer = $state<HTMLTextAreaElement>();
   let fontSize = $state(42), compact = $state(false);
@@ -112,13 +114,26 @@
   function updateBox() {
     visibleViewport = readViewport(window);
     updateEditor();
-    const el = hovered ?? selected;
-    if (!mode || !el?.isConnected || !workspace) { box = null; return; }
-    const r = el.getBoundingClientRect(), w = workspace.getBoundingClientRect();
-    const x = Math.max(r.left, w.left, visibleViewport.x), y = Math.max(r.top, w.top, visibleViewport.y);
-    const right = Math.min(r.right, w.right, visibleViewport.x + visibleViewport.width), bottom = Math.min(r.bottom, w.bottom, visibleViewport.y + visibleViewport.height);
-    box = right > x && bottom > y ? { x, y, width: right - x, height: bottom - y } : null;
+    if (!mode || !workspace) { box = null; selectionBox = null; return; }
+    const w = workspace.getBoundingClientRect();
+    function clipped(el: HTMLElement | null) {
+      if (!el?.isConnected) return null;
+      const r = el.getBoundingClientRect();
+      const x = Math.max(r.left, w.left, visibleViewport.x), y = Math.max(r.top, w.top, visibleViewport.y);
+      const right = Math.min(r.right, w.right, visibleViewport.x + visibleViewport.width), bottom = Math.min(r.bottom, w.bottom, visibleViewport.y + visibleViewport.height);
+      return right > x && bottom > y ? { x, y, width: right - x, height: bottom - y } : null;
+    }
+    selectionBox = clipped(selected);
+    box = hovered && hovered !== selected ? clipped(hovered) : selectionBox;
+    if (selectionBox) {
+      toolsPosition = {
+        x: Math.max(visibleViewport.x + 12, Math.min(selectionBox.x, visibleViewport.x + visibleViewport.width - selectionToolsWidth - 12)),
+        y: Math.max(visibleViewport.y + 12, w.top + 4, Math.min(selectionBox.y + selectionBox.height + 8, visibleViewport.y + visibleViewport.height - selectionToolsHeight - 32)),
+      };
+    }
   }
+  $effect(() => { selectionToolsWidth; selectionToolsHeight; schedulePosition(); });
+
   function targetFrom(event: Event) {
     const raw = event.target instanceof Element ? event.target : null;
     const el = raw instanceof HTMLElement ? raw : raw?.closest<HTMLElement>('button, a, p, section');
@@ -245,7 +260,8 @@
   });
   onMount(() => {
     let active = true;
-    const updates = new AbortController();
+    let updates = new AbortController();
+    let updatesTask: Promise<void> = Promise.resolve();
     const viewport = window.visualViewport;
     let revealFrame = 0;
     const viewportChange = () => {
@@ -259,15 +275,29 @@
     updateBox();
     const offline = () => { liveAbort?.abort(); };
     window.addEventListener('offline', offline);
-    try {
-      connectionKey = new URLSearchParams(location.hash.slice(1)).get('connect') ?? sessionStorage.getItem('surface-comments-connection') ?? '';
-      if (connectionKey) sessionStorage.setItem('surface-comments-connection', connectionKey);
-    } catch { /* The private link still works when session storage is unavailable. */ }
+    const connect = () => {
+      let key = new URLSearchParams(location.hash.slice(1)).get('connect') ?? '';
+      try { key ||= sessionStorage.getItem('surface-comments-connection') ?? ''; } catch { /* Fragment works without storage. */ }
+      if (key === connectionKey) return;
+      updates.abort();
+      const next = new AbortController();
+      updates = next;
+      connectionKey = key;
+      agentAvailable = false;
+      agentStatus = key ? 'Checking…' : 'Open connection link';
+      try { if (key) sessionStorage.setItem('surface-comments-connection', key); } catch { /* Keep the in-memory capability. */ }
+      // Serialize stream replacement so an old reader cannot clear the new connection state.
+      if (ready) updatesTask = updatesTask.then(() => {
+        if (active && !next.signal.aborted) return watchUpdates(next.signal);
+      });
+    };
+    connect();
+    window.addEventListener('hashchange', connect);
     agentStatus = data.live ? (connectionKey ? 'Checking…' : 'Open connection link') : 'Local test';
-    const workspaceSize = new ResizeObserver(updateBox);
+    const workspaceSize = new ResizeObserver(schedulePosition);
     workspaceSize.observe(workspace);
-    readState().then(saved => { if (!active) return; review = saved; ready = true; if (saved.draft.target) selected = resolveTarget(saved.draft.target, workspace); updateBox(); void watchUpdates(updates.signal); })
-      .catch(() => { if (active) { ready = true; notice = 'Browser storage could not be opened. Keep this page open.'; void watchUpdates(updates.signal); } });
+    readState().then(saved => { if (!active) return; review = saved; ready = true; if (saved.draft.target) selected = resolveTarget(saved.draft.target, workspace); updateBox(); updatesTask = watchUpdates(updates.signal); })
+      .catch(() => { if (active) { ready = true; notice = 'Browser storage could not be opened. Keep this page open.'; updatesTask = watchUpdates(updates.signal); } });
     let gesture: { x: number; y: number; moved: boolean } | null = null;
     let suppressClick = false;
     const press = (event: PointerEvent) => {
@@ -287,7 +317,7 @@
     const move = (event: PointerEvent) => {
       if (gesture && Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 8) gesture.moved = true;
       hovered = event.pointerType === 'mouse' && !event.buttons && mode && !busy ? targetFrom(event) : null;
-      updateBox();
+      schedulePosition();
     };
     const key = (event: KeyboardEvent) => {
       if (event.isComposing || event.repeat) return;
@@ -309,7 +339,7 @@
       if (mode && (event.key === 'Enter' || event.key === ' ') && targetFrom(event)) { event.preventDefault(); event.stopPropagation(); void select(targetFrom(event)!); }
     };
     window.addEventListener('pointerdown', press, true); window.addEventListener('click', click, true); window.addEventListener('pointermove', move); window.addEventListener('keydown', key, true); window.addEventListener('resize', viewportChange); window.addEventListener('scroll', scroll, true); window.addEventListener('pointerup', release, true); window.addEventListener('pointercancel', cancel, true);
-    return () => { active = false; cancelAnimationFrame(positionFrame); cancelAnimationFrame(revealFrame); viewport?.removeEventListener('resize', viewportChange); viewport?.removeEventListener('scroll', viewportChange); window.removeEventListener('focusin', viewportChange); clearTimeout(toastTimer); updates.abort(); window.removeEventListener('offline', offline); workspaceSize.disconnect(); window.removeEventListener('pointerdown', press, true); window.removeEventListener('click', click, true); window.removeEventListener('pointermove', move); window.removeEventListener('keydown', key, true); window.removeEventListener('resize', viewportChange); window.removeEventListener('scroll', scroll, true); window.removeEventListener('pointerup', release, true); window.removeEventListener('pointercancel', cancel, true); };
+    return () => { active = false; window.removeEventListener('hashchange', connect); cancelAnimationFrame(positionFrame); cancelAnimationFrame(revealFrame); viewport?.removeEventListener('resize', viewportChange); viewport?.removeEventListener('scroll', viewportChange); window.removeEventListener('focusin', viewportChange); clearTimeout(toastTimer); updates.abort(); window.removeEventListener('offline', offline); workspaceSize.disconnect(); window.removeEventListener('pointerdown', press, true); window.removeEventListener('click', click, true); window.removeEventListener('pointermove', move); window.removeEventListener('keydown', key, true); window.removeEventListener('resize', viewportChange); window.removeEventListener('scroll', scroll, true); window.removeEventListener('pointerup', release, true); window.removeEventListener('pointercancel', cancel, true); };
   });
 </script>
 <svelte:head><title>Surface · Comment experiment</title></svelte:head>
@@ -375,8 +405,8 @@
       <div id="decision" class="decision"><strong>What would you simplify?</strong><Text size="small">Select a heading, card, or control and show your agent.</Text></div>
     </article>
   </section>
-{#if mode && selected && box && !editorOpen}
-  <div class="selection-tools" bind:clientWidth={selectionToolsWidth} bind:clientHeight={selectionToolsHeight} style:left={`${Math.max(12, Math.min(box.x, innerWidth - selectionToolsWidth - 12))}px`} style:top={`${Math.max(64, Math.min(box.y + box.height + 8, innerHeight - selectionToolsHeight - 32))}px`}>
+{#if mode && selected && !editorOpen}
+  <div class="selection-tools" class:offscreen={!selectionBox} inert={!selectionBox} aria-hidden={!selectionBox} bind:clientWidth={selectionToolsWidth} bind:clientHeight={selectionToolsHeight} style:--tools-x={`${toolsPosition.x}px`} style:--tools-y={`${toolsPosition.y}px`}>
     <SurfaceCard padding="0"><Toolbar label="Selected element actions">
     <IconButton size="compact" icon="camera" label="Capture selected element" title="Screenshot" disabled={locked} onclick={async () => { await capture(); editorOpen = true; updateBox(); }} />
     <IconButton size="compact" icon="message-square" label="Comment on selected element" title="Comment" disabled={locked} onclick={openComment} />
@@ -458,7 +488,8 @@
 .capture-preview { max-height:110px; }
 .editor-actions { width:100%; }
 .editor-status { flex:1; text-align:right; }
-.selection-tools { position:fixed; z-index:60; }
+.selection-tools { position:fixed; top:0; left:0; z-index:60; transform:translate3d(var(--tools-x),var(--tools-y),0); will-change:transform; }
+.selection-tools.offscreen { visibility:hidden; pointer-events:none; }
 @media(max-width:680px) {
   #comment-workspace { padding:20px; }
   .workspace-meta :global(:last-child) { display:none; }
