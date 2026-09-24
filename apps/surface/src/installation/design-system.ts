@@ -20,11 +20,11 @@ export function designSystemIdentity(root: string) {
 }
 
 /** Development stays linked; a prepared release owns a verified immutable copy. */
-export function materializeDesignSystem(repo: string, release: string) {
+export function materializeDesignSystem(repo: string, release: string, packageDirectory?: string) {
   const pinPath = join(release, 'apps/surface/design-system.lock.json');
   if (!existsSync(pinPath)) throw new Error('Surface release must pin its linked design-system package.');
   const expected = JSON.parse(readFileSync(pinPath, 'utf8'));
-  const source = realpathSync(join(repo, 'apps/surface/node_modules', packageName));
+  const source = realpathSync(packageDirectory ?? join(repo, 'apps/surface/node_modules', packageName));
   const observed = designSystemIdentity(source);
   if (expected.version !== 1 || expected.name !== packageName || expected.sha256 !== observed.sha256) {
     throw new Error('Linked design-system package differs from the committed pin. Build/link the recorded provider revision before updating Surface.');

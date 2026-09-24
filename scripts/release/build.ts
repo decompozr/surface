@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { Installation } from '../../apps/surface/src/installation/manager.ts';
 import { validateRelease } from '../../apps/surface/src/installation/compatibility.ts';
 import { inventory } from '../../apps/surface/src/installation/bundle.ts';
-const {values}=parseArgs({options:{version:{type:'string'},ref:{type:'string'},out:{type:'string'}}});
+const {values}=parseArgs({options:{version:{type:'string'},ref:{type:'string'},out:{type:'string'},'design-system-package':{type:'string'}}});
 const version=values.version;
 if(!version||!/^\d+\.\d+\.\d+-[a-z0-9.-]+$/.test(version))throw new Error('Specify an experimental --version, e.g. 0.1.0-experiment.1');
 if(process.platform!=='darwin'||process.arch!=='arm64')throw new Error('This first release experiment only supports native macOS arm64 builds.');
@@ -17,7 +17,9 @@ async function command(args:string[],cwd?:string) {
   if(code)throw new Error(stderr+stdout);return stdout.trim();
 }
 try {
-  const manifest=await new Installation(join(temp,'prepare'),validateRelease).install(root,values.ref??'HEAD','surface');
+  const manifest=await new Installation(join(temp,'prepare'),validateRelease, {
+    designSystemPackage: values['design-system-package'] && resolve(values['design-system-package']),
+  }).install(root,values.ref??'HEAD','surface');
   const name=`surface-${version}-${process.platform}-${process.arch}`,folder=join(temp,name);
   cpSync(join(temp,'prepare/releases',manifest.release),folder,{recursive:true,verbatimSymlinks:true});
   const assets=join(folder,'.distribution');mkdirSync(assets);

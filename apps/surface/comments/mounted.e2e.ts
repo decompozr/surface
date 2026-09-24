@@ -9,7 +9,9 @@ import { join, resolve } from 'node:path';
 const root = process.cwd();
 const output = resolve(process.env.COMMENTS_E2E_OUTPUT ?? '.decompozr/surface/comments-full-e2e'); mkdirSync(output, { recursive: true });
 const project = realpathSync(mkdtempSync(join(tmpdir(), 'surface-mounted-project-')));
-const state = realpathSync(mkdtempSync(join(tmpdir(), 'surface-loop-')));
+const installedHome = process.env.COMMENTS_E2E_INSTALLED_HOME && realpathSync(process.env.COMMENTS_E2E_INSTALLED_HOME);
+if (installedHome && JSON.parse(readFileSync(join(installedHome, 'e2e-fixture.json'), 'utf8')).purpose !== 'isolated-release-verification') throw new Error('Installed E2E requires an explicitly marked isolated installation.');
+const state = installedHome ? join(installedHome, 'state') : realpathSync(mkdtempSync(join(tmpdir(), 'surface-loop-')));
 const socket = join(state, 'fixture.sock');
 const http = createServer(); const ws = new WebSocketServer({ server: http });
 const activeRecipient = process.env.COMMENTS_E2E_ACTIVE !== '0';
@@ -50,23 +52,39 @@ async function sendDomain() {
 </main>`);
 writeFileSync(join(project, 'ui/routes/second/+page.svelte'), '<h1 id="headline">Second page</h1>');
 const artifactId = crypto.randomUUID();
-writeFileSync(join(project, 'artifact.project.json'), JSON.stringify({ version: 1, projectId: crypto.randomUUID(), name: 'Mounted comments fixture', artifacts: [{ id: artifactId, name: 'Review', source: 'ui', archived: false }] }));
+writeFileSync(join(project, 'artifact.project.json'), JSON.stringify({ version: 1, projectId: crypto.randomUUID(), name: `Mounted comments ${project.slice(-6)}`, artifacts: [{ id: artifactId, name: 'Review', source: 'ui', archived: false }] }));
 const git = Bun.spawn(['git', 'init', '-q', project]); if (await git.exited) throw new Error('Fixture Git init failed');
 const release = resolve(process.env.COMMENTS_E2E_APP_DIR!);
-const { startSurfaceApp } = await import(join(release, 'server/host.ts'));
-const app = await startSurfaceApp({ stateDir: state, dataRoot: join(state, 'data'), port: 0 });
+async function installedCLI(...args: string[]) {
+  const env: Record<string, string | undefined> = { ...process.env, PATH: '/usr/bin:/bin:/usr/sbin:/sbin', SURFACE_HOME: installedHome };
+  delete env.SURFACE_STATE_DIR;
+  const child = Bun.spawn([join(installedHome!, 'bin/surface'), ...args], { cwd: project, env, stdout: 'pipe', stderr: 'pipe' });
+  const [code, out, err] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
+  if (code) throw new Error(err + out);
+  return JSON.parse(out);
+}
+let app: { origin: string; stop(): Promise<unknown> } | undefined;
+try {
+if (installedHome) {
+  const selected = JSON.parse(readFileSync(join(installedHome, 'active.json'), 'utf8'));
+  expect(realpathSync(release)).toBe(realpathSync(join(installedHome, 'releases', selected.release, 'apps/surface')));
+  await installedCLI('start', '--port', process.env.COMMENTS_E2E_INSTALLED_PORT ?? '0');
+  app = { origin: JSON.parse(readFileSync(join(state, 'connection.json'), 'utf8')).origin, stop: () => installedCLI('stop') };
+} else {
+  const { startSurfaceApp } = await import(join(release, 'server/host.ts'));
+  app = await startSurfaceApp({ stateDir: state, dataRoot: join(state, 'data'), port: 0 });
+}
 const origin = app.origin;
 const management = JSON.parse(readFileSync(join(state, 'connection.json'), 'utf8')).token;
 async function api(path: string, data?: unknown) {
   const response = await fetch(origin + path, { method: data === undefined ? 'GET' : 'POST', headers: { authorization: `Bearer ${management}`, 'content-type': 'application/json' }, body: data === undefined ? undefined : JSON.stringify(data) });
   const value = await response.json(); expect(response.ok, JSON.stringify(value)).toBe(true); return value;
 }
-await api('/api/v1/projects/operations', { operation: 'register', projectRoot: project });
-const mount = (await api('/api/v1/projects/operations', { operation: 'mount', projectRoot: project, artifactId })).data;
-const binding = await api('/api/bindings', { projectRoot: project, threadId: 'e2e-fixture', socketPath: socket });
+if (installedHome) await installedCLI('project', 'register');
+else await api('/api/v1/projects/operations', { operation: 'register', projectRoot: project });
+const mount = (installedHome ? await installedCLI('project', 'mount', '--artifact', artifactId) : await api('/api/v1/projects/operations', { operation: 'mount', projectRoot: project, artifactId })).data;
+const binding = installedHome ? await installedCLI('bind', '--project', project, '--thread', 'e2e-fixture', '--socket', socket) : await api('/api/bindings', { projectRoot: project, threadId: 'e2e-fixture', socketPath: socket });
 const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.name, component: 'routes/+page.svelte', title: 'Mounted page comments', schema: { type: 'object', required: ['domainChoice'], properties: { domainChoice: { type: 'string' } }, additionalProperties: false } };
-try {
-
   for (const mobile of [false, true]) {
     const name = mobile ? 'mobile' : 'desktop';
     const browser = await (mobile ? webkit : chromium).launch();
@@ -74,7 +92,8 @@ try {
     await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
     const page = await context.newPage(); const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
     const count = deliveries.length;
-    const parent = await api('/api/requests', input);
+    writeFileSync(join(project, 'ui/schema.json'), JSON.stringify(input.schema));
+    const parent = installedHome ? await installedCLI('request', '--binding', binding.id, '--namespace', mount.namespace, '--name', mount.name, '--component', input.component, '--title', input.title, '--schema-file', join(project, 'ui/schema.json')) : await api('/api/requests', input);
     const preview = new URL(parent.previewUrl); preview.hash = '';
     const token = parent.token;
     const endpoint = `/api/n/${mount.namespace}/${mount.name}/requests/${parent.id}/comments`;
@@ -166,7 +185,7 @@ try {
         const args = stage === 'acknowledged'
           ? ['result', '--state-dir', commentsState, '--request', request.id, '--data', JSON.stringify({ message, stage, ...(next ? { next } : {}) })]
           : [request.id, message, '--state-dir', commentsState];
-        const command = Bun.spawn(['bun', resolve('apps/surface/comments/result.ts'), ...args], { stdout: 'pipe', stderr: 'pipe' });
+        const command = Bun.spawn([installedHome ? resolve(release, '../../.distribution/bun') : process.execPath, join(release, 'comments/result.ts'), ...args], { stdout: 'pipe', stderr: 'pipe' });
         expect(await command.exited).toBe(0);
       };
       if (mobile) {
@@ -274,5 +293,5 @@ try {
     } catch (error) { await page.screenshot({ path: join(output, `${name}-failure.png`), fullPage: true }); throw error; }
     finally { await context.tracing.stop({ path: join(output, `${name}-trace.zip`) }); await browser.close(); }
   }
-  writeFileSync(join(output, 'report.json'), JSON.stringify({ status: 'passed', state, deliveries: deliveries.length, provider: 'isolated protocol fixture', activeRecipient, release, physicalDevice: false }, null, 2));
-} finally { await app.stop(); ws.close(); http.close(); }
+  writeFileSync(join(output, 'report.json'), JSON.stringify({ status: 'passed', state, deliveries: deliveries.length, provider: 'isolated protocol fixture', activeRecipient, release, installedHome, project, origin, physicalDevice: false }, null, 2));
+} finally { await app?.stop(); ws.close(); http.close(); }

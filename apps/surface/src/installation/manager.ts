@@ -29,7 +29,8 @@ function alive(pid: number) {
 
 export class Installation {
   readonly home: string;
-  constructor(home: string, private readonly validateRelease?: (directory: string, stateDir: string) => Promise<void>) { this.home = resolve(home); }
+  constructor(home: string, private readonly validateRelease?: (directory: string, stateDir: string) => Promise<void>,
+    private readonly buildOptions: { designSystemPackage?: string } = {}) { this.home = resolve(home); }
   private initialize() {
     if (existsSync(this.home) && lstatSync(this.home).isSymbolicLink()) throw new Error('Installation home must not be a symlink.');
     mkdirSync(this.home, { recursive: true, mode: 0o700 });
@@ -122,7 +123,7 @@ export class Installation {
           await command([process.execPath, 'install', '--frozen-lockfile', '--ignore-scripts'], cwd);
         }
         if (host === 'surface' && read<{ dependencies?: Record<string, string> }>(join(staging, 'apps/surface/package.json')).dependencies?.['@decompozr/design-system']?.startsWith('link:')) {
-          materializeDesignSystem(realpathSync(repo), staging);
+          materializeDesignSystem(realpathSync(repo), staging, this.buildOptions.designSystemPackage);
         }
         if (host !== 'singleton') await command([process.execPath, 'run', 'build'], join(staging, host === 'surface' ? 'apps/surface' : 'experiments/sveltekit'));
         await this.validateRelease?.(staging, join(this.home, 'state'));

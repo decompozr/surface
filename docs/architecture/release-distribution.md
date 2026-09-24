@@ -10,6 +10,8 @@ Commit the intended source, then run:
 bun scripts/release/build.ts --version 0.1.0-experiment.20260922.2 --ref COMMIT
 ```
 
+When the development link contains unrelated work or an older provider, build the pinned design-system commit in a separate source export and pass `--design-system-package /absolute/prepared/package`. The builder still checks its exact content against the selected Surface commit's `apps/surface/design-system.lock.json`; this option does not bypass the pin or replace the development link. Downloaded bundles own these verified bytes.
+
 The build exports only the selected Git commit, prepares frozen dependencies with dependency scripts disabled, builds the app, and packages the native runtime. `dist/` receives a platform/version tarball and SHA-256 sidecar. Release metadata identifies the source commit, exact runtime and file inventory. Publish the archive and checksum as assets of an explicitly experimental GitHub prerelease pointing at that same commit. An existing archive is never overwritten.
 
 This is not yet a signed/notarized installer or a cross-platform release matrix. Checksums detect corruption; they do not independently authenticate a compromised download source. Native builds are required. Build timestamps mean byte-for-byte reproducibility is not claimed.
@@ -41,3 +43,7 @@ Use `status`, `doctor`, `workspace list`, `project list`, `requests`, `stop`, an
 To upgrade, stop the service and run the new download's `install --home SAME_HOME`. Existing schema compatibility checks apply before activation. Previous releases remain available to `rollback --release ID`. `uninstall` requires a stopped service, removes release payloads, and preserves service state, project data and lifecycle tooling. Reinstall from a downloaded bundle; unresolved agent callbacks block removal of their release executables.
 
 The first experiment validates local fixture operations. A fresh user's real agent configuration, real conversation delivery, and human onboarding acceptance are separate evidence gates.
+
+## Current candidate acceptance
+
+Use the [installed candidate gate](../evaluations/release-candidate.md) for current application delivery, including the latest committed design-system pin, packaged browser verification and state-preserving upgrade/rollback. Earlier downloadable experiments retain their historical status; candidate preparation does not publish a release or alter a selected user installation.

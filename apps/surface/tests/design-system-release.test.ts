@@ -25,6 +25,17 @@ test('release owns pinned package bytes while development stays linked; drift re
     expect(() => materializeDesignSystem(repo, release)).toThrow('differs from the committed pin');
     expect(readFileSync(join(installed, 'dist/index.js'), 'utf8')).toContain('pinned');
     expect(existsSync(join(release, '.surface-design-system.json'))).toBe(true);
+    const frozen = join(root, 'frozen');
+    mkdirSync(join(frozen, 'dist'), { recursive: true });
+    writeFileSync(join(frozen, 'package.json'), readFileSync(join(source, 'package.json')));
+    writeFileSync(join(frozen, 'dist/index.js'), 'export const marker = "pinned";');
+    materializeDesignSystem(repo, release, frozen);
+    expect(readFileSync(join(installed, 'dist/index.js'), 'utf8')).toContain('pinned');
+    expect(readFileSync(join(source, 'dist/index.js'), 'utf8')).toContain('changed');
+    expect(lstatSync(join(repo, 'apps/surface/node_modules/@decompozr/design-system')).isSymbolicLink()).toBe(true);
+    writeFileSync(join(frozen, 'dist/index.js'), 'unapproved');
+    expect(() => materializeDesignSystem(repo, release, frozen)).toThrow('differs from the committed pin');
+    expect(readFileSync(join(installed, 'dist/index.js'), 'utf8')).toContain('pinned');
     symlinkSync('/tmp', join(source, 'dist/foreign'));
     expect(() => designSystemIdentity(source)).toThrow('symlink');
   } finally { rmSync(root, { recursive: true, force: true }); }

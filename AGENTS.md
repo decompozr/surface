@@ -12,6 +12,8 @@ Use the selected installation consistently. Keep project-owned source, service m
 
 Repository documentation is English. Preserve the canonical checkout and existing worktrees. For shell searches use `/opt/homebrew/bin/rg` when available; otherwise report its absence before selecting another tool.
 
+Always update the design system when updating or preparing a Surface release. Check the provider repository's latest committed `main`, build that exact revision, update `apps/surface/design-system.lock.json`, and validate Surface against those package bytes. Do not silently reuse a stale development link or adopt unrelated uncommitted provider work. Preserve existing provider checkouts and links; an isolated source export plus the release builder's `--design-system-package` option supports this. Freeze the selected revision for the verification/release run so the tested and shipped bytes match.
+
 Every UI/UX change must complete the automatic visual and interaction audit gate in `docs/source-workflow.md`: inspect rendered phone/desktop states, fix findings, and inspect again before delivery. E2E success alone is not UX acceptance.
 
 ## Self-owned E2E verification
