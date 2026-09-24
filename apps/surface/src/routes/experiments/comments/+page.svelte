@@ -49,6 +49,9 @@
   let notice = $state(''), storageError = $state('');
   let selected = $state<HTMLElement | null>(null), hovered = $state<HTMLElement | null>(null);
   let box = $state<{ x: number; y: number; width: number; height: number } | null>(null);
+  let selectionBox = $state<typeof box>(null);
+  let toolsPosition = $state({ x: 12, y: 64 });
+  let selectionToolsWidth = $state(340), selectionToolsHeight = $state(44);
   let workspace = $state<HTMLElement>(null!);
   let composer = $state<HTMLTextAreaElement>();
   let fontSize = $state(42), compact = $state(false);
@@ -119,13 +122,26 @@
   function updateBox() {
     visibleViewport = readViewport(window);
     updateEditor();
-    const el = hovered ?? selected;
-    if (!mode || !el?.isConnected || !workspace) { box = null; return; }
-    const r = el.getBoundingClientRect(), w = workspace.getBoundingClientRect();
-    const x = Math.max(r.left, w.left, visibleViewport.x), y = Math.max(r.top, w.top, visibleViewport.y);
-    const right = Math.min(r.right, w.right, visibleViewport.x + visibleViewport.width), bottom = Math.min(r.bottom, w.bottom, visibleViewport.y + visibleViewport.height);
-    box = right > x && bottom > y ? { x, y, width: right - x, height: bottom - y } : null;
+    if (!mode || !workspace) { box = null; selectionBox = null; return; }
+    const w = workspace.getBoundingClientRect();
+    function clipped(el: HTMLElement | null) {
+      if (!el?.isConnected) return null;
+      const r = el.getBoundingClientRect();
+      const x = Math.max(r.left, w.left, visibleViewport.x), y = Math.max(r.top, w.top, visibleViewport.y);
+      const right = Math.min(r.right, w.right, visibleViewport.x + visibleViewport.width), bottom = Math.min(r.bottom, w.bottom, visibleViewport.y + visibleViewport.height);
+      return right > x && bottom > y ? { x, y, width: right - x, height: bottom - y } : null;
+    }
+    selectionBox = clipped(selected);
+    box = hovered && hovered !== selected ? clipped(hovered) : selectionBox;
+    if (selectionBox) {
+      toolsPosition = {
+        x: Math.max(visibleViewport.x + 12, Math.min(selectionBox.x, visibleViewport.x + visibleViewport.width - selectionToolsWidth - 12)),
+        y: Math.max(visibleViewport.y + 12, w.top + 4, Math.min(selectionBox.y - selectionToolsHeight, visibleViewport.y + visibleViewport.height - selectionToolsHeight - 32)),
+      };
+    }
   }
+  $effect(() => { selectionToolsWidth; selectionToolsHeight; schedulePosition(); });
+
   function targetFrom(event: Event) {
     const raw = event.target instanceof Element ? event.target : null;
     const el = raw?.closest<HTMLElement>('button, a, input, select, textarea, [role="button"]') ?? (raw instanceof HTMLElement ? raw : raw?.closest<HTMLElement>('p, section'));
@@ -252,7 +268,8 @@
   });
   onMount(() => {
     let active = true;
-    const updates = new AbortController();
+    let updates = new AbortController();
+    let updatesTask: Promise<void> = Promise.resolve();
     const viewport = window.visualViewport;
     let revealFrame = 0;
     const viewportChange = () => {
@@ -266,15 +283,29 @@
     updateBox();
     const offline = () => { liveAbort?.abort(); };
     window.addEventListener('offline', offline);
-    try {
-      connectionKey = new URLSearchParams(location.hash.slice(1)).get('connect') ?? sessionStorage.getItem('surface-comments-connection') ?? '';
-      if (connectionKey) sessionStorage.setItem('surface-comments-connection', connectionKey);
-    } catch { /* The private link still works when session storage is unavailable. */ }
+    const connect = () => {
+      let key = new URLSearchParams(location.hash.slice(1)).get('connect') ?? '';
+      try { key ||= sessionStorage.getItem('surface-comments-connection') ?? ''; } catch { /* Fragment works without storage. */ }
+      if (key === connectionKey) return;
+      updates.abort();
+      const next = new AbortController();
+      updates = next;
+      connectionKey = key;
+      agentAvailable = false;
+      agentStatus = key ? 'Checking…' : 'Open connection link';
+      try { if (key) sessionStorage.setItem('surface-comments-connection', key); } catch { /* Keep the in-memory capability. */ }
+      // Serialize stream replacement so an old reader cannot clear the new connection state.
+      if (ready) updatesTask = updatesTask.then(() => {
+        if (active && !next.signal.aborted) return watchUpdates(next.signal);
+      });
+    };
+    connect();
+    window.addEventListener('hashchange', connect);
     agentStatus = data.live ? (connectionKey ? 'Checking…' : 'Open connection link') : 'Local test';
-    const workspaceSize = new ResizeObserver(updateBox);
+    const workspaceSize = new ResizeObserver(schedulePosition);
     workspaceSize.observe(workspace);
-    readState().then(saved => { if (!active) return; review = saved; ready = true; if (saved.draft.target) selected = resolveTarget(saved.draft.target, workspace); updateBox(); void watchUpdates(updates.signal); })
-      .catch(() => { if (active) { ready = true; notice = 'Browser storage could not be opened. Keep this page open.'; void watchUpdates(updates.signal); } });
+    readState().then(saved => { if (!active) return; review = saved; ready = true; if (saved.draft.target) selected = resolveTarget(saved.draft.target, workspace); updateBox(); updatesTask = watchUpdates(updates.signal); })
+      .catch(() => { if (active) { ready = true; notice = 'Browser storage could not be opened. Keep this page open.'; updatesTask = watchUpdates(updates.signal); } });
     let gesture: { x: number; y: number; moved: boolean } | null = null;
     let suppressClick = false;
     const press = (event: PointerEvent) => {
@@ -294,7 +325,7 @@
     const move = (event: PointerEvent) => {
       if (gesture && Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 8) gesture.moved = true;
       hovered = event.pointerType === 'mouse' && !event.buttons && mode && !busy ? targetFrom(event) : null;
-      updateBox();
+      schedulePosition();
     };
     const key = (event: KeyboardEvent) => {
       if (event.isComposing || event.repeat) return;
@@ -316,7 +347,7 @@
       if (mode && (event.key === 'Enter' || event.key === ' ') && targetFrom(event)) { event.preventDefault(); event.stopPropagation(); void select(targetFrom(event)!); }
     };
     window.addEventListener('pointerdown', press, true); window.addEventListener('click', click, true); window.addEventListener('pointermove', move); window.addEventListener('keydown', key, true); window.addEventListener('resize', viewportChange); window.addEventListener('scroll', scroll, true); window.addEventListener('pointerup', release, true); window.addEventListener('pointercancel', cancel, true);
-    return () => { active = false; cancelAnimationFrame(positionFrame); cancelAnimationFrame(revealFrame); viewport?.removeEventListener('resize', viewportChange); viewport?.removeEventListener('scroll', viewportChange); window.removeEventListener('focusin', viewportChange); clearTimeout(toastTimer); updates.abort(); window.removeEventListener('offline', offline); workspaceSize.disconnect(); window.removeEventListener('pointerdown', press, true); window.removeEventListener('click', click, true); window.removeEventListener('pointermove', move); window.removeEventListener('keydown', key, true); window.removeEventListener('resize', viewportChange); window.removeEventListener('scroll', scroll, true); window.removeEventListener('pointerup', release, true); window.removeEventListener('pointercancel', cancel, true); };
+    return () => { active = false; window.removeEventListener('hashchange', connect); cancelAnimationFrame(positionFrame); cancelAnimationFrame(revealFrame); viewport?.removeEventListener('resize', viewportChange); viewport?.removeEventListener('scroll', viewportChange); window.removeEventListener('focusin', viewportChange); clearTimeout(toastTimer); updates.abort(); window.removeEventListener('offline', offline); workspaceSize.disconnect(); window.removeEventListener('pointerdown', press, true); window.removeEventListener('click', click, true); window.removeEventListener('pointermove', move); window.removeEventListener('keydown', key, true); window.removeEventListener('resize', viewportChange); window.removeEventListener('scroll', scroll, true); window.removeEventListener('pointerup', release, true); window.removeEventListener('pointercancel', cancel, true); };
   });
 </script>
 <svelte:head><title>Surface · Comment experiment</title></svelte:head>
@@ -382,6 +413,7 @@
       <div id="decision" class="decision"><strong>What would you simplify?</strong><Text size="small">Select a heading, card, or control and show your agent.</Text></div>
     </article>
   </section>
+
 {#if editorOpen && review.draft.target}
   <div class="editor-anchor" use:measureEditor>
   <FloatingComposer label="Comment on selected element" x={editorPosition.x} y={editorPosition.y} width={`${editorPosition.width}px`} maxHeight={`${editorPosition.maxHeight}px`}>
@@ -405,14 +437,14 @@
   </FloatingComposer>
   </div>
 {/if}
-{#if box && !panel}
-  <div class="selection-outline"><SelectionOutline {...box} state={hovered && hovered !== selected ? 'hover' : 'selected'} /></div>
-  <div class="element-label" style:left={`${Math.max(12, Math.min(box.x, innerWidth - 340))}px`} style:top={`${Math.max(112, box.y)}px`} style:--label-background={colorShades.sage.base} style:--label-color={colorShades.neutral.white}>
-    {#if !editorOpen && selected && (!hovered || hovered === selected)}
+{#if box && !panel}<div class="selection-outline"><SelectionOutline {...box} state={hovered && hovered !== selected ? 'hover' : 'selected'} /></div>{/if}
+{#if mode && selected && !editorOpen && !panel}
+  <div class="element-label selection-tools" role="toolbar" aria-label="Selected element actions" class:offscreen={!selectionBox} inert={!selectionBox} aria-hidden={!selectionBox} bind:clientWidth={selectionToolsWidth} bind:clientHeight={selectionToolsHeight} style:--tools-x={`${toolsPosition.x}px`} style:--tools-y={`${toolsPosition.y}px`} style:--label-background={colorShades.sage.base} style:--label-color={colorShades.neutral.white}>
+    {#if selected}
 {#if selected?.parentElement && selected.parentElement !== workspace}<IconButton size="compact" icon="chevron-up" label="Select parent element" title="Select parent element" disabled={locked} onclick={() => { const parent = selected?.parentElement; if (parent && workspace.contains(parent) && parent !== workspace) { selected = parent; review.draft = { ...review.draft, target: metadata(parent), capture: undefined }; hovered = null; updateBox(); } }} />{/if}
     {/if}
-    <span class="element-name" title={(hovered ?? selected) ? metadata((hovered ?? selected)!).selector : ''}>{(hovered ?? selected) ? metadata((hovered ?? selected)!).label : ''}</span>
-    {#if !editorOpen && selected && (!hovered || hovered === selected)}
+    <span class="element-name" title={selected ? metadata(selected!).selector : ''}>{selected ? metadata(selected!).label : ''}</span>
+    {#if selected}
     <IconButton size="compact" icon="camera" label="Capture selected element" title="Screenshot" disabled={locked} onclick={async () => { await capture(); editorOpen = true; updateBox(); }} />
     <IconButton size="compact" icon="message-square" label="Comment on selected element" title="Comment" disabled={locked} onclick={openComment} />
     <IconButton size="compact" icon="close" label="Clear selection" title="Clear selection" disabled={locked} onclick={() => { selected = null; hovered = null; updateBox(); }} />
@@ -463,6 +495,8 @@
 .editor-actions { width:100%; }
 .editor-status { flex:1; text-align:right; }
 
+
+
 @media(max-width:680px) {
   #comment-workspace { padding:20px; }
   .workspace-meta :global(:last-child) { display:none; }
@@ -472,7 +506,8 @@
 
 .reply-wait { display:flex; align-items:center; gap:.5rem; font-size:.875rem; padding-top:.75rem; }
 .reply-spinner { width:14px; height:14px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:reply-spin .8s linear infinite; }
-.element-label { position:fixed; z-index:61; display:flex; align-items:center; width:min(340px, calc(100vw - 24px)); box-sizing:border-box; transform:translateY(-100%); border-radius:.1875rem .1875rem 0 0; background:var(--label-background); color:var(--label-color); padding:0 .4375rem; }
+.element-label { position:fixed; top:0; left:0; z-index:61; display:flex; align-items:center; width:min(340px, calc(100vw - 24px)); box-sizing:border-box; transform:translate3d(var(--tools-x),var(--tools-y),0); will-change:transform; border-radius:.1875rem .1875rem 0 0; background:var(--label-background); color:var(--label-color); padding:0 .4375rem; }
+.selection-tools.offscreen { visibility:hidden; pointer-events:none; }
 .element-label .element-name { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:.75rem/1.5 ui-monospace,monospace; }
 .element-label :global(button.dz-button), .element-label :global(button.dz-button:hover), .element-label :global(button.dz-button:active) { color:var(--label-color) !important; background:transparent !important; border-color:transparent !important; }
 .element-label :global(.icon-button) { flex-shrink:0; }

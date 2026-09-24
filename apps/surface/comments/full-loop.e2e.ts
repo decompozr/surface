@@ -15,13 +15,14 @@ const reservation = createNetServer(); await new Promise<void>(r => reservation.
 const port = (reservation.address() as { port: number }).port; await new Promise<void>(r => reservation.close(() => r()));
 const origin = `http://127.0.0.1:${port}`;
 const http = createServer(); const ws = new WebSocketServer({ server: http });
+const activeRecipient = process.env.COMMENTS_E2E_ACTIVE !== '0';
 let activeTurn = 'fixture-active-1';
 let deliveries: { method: string; params: any }[] = [];
 ws.on('connection', client => client.on('message', raw => {
   const message = JSON.parse(raw.toString()); if (message.id === undefined) return;
   let result: unknown;
   if (message.method === 'initialize') result = {};
-  else if (message.method === 'thread/read') result = { thread: { id: 'e2e-fixture', cwd: root, status: { type: 'active' } } };
+  else if (message.method === 'thread/read') result = { thread: { id: 'e2e-fixture', cwd: root, status: { type: activeRecipient ? 'active' : 'idle' } } };
   else if (message.method === 'thread/turns/list') result = { data: [{ id: activeTurn, status: 'inProgress' }] };
   else if (message.method === 'turn/steer') { deliveries.push(message); result = { turnId: activeTurn }; }
   else if (message.method === 'thread/queue/add') { deliveries.push(message); result = { queuedSubmission: { id: `queue-${deliveries.length}` } }; }
@@ -45,7 +46,7 @@ try {
     const page = await context.newPage(); const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
     const count = deliveries.length;
     try {
-      await page.goto(origin + '/experiments/comments#connect=' + token);
+      await page.goto(origin + '/experiments/comments');
       await page.locator('#option-a h2').click();
       const parentAction = page.getByRole('button', { name: 'Select parent element' });
       await expect(parentAction).toBeVisible();
@@ -66,7 +67,15 @@ try {
       await page.getByRole('button', { name: /Open comments/ }).click();
       const send = page.getByRole('button', { name: 'Send 1 comments together' });
       await expect(page.getByRole('switch', { name: 'Steer delivery', exact: true })).toBeChecked();
+      await expect(send).toBeDisabled();
+      await page.evaluate(() => document.body.dataset.sameDocument = 'retained');
+      await page.goto(origin + '/experiments/comments#connect=invalid-fixture-capability');
+      await expect(send).toBeDisabled();
+      await page.goto(origin + '/experiments/comments#connect=' + token);
       await expect(send).toBeEnabled();
+      expect(await page.evaluate(() => document.body.dataset.sameDocument)).toBe('retained');
+      await expect(page.getByText(`E2E ${name}: fixture submission`, { exact: true })).toBeVisible();
+      if (activeRecipient) {
       // A turn change must retain the unsent draft until an explicit refresh/send.
       activeTurn = `changed-${name}`;
       await send.click();
@@ -75,6 +84,7 @@ try {
       await expect(send).toBeDisabled();
       await page.getByRole('button', { name: 'Refresh agent', exact: true }).click();
       await expect(send).toBeEnabled();
+      }
       if (mobile) {
         await page.locator('label').filter({ has: page.getByRole('switch', { name: 'Steer delivery', exact: true }) }).tap();
         await expect(page.getByRole('switch', { name: 'Steer delivery', exact: true })).not.toBeChecked();
@@ -90,12 +100,12 @@ try {
         await route.abort('connectionreset');
       });
       await send.click();
-      await expect(page.getByText(mobile ? 'Queued' : 'Delivered', { exact: true })).toBeVisible();
+      await expect(page.getByText(activeRecipient && mobile ? 'Queued' : 'Delivered', { exact: true })).toBeVisible();
       await expect(page.getByText('Agent acknowledged', { exact: true })).toHaveCount(0);
       await expect(page.getByRole('button', { name: 'Check submission', exact: true })).toHaveCount(0);
       await expect(page.getByText('Waiting for reply…', { exact: true })).toBeVisible();
       expect(posts).toBe(1);
-      expect(deliveries.at(-1)?.method).toBe(mobile ? 'thread/queue/add' : 'turn/steer');
+      expect(deliveries.at(-1)?.method).toBe(activeRecipient ? mobile ? 'thread/queue/add' : 'turn/steer' : 'turn/start');
       expect(deliveries.length).toBe(count + 1);
       const stateData = () => JSON.parse(readFileSync(join(state, 'interactions.json'), 'utf8'));
       const request = stateData().requests.at(-1);
@@ -164,5 +174,5 @@ try {
     } catch (error) { await page.screenshot({ path: join(output, `${name}-failure.png`), fullPage: true }); throw error; }
     finally { await context.tracing.stop({ path: join(output, `${name}-trace.zip`) }); await browser.close(); }
   }
-  writeFileSync(join(output, 'report.json'), JSON.stringify({ status: 'passed', state, deliveries: deliveries.length, provider: 'isolated protocol fixture', physicalDevice: false }, null, 2));
+  writeFileSync(join(output, 'report.json'), JSON.stringify({ status: 'passed', state, deliveries: deliveries.length, provider: 'isolated protocol fixture', activeRecipient, release, physicalDevice: false }, null, 2));
 } finally { server.kill(); await server.exited; ws.close(); http.close(); }

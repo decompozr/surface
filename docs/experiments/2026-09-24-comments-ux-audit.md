@@ -17,3 +17,9 @@ Current-run screenshots are retained locally under `.decompozr/surface/ux-audit/
 TypeScript/Svelte checks, production build and 39 focused tests passed. The browser audit used Chrome through the supported computer-use interface because the in-app browser was unavailable. The short viewport tests available space, not an actual iOS keyboard. Physical iPhone/Safari acceptance and full screen-reader/WCAG compliance remain unverified. Earlier WebKit E2E results do not certify this new revision.
 
 Disposition: requirements updated in agent-interaction.md; automatic iterative UI/UX audit is now a source-workflow completion gate referenced from AGENTS.md.
+
+## Integration re-audit
+
+Integrated origin/main c155280 without dropping its capability-fragment updates or retained transform-based toolbar tracking. The combined selection strip now retains the selected anchor and mounted node when clipped. Recaptured and inspected 06-integrated-selection.png and 06-integrated-panel.png.
+
+The required `bun run test:e2e:comments` passed on the integrated working tree: desktop Chromium and mobile WebKit for active/idle recipients, authorization-fragment changes, stale turns, lost POST acknowledgements, SSE, offline/reload and no duplicate delivery; both engines passed retained-toolbar and scroll-tracking regression. Immutable build evidence: `.decompozr/surface/comments-e2e/1790219785480/`. This supplements, rather than replaces, the visual audit.

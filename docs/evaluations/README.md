@@ -18,6 +18,10 @@ Requirements describe observable behavior. Design records its presentation and k
 | D-05, D-06 | [E-11](ui-eval.md#e-11-drafts-and-results) | Declared per-page state lifetime and observed outcome |
 | D-07, D-08 | [E-12](ui-eval.md#e-12-mobile-and-accessibility) | Viewport fixtures versus assistive technology/device acceptance |
 
+## Self-owned browser verification
+
+Follow [agent-owned E2E verification](self-e2e.md) for UI and interaction fixes. The comments experiment provides `bun run test:e2e:comments` for an isolated idle/active/recovery matrix on Chromium and WebKit. This is an executable verification procedure, not a claim that any untested revision passes.
+
 ## Recording a run
 
 September 23 follow-up evidence: [INTEGRATED-LOOP-03](../experiments/2026-09-23-integrated-loop.md)
