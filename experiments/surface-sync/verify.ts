@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, realpathSync, readFileSync, writeFileSync, copy
 import { join, resolve, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { Database } from 'bun:sqlite';
-import { Installation } from '@decompozr/surface-installer/manager';
+import { Installation } from '@decompozr/surface-cli/installation/manager';
 import { command, git } from '../workspaces/fixture.ts';
 
 const fixture = async () => {

@@ -1,6 +1,6 @@
 import { parseArgs } from 'node:util';
-import { Installation, type Host } from '@decompozr/surface-installer/manager';
-export { Installation, type Host } from '@decompozr/surface-installer/manager';
+import { Installation, type Host } from '@decompozr/surface-cli/installation/manager';
+export { Installation, type Host } from '@decompozr/surface-cli/installation/manager';
 
 if (import.meta.main) {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: { home: { type: 'string' }, repo: { type: 'string' }, ref: { type: 'string' }, host: { type: 'string' }, port: { type: 'string' } } });

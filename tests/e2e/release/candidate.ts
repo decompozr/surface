@@ -3,7 +3,7 @@ import { chromium, expect } from '@playwright/test';
 import { createServer } from 'node:net';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { mkdirSync, mkdtempSync, realpathSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, resolve, basename } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -82,10 +82,11 @@ try {
     const target = join(home, 'template-' + framework);
     const result = await installed('init', '--directory', target, '--framework', framework);
     expect(result.installed).toBe(false);
-    const client = readFileSync(join(target, 'src/surface-client.ts'), 'utf8');
+    const clientPath = join(target, existsSync(join(target, 'src/interactions.ts')) ? 'src/interactions.ts' : 'src/surface-client.ts');
+    const client = readFileSync(clientPath, 'utf8');
     expect(client).toContain('createSurfaceClient');
     await expect(installed('init', '--directory', target, '--framework', framework)).rejects.toThrow('overwrite');
-    expect(readFileSync(join(target, 'src/surface-client.ts'), 'utf8')).toBe(client);
+    expect(readFileSync(clientPath, 'utf8')).toBe(client);
   }
   await start();
   await installed('project', 'init', '--name', 'Surface release acceptance');

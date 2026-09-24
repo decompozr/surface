@@ -7,7 +7,7 @@
   "scripts": {
     "build:release": "bun scripts/release/build.ts",
     "dev": "bun apps/cli/src/index.ts serve",
-    "test": "bun run --cwd apps/surface build && bun test apps/surface/tests apps/installer/tests tests/unit tests/e2e/runtime/interactions.test.ts",
+    "test": "bun run --cwd apps/surface build && bun test apps/surface/tests apps/cli/tests tests/unit tests/e2e/runtime/interactions.test.ts",
     "check": "tsc --noEmit",
     "verify:external": "bun tests/e2e/external.ts",
     "verify:mcp": "bun tests/e2e/mcp/verify.ts",
@@ -29,7 +29,6 @@
     "typescript": "6.0.3",
     "@decompozr/surface-app": "workspace:*",
     "@decompozr/surface-cli": "workspace:*",
-    "@decompozr/surface-installer": "workspace:*",
     "@modelcontextprotocol/client": "2.0.0"
   },
   "bin": {
@@ -41,7 +40,6 @@
   },
   "workspaces": [
     "apps/surface",
-    "apps/cli",
-    "apps/installer"
+    "apps/cli"
   ]
 }

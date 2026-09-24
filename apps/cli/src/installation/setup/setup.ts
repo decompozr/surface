@@ -4,8 +4,8 @@ import { resolve, join } from 'node:path';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { loadPrompts } from './prompts.ts';
 import { selectSkills } from './provider.ts';
-import { requireCompatibleBun } from '@decompozr/surface-installer/bun-version';
-import { installationHome } from '@decompozr/surface-installer/paths';
+import { requireCompatibleBun } from '../bun-version.ts';
+import { installationHome } from '../paths.ts';
 import { inspectSkillLink, linkSkill } from './skill-link.ts';
 
 export const agentSetup = async (args=process.argv.slice(2)) => {
@@ -56,7 +56,7 @@ const requestedMode=positionals[0];
 const mode=requestedMode==='refresh'?'setup':requestedMode;
 if(values.help){console.log('./bin/setup | ./bin/test | ./bin/refresh [--provider codex|claude | --skills-dir PATH] [--home PATH] [--port PORT] [--tailscale on|off] [--ref COMMIT]\nSetup shows a Codex / Claude Code menu; saved choices or all detected providers are preselected. Space toggles; Enter confirms. Repeat --provider or --skills-dir for multiple destinations.');return;}
 if(!['setup','test','refresh'].includes(mode??'')||positionals.length!==1)throw new Error('Specify setup, test or refresh.');
-const root=resolve(import.meta.dir,'../../../..'),home=installationHome(values.home);
+const root=resolve(import.meta.dir,'../../../../..'),home=installationHome(values.home);
 const pkg=JSON.parse(readFileSync(join(root,'package.json'),'utf8'));
 requireCompatibleBun(pkg.packageManager,Bun.version);
 if(values.port!==undefined && (!Number.isInteger(Number(values.port)) || Number(values.port)<0 || Number(values.port)>65535))throw new Error('Invalid port.');
@@ -102,7 +102,7 @@ for(const folder of [''])await run([process.execPath,'install','--frozen-lockfil
 step('Checking source and installation contracts');
 await run([process.execPath,'run','check']);
 await run([process.execPath,'run','check'],join(root,'apps/surface'));
-await run([process.execPath,'test','apps/installer/tests/release-bundle.test.ts','apps/installer/tests/agent-skill-link.test.ts']);
+await run([process.execPath,'test','apps/cli/tests/installation/release-bundle.test.ts','apps/cli/tests/installation/agent-skill-link.test.ts']);
 if(wasRunning){step('Stopping the selected service for update');await cli('stop');}
 try {
   step('Building and installing Surface');

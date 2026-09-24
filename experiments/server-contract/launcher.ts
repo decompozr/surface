@@ -25,7 +25,7 @@ const installLauncher = async (home: string, release: string) => {
   try { output = await Bun.build({ entrypoints: [join(source, 'experiments/server-contract/launcher.ts')], target: 'bun', format: 'esm', outdir: directory, banner: '#!/usr/bin/env bun', naming: 'launcher.js' }); }
   catch (error) { throw new Error('Launcher bundle failed: ' + String(error)); }
   if (!output.success) throw new Error('Launcher bundle failed: ' + output.logs.join('\n'));
-  copyFileSync(join(source, existsSync(join(source, 'apps/installer/src/runner.ts')) ? 'apps/installer/src/runner.ts' : 'experiments/lifecycle/runner.ts'), join(directory, 'runner.ts'));
+  copyFileSync(join(source, existsSync(join(source, 'apps/cli/src/installation/runner.ts')) ? 'apps/cli/src/installation/runner.ts' : 'experiments/lifecycle/runner.ts'), join(directory, 'runner.ts'));
   chmodSync(join(directory, 'launcher.js'), 0o700);
   const temporary = join(home, 'bin', `.surface-${crypto.randomUUID()}`);
   symlinkSync(join(directory, 'launcher.js'), temporary); renameSync(temporary, join(home, 'bin/surface'));

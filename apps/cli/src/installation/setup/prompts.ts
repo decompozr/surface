@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 
 
 export const loadPrompts = async (bootstrap=false) => {
- const root=resolve(import.meta.dir,'../../../..');
+ const root=resolve(import.meta.dir,'../../../../..');
  if(!existsSync(join(root,'node_modules/@clack/prompts/package.json'))) {
   if(!bootstrap)throw new Error('Setup UI dependencies are missing. Run ./bin/setup or bun install --frozen-lockfile --ignore-scripts.');
   console.log('Preparing Surface setup…');

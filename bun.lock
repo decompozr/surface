@@ -12,7 +12,6 @@
       "devDependencies": {
         "@decompozr/surface-app": "workspace:*",
         "@decompozr/surface-cli": "workspace:*",
-        "@decompozr/surface-installer": "workspace:*",
         "@modelcontextprotocol/client": "2.0.0",
         "@playwright/test": "1.63.0",
         "@types/bun": "1.4.2",
@@ -27,19 +26,8 @@
         "surface": "./src/index.ts",
       },
       "dependencies": {
-        "@decompozr/surface-app": "workspace:*",
-        "@decompozr/surface-installer": "workspace:*",
-      },
-      "devDependencies": {
-        "@types/bun": "1.4.2",
-        "typescript": "6.0.3",
-      },
-    },
-    "apps/installer": {
-      "name": "@decompozr/surface-installer",
-      "version": "0.1.0",
-      "dependencies": {
         "@clack/prompts": "1.8.1",
+        "@decompozr/surface-app": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "1.4.2",
@@ -84,8 +72,6 @@
     "@decompozr/surface-app": ["@decompozr/surface-app@workspace:apps/surface"],
 
     "@decompozr/surface-cli": ["@decompozr/surface-cli@workspace:apps/cli"],
-
-    "@decompozr/surface-installer": ["@decompozr/surface-installer@workspace:apps/installer"],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 

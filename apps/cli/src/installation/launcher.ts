@@ -4,6 +4,7 @@ import { parseArgs } from 'node:util';
 import { Installation } from './manager.ts';
 import { installationHome } from './paths.ts';
 import { validateRelease } from './compatibility.ts';
+import { installationSource } from './release-source.ts';
 
 export const prepareLauncher = async (home: string, release: string) => {
   const source = join(home,'releases',release), directory = join(home,'tooling',release);
@@ -21,9 +22,9 @@ export const prepareLauncher = async (home: string, release: string) => {
     const {writeFileSync}=await import('node:fs');
     writeFileSync(temporary,script,{mode:0o700});renameSync(temporary,join(home,'bin/surface'));return;
   }
-  const result = await Bun.build({ entrypoints:[join(source,'apps/installer/src/launcher.ts')],target:'bun',format:'esm',outdir:directory,banner:'#!/usr/bin/env bun',naming:'launcher.js' });
+  const result = await Bun.build({ entrypoints:[installationSource(source, 'launcher.ts')],target:'bun',format:'esm',outdir:directory,banner:'#!/usr/bin/env bun',naming:'launcher.js' });
   if (!result.success) throw new Error('Surface launcher build failed.');
-  copyFileSync(join(source,'apps/installer/src/runner.ts'),join(directory,'runner.ts')); chmodSync(join(directory,'launcher.js'),0o700);
+  copyFileSync(installationSource(source, 'runner.ts'),join(directory,'runner.ts')); chmodSync(join(directory,'launcher.js'),0o700);
   const temporary = join(home,'bin',`.surface-${crypto.randomUUID()}`); symlinkSync(join(directory,'launcher.js'),temporary); renameSync(temporary,join(home,'bin/surface'));
 };
 

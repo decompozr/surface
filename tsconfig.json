@@ -13,7 +13,6 @@
   },
   "include": [
     "apps/cli/src/**/*.ts",
-    "apps/installer/src/**/*.ts",
     "apps/surface/src/lib/server/**/*.ts",
     "apps/*/tests/**/*.ts",
     "tests/**/*.ts",

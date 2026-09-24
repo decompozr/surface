@@ -2,9 +2,9 @@ import { mkdtempSync, mkdirSync, realpathSync, copyFileSync, chmodSync, writeFil
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { createHash } from 'node:crypto';
-import { Installation } from '@decompozr/surface-installer/manager';
-import { validateRelease } from '@decompozr/surface-installer/compatibility';
-import { inventory } from '@decompozr/surface-installer/bundle';
+import { Installation } from '@decompozr/surface-cli/installation/manager';
+import { validateRelease } from '@decompozr/surface-cli/installation/compatibility';
+import { inventory } from '@decompozr/surface-cli/installation/bundle';
 
 const command = async (args:string[],cwd?:string) => {
   const child=Bun.spawn(args,{cwd,stdout:'pipe',stderr:'pipe'});
@@ -26,8 +26,8 @@ try {
   cpSync(join(temp,'prepare/releases',manifest.release),folder,{recursive:true,verbatimSymlinks:true});
   const assets=join(folder,'.distribution');mkdirSync(assets);
   copyFileSync(process.execPath,join(assets,'bun'));chmodSync(join(assets,'bun'),0o755);
-  copyFileSync(join(folder,'apps/installer/src/runner.ts'),join(assets,'runner.ts'));
-  const result=await Bun.build({entrypoints:[join(folder,'apps/installer/src/launcher.ts')],target:'bun',format:'esm',outdir:assets,naming:'launcher.js'});
+  copyFileSync(join(folder,'apps/cli/src/installation/runner.ts'),join(assets,'runner.ts'));
+  const result=await Bun.build({entrypoints:[join(folder,'apps/cli/src/installation/launcher.ts')],target:'bun',format:'esm',outdir:assets,naming:'launcher.js'});
   if(!result.success)throw new Error(String(result.logs));
   writeFileSync(join(folder,'install'),`#!/bin/sh\nset -eu\nrelease_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexec "$release_dir/.distribution/bun" "$release_dir/.distribution/launcher.js" install --bundle "$release_dir" "$@"\n`,{mode:0o755});
   writeFileSync(join(folder,'surface-release.json'),JSON.stringify({format:1,version,commit:manifest.commit,platform:process.platform,arch:process.arch,bun:Bun.version,files:inventory(folder)},null,2)+'\n');

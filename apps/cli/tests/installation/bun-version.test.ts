@@ -1,5 +1,5 @@
 import { test, expect } from 'bun:test';
-import { requireCompatibleBun } from '@decompozr/surface-installer/bun-version';
+import { requireCompatibleBun } from '@decompozr/surface-cli/installation/bun-version';
 test('source releases allow compatible patch runtimes including cached releases',()=>{
  for(const runtime of ['1.4.0','1.4.2','1.4.20'])expect(()=>requireCompatibleBun('bun@1.4.0',runtime,'1.4.0')).not.toThrow();
  expect(()=>requireCompatibleBun('bun@1.4.0','1.4.0','1.4.2')).not.toThrow();

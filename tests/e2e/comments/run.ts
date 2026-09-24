@@ -3,8 +3,8 @@ import { cpSync, mkdirSync, symlinkSync, writeFileSync, readFileSync, readdirSyn
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:net';
 import { resolve, join } from 'node:path';
-import { materializeDesignSystem } from '@decompozr/surface-installer/design-system';
-import { verifyBundle } from '@decompozr/surface-installer/bundle';
+import { materializeDesignSystem } from '@decompozr/surface-cli/installation/design-system';
+import { verifyBundle } from '@decompozr/surface-cli/installation/bundle';
 
 const run = async (args: string[], env: Record<string, string> = {}) => {
   const child = Bun.spawn(args, { cwd: root, env: { ...process.env, ...env }, stdout: 'inherit', stderr: 'inherit' });

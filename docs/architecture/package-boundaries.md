@@ -2,15 +2,14 @@
 
 Status: adopted September 24, 2026, revised at the user's direction to remove packages without independent consumers.
 
-The repository has three Bun workspaces under `apps/` and one root lockfile. A distinct responsibility does not by itself justify an independent package. Surface owns its internal implementation; extract a package only when concrete consumers require that boundary.
+The repository has two Bun workspaces under `apps/` and one root lockfile. A distinct responsibility does not by itself justify an independent package. Surface owns its internal implementation; extract a package only when concrete consumers require that boundary.
 
 | Workspace | Responsibility | Dependencies within this repository |
 | --- | --- | --- |
 | `apps/surface` | SvelteKit UI, services, HTTP/MCP, mounted pages and product templates | None |
-| `apps/cli` | Command arguments/output, local maintenance and calls to an existing Surface service | Surface public exports and installer |
-| `apps/installer` | Setup, installation, activation, owned process lifecycle and rollback | None |
+| `apps/cli` | Commands, calls to Surface, setup, installation, activation, process lifecycle and rollback | Surface public exports |
 
-Cross-workspace imports use declared exports and `workspace:*` dependencies. Surface and installer cannot import other apps. The dependency graph must remain acyclic. Do not create a parallel root `packages/` tree.
+Cross-workspace imports use declared exports and `workspace:*` dependencies. Surface cannot import CLI. Installation is an internal CLI module under `src/installation`, not an independent application. The dependency graph must remain acyclic. Do not create a parallel root `packages/` tree.
 
 ## Surface modules
 
@@ -40,7 +39,7 @@ Templates stay app-owned and can be generated with the service stopped. CLI call
 
 ## Tests and repository tooling
 
-App-owned unit and integration tests live in each app's `tests/`; agent adapter tests belong to Surface. Root `tests/e2e` owns cross-app browser, MCP and installed lifecycle verification. Root `tests/unit` enforces repository dependency boundaries. Root `scripts/` contains only repository-wide release and documentation tools.
+App-owned unit and integration tests live in each app's `tests/`; agent adapter tests belong to Surface, and installation tests belong to CLI. Root `tests/e2e` owns cross-app browser, MCP and installed lifecycle verification. Root `tests/unit` enforces repository dependency boundaries. Root `scripts/` contains only repository-wide release and documentation tools.
 
 Historical `experiments/` source is excluded from production workspaces, imports and default commands. Installer fallback paths intentionally support previous releases and rollback.
 

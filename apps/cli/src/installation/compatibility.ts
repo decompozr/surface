@@ -1,11 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { installationSource } from './release-source.ts';
 
 export const validateRelease = async (directory: string, stateDir: string) => {
-  const current = join(directory,'apps/installer/src/compatibility.json');
-  const previous = join(directory, 'apps/surface/src/installation/compatibility.json');
-  const descriptor = existsSync(current) ? current : existsSync(previous) ? previous : join(directory,'src/installation/compatibility.json'); // Pre-consolidation releases.
-  if (!existsSync(descriptor)) throw new Error('This release does not declare support for the Surface workspace service.');
+  const descriptor = installationSource(directory, 'compatibility.json');
   const value = JSON.parse(readFileSync(descriptor,'utf8'));
   if (value.version !== 1 || !Array.isArray(value.workspaceLedgerVersions) || !Array.isArray(value.interactionVersions) || value.registryVersion !== 'singleton-v1') throw new Error('Invalid Surface compatibility descriptor.');
   for (const [name,versions] of [['workspaces.json',value.workspaceLedgerVersions],['interactions.json',value.interactionVersions]] as const) {

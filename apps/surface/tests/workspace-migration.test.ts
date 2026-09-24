@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fixture } from '../../../experiments/workspaces/fixture.ts';
 import { inspectGit, workspaceDirectory } from '../src/lib/server/workspaces/identity.ts';
 import { planMigration, migrate, rollbackMigration } from '../src/lib/server/workspaces/migrate.ts';
-import { installationHome, serviceState } from '@decompozr/surface-installer/paths';
+import { installationHome, serviceState } from '@decompozr/surface-cli/installation/paths';
 
 
 const legacy = async () => {

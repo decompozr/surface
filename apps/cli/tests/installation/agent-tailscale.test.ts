@@ -1,5 +1,5 @@
 import {test,expect} from 'bun:test';
-import {planAccess,reconcileAccess,selectAccess,type TSRun} from '../src/setup/tailscale.ts';
+import {planAccess,reconcileAccess,selectAccess,type TSRun} from '../../src/installation/setup/tailscale.ts';
 const host='fixture.example.ts.net',target='http://127.0.0.1:4319';
 test('new installation avoids all occupied ports, including Funnel',()=>{
  const config={TCP:{8463:{HTTPS:true}},AllowFunnel:{[host+':8463']:true}};
