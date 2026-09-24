@@ -47,7 +47,16 @@ try {
     try {
       await page.goto(origin + '/experiments/comments#connect=' + token);
       await page.locator('#headline').click();
-      await expect(page.getByRole('button', { name: 'Select parent element' })).toBeVisible();
+      const parentAction = page.getByRole('button', { name: 'Select parent element' });
+      await expect(parentAction).toBeVisible();
+      await parentAction.click();
+      await expect(parentAction).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+      expect(await page.locator('.element-label').evaluate(node => {
+        const button = node.querySelector('button')!.getBoundingClientRect();
+        const label = node.querySelector(':scope > span')!.getBoundingClientRect();
+        return button.right <= label.left + 1;
+      })).toBe(true);
+      await page.locator('#headline').click();
       await page.screenshot({ path: join(output, name + '-selection.png'), fullPage: true });
       await page.getByRole('button', { name: 'Capture selected element', exact: true }).click();
       await expect(page.getByRole('button', { name: 'Select parent element' })).toHaveCount(0);

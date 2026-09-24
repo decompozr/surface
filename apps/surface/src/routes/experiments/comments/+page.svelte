@@ -410,10 +410,10 @@
 {#if box}
   <div class="selection-outline"><SelectionOutline {...box} state={hovered && hovered !== selected ? 'hover' : 'selected'} /></div>
   <div class="element-label" style:left={`${Math.max(12, Math.min(box.x, innerWidth - 220))}px`} style:top={`${box.y}px`} style:--label-background={colorShades.sage.base} style:--label-color={colorShades.neutral.white}>
-    <span>{(hovered ?? selected) ? metadata((hovered ?? selected)!).selector : ''}</span>
     {#if !editorOpen && selected && (!hovered || hovered === selected)}
 {#if selected?.parentElement && selected.parentElement !== workspace}<IconButton size="compact" icon="chevron-up" label="Select parent element" title="Select parent element" disabled={locked} onclick={() => { const parent = selected?.parentElement; if (parent && workspace.contains(parent) && parent !== workspace) { selected = parent; review.draft = { ...review.draft, target: metadata(parent), capture: undefined }; hovered = null; updateBox(); } }} />{/if}
     {/if}
+    <span>{(hovered ?? selected) ? metadata((hovered ?? selected)!).selector : ''}</span>
   </div>
 {/if}
 
@@ -470,7 +470,7 @@
 .reply-spinner { width:14px; height:14px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:reply-spin .8s linear infinite; }
 .element-label { position:fixed; z-index:61; display:flex; align-items:center; max-width:min(340px, calc(100vw - 24px)); transform:translateY(-100%); border-radius:.1875rem .1875rem 0 0; background:var(--label-background); color:var(--label-color); padding:0 .4375rem; }
 .element-label > span { min-width:0; overflow-wrap:anywhere; font:.625rem/1.5 ui-monospace,monospace; }
-.element-label :global(button) { color:inherit; }
+.element-label :global(button.dz-button), .element-label :global(button.dz-button:hover), .element-label :global(button.dz-button:active) { color:var(--label-color); background:transparent; border-color:transparent; }
 .element-label :global(.icon-button) { flex-shrink:0; }
 @keyframes reply-spin { to { transform:rotate(360deg); } }
 @media(prefers-reduced-motion:reduce) { .reply-spinner { animation:none; } }
