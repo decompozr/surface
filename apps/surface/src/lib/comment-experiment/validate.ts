@@ -4,6 +4,10 @@ export function validateBatch(value: unknown, recipient = 'local-fixture'): valu
   if (!value || typeof value !== 'object') return false;
   const b = value as Batch;
   return string(b.id, 100) && string(b.createdAt, 100) && string(b.page, 500) && string(b.revision, 100)
+    && (b.handling === undefined || ['by-the-way', 'after-current'].includes(b.handling))
+    && (b.delivery === undefined || (b.delivery && ['start', 'steer', 'queue'].includes(b.delivery.mode)
+      && ['active', 'idle', 'notLoaded'].includes(b.delivery.expectedStatus)
+      && (b.delivery.expectedTurnId === undefined || string(b.delivery.expectedTurnId, 200))))
     && b.recipient === recipient && b.status === 'pending' && Array.isArray(b.comments)
     && b.comments.length > 0 && b.comments.length <= 20
     && b.comments.every(c => c && string(c.id, 100) && typeof c.text === 'string' && c.text.length <= 4000

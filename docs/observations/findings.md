@@ -168,3 +168,8 @@ Type checks, build, twenty host/runtime/comment tests, three-profile comment int
 
 
 Follow-up: user feedback removed the redundant Workspace tag from the header. The current private preview now serves the migrated chrome and simplified header from an immutable release; live HTTPS rendering was inspected in Chrome. The connection/recipient is unchanged. See [preview update](../experiments/2026-09-23-element-comments.md#header-simplification-and-private-preview-update).
+
+
+### By-the-way comment preference — September 23
+
+The user selected immediate Steer as conversational input: acknowledge promptly, retain the original task and let the agent state its processing order. Queue remains an alternative. This is adopted for the comment experiment in [agent interaction](../requirements/agent-interaction.md#by-the-way-comments-user-selected-follow-up). Transport delivery, agent acknowledgement and completed output remain separate. Browser/provider-fixture evidence is recorded in [the follow-up](../experiments/2026-09-23-by-the-way-comments.md); model behavior and physical-device acceptance are separate gates.

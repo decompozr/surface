@@ -1,3 +1,4 @@
+import { UnsubmittedCommentError } from '../../../../../comments/delivery';
 import { authorize } from '$lib/server/comment-delivery';
 import { env } from '$env/dynamic/private';
 import { error, json } from '@sveltejs/kit';
@@ -27,7 +28,7 @@ export async function POST({ request, url }) {
     const bridge = authorize(request);
     if (!validateBatch(batch, `codex:${bridge.connection.threadId}`)) error(400, 'Invalid comment batch');
     try { return json(await bridge.submit(batch)); }
-    catch (cause) { return json({ message: cause instanceof Error ? cause.message : 'Delivery failed.' }, { status: 409 }); }
+    catch (cause) { return json({ message: cause instanceof Error ? cause.message : 'Delivery failed.', notSubmitted: cause instanceof UnsubmittedCommentError }, { status: 409 }); }
   }
   if (!validateBatch(batch)) error(400, 'Invalid comment batch');
   const receipt = createHash('sha256').update(raw).digest('hex').slice(0, 16);

@@ -8,5 +8,8 @@ export async function POST({ request }) {
   if (text.length > 50000) error(413);
   const body = JSON.parse(text);
   if (typeof body.requestId !== 'string' || typeof body.result?.message !== 'string' || body.result.message.length > 20000) error(400);
-  return json(bridge.service.result(body.requestId, { message: body.result.message }));
+  const { stage, next } = body.result;
+  if (stage !== undefined && !['acknowledged', 'completed'].includes(stage)) error(400, 'Invalid reply stage');
+  if (next !== undefined && (stage !== 'acknowledged' || !['continue-original', 'address-now', 'later'].includes(next))) error(400, 'Invalid next action');
+  return json(bridge.service.result(body.requestId, { message: body.result.message, ...(stage ? { stage } : {}), ...(next ? { next } : {}) }));
 }
