@@ -6,7 +6,7 @@ Status: bounded experiment passed. This is experimental evidence only, not produ
 
 Can an Editor Surface and a Comparison Surface in the same project/worktree share project data without duplicating a backend, eagerly allocating SQLite, or closing resources still needed by the other Surface?
 
-The [prototype](../../experiments/multi-surface/README.md) uses two separate artifact source directories and one declared project backend. It inherits the existing Git workspace identity and trusted local Svelte host. A temporary pinned installation runs the experimental host; neither the current shared installation nor the normal CLI's runtime behavior is changed.
+The [prototype](../history/retired-experiments/multi-surface.md) uses two separate artifact source directories and one declared project backend. It inherits the existing Git workspace identity and trusted local Svelte host. A temporary pinned installation runs the experimental host; neither the current shared installation nor the normal CLI's runtime behavior is changed.
 
 ## Ownership hypothesis
 

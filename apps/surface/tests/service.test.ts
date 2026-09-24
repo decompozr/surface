@@ -25,7 +25,7 @@ const fixture = (deliver?: AgentAdapter['deliver']) => {
   const service = new Service(store, {
     inspect: async () => ({ status: 'idle' }),
     deliver: async (...args) => { calls.push(args[0]); return deliver ? deliver(...args) : { mode: 'start', turnId: 'one-turn' }; },
-  }, '/path/to/surface/apps/cli/src/index.ts');
+  }, submission => JSON.stringify(submission));
   const request = service.create({ bindingId: binding.id, title: 'Choose an option', schema: feedbackSchema });
   return { service, store, request, calls, file };
 };

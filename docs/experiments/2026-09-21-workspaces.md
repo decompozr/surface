@@ -29,7 +29,7 @@ One small identity marker lives in each Git administrative directory, alongside 
 
 ## Implementation boundaries
 
-[The experiment](../../experiments/workspaces/README.md) adds an optional identity resolver to the existing project operation core. HTTP, queueing, project validation, artifact definitions and runtime ownership remain shared. Default callers still use the existing canonical-root binding ledger and reject copied IDs. The workspace host refuses an existing legacy binding ledger; adoption/migration must be explicit later.
+[The experiment](../history/retired-experiments/workspaces.md) adds an optional identity resolver to the existing project operation core. HTTP, queueing, project validation, artifact definitions and runtime ownership remain shared. Default callers still use the existing canonical-root binding ledger and reject copied IDs. The workspace host refuses an existing legacy binding ledger; adoption/migration must be explicit later.
 
 The backend experiment now optionally passes an inert context to the project factory. Its lazy SQLite fixture accepts a data directory without creating or opening it. With no context, the previous project-root data behavior remains unchanged. The workspace host supplies a persistent project-owned location outside all registered Git worktrees and checks workspace identity even for a mount with no backend declaration.
 

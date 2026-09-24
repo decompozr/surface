@@ -1,9 +1,10 @@
+import { commentReply } from './result.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { CommentDelivery, UnsubmittedCommentError, type Connection } from './delivery.ts';
-import { validateBatch } from '../../comment-experiment/validate.ts';
+import { validateBatch } from '../../comments/validate.ts';
 import { InputError, type Service } from '../services/service.ts';
 import type { RequestRecord } from '../services/store.ts';
 import type { AgentAdapter } from '../agent-adapters/codex.ts';
@@ -24,7 +25,7 @@ export const mountedComments = (stateDir: string, service: Service, adapter: Age
     const connection: Connection = {
       threadId: binding.threadId, projectRoot: binding.projectRoot, socketPath: binding.socketPath,
       label: record.title, token: record.token, callbackToken: old?.callbackToken ?? randomBytes(32).toString('hex'),
-      origin: url.origin, resultCli: join(import.meta.dir, '../../../../../../apps/cli/src/reply.ts'),
+      origin: url.origin,
       resultPath: `/api/n/${scope.namespace}/${scope.name}/requests/${record.id}/comments/result`,
     };
     writeFileSync(file, JSON.stringify(connection), { mode: 0o600 });
@@ -93,11 +94,7 @@ export const mountedComments = (stateDir: string, service: Service, adapter: Age
         try { json(await bridge.submit(batch, guard)); }
         catch (cause) { json({ message: cause instanceof Error ? cause.message : 'Delivery failed.', notSubmitted: cause instanceof UnsubmittedCommentError }, 409); }
       } else if (operation === 'result' && req.method === 'POST') {
-        const data = await body(req, 50_000);
-        if (!data || typeof data.requestId !== 'string' || typeof data.result?.message !== 'string' || data.result.message.length > 20_000) throw new InputError('Invalid reply.');
-        const { stage, next } = data.result;
-        if (stage !== undefined && !['acknowledged', 'completed'].includes(stage)) throw new InputError('Invalid reply stage.');
-        if (next !== undefined && (stage !== 'acknowledged' || !['continue-original', 'address-now', 'later'].includes(next))) throw new InputError('Invalid next action.');
+        const data = commentReply(await body(req, 50_000));
         json(bridge.service.result(data.requestId, data.result));
       } else if (operation === 'events' && req.method === 'GET') {
         res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache, no-transform', 'x-accel-buffering': 'no' });

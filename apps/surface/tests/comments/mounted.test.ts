@@ -34,7 +34,7 @@ for (const change of ['close', 'unmount'] as const) test(`mounted comments reval
     async inspect() { if (++checks === 3) { entered(); await gate; } return { status: 'idle' }; },
     async deliver() { deliveries++; return { mode: 'start', turnId: 'fixture' }; },
   };
-  const service = new Service(new Store(join(root, 'interactions.json')), adapter, '/fixture/cli');
+  const service = new Service(new Store(join(root, 'interactions.json')), adapter, submission => JSON.stringify(submission));
   const binding = await service.bind({ projectRoot: root, threadId: 'fixture', socketPath });
   const scope = { projectRoot: root, source: root, namespace: 'fixture', name: 'page', component: 'routes/+page.svelte' };
   const parent = service.create({ bindingId: binding.id, title: 'Fixture', schema: { type: 'object' } }, scope);

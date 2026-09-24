@@ -1,6 +1,0 @@
-{
-  "name": "surface-project-management-experiment",
-  "private": true,
-  "type": "module",
-  "scripts": { "check": "tsc --noEmit", "verify": "bun verify.ts" }
-}

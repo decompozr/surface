@@ -6,9 +6,9 @@ import { commentEvent, type StoredComment } from './event.ts';
 import { Service, InputError } from '../services/service.ts';
 import { Store } from '../services/store.ts';
 import { CodexAdapter, type AgentAdapter, type Binding } from '../agent-adapters/codex.ts';
-import type { Batch } from '../../comment-experiment/model.ts';
+import type { Batch } from '../../comments/model.ts';
 
-export type Connection = { threadId: string; projectRoot: string; socketPath: string; label: string; token: string; callbackToken: string; origin: string; resultCli: string; resultPath?: string };
+export type Connection = { threadId: string; projectRoot: string; socketPath: string; label: string; token: string; callbackToken: string; origin: string; resultPath: string };
 export class UnsubmittedCommentError extends Error {}
 export class CommentDelivery {
   readonly service: Service;
@@ -16,7 +16,7 @@ export class CommentDelivery {
   private initializing?: Promise<Binding>;
   private submissions = new Map<string, { data: unknown; operation: Promise<unknown> }>();
   constructor(readonly directory: string, readonly connection: Connection, private adapter: AgentAdapter = new CodexAdapter()) {
-    this.service = new Service(new Store(join(directory, 'interactions.json')), adapter, connection.resultCli, directory, undefined,
+    this.service = new Service(new Store(join(directory, 'interactions.json')), adapter,
       ({ requestId, data }) => JSON.stringify(commentEvent(requestId, data.comments as StoredComment[], directory, connection.projectRoot)));
   }
   async bind() {

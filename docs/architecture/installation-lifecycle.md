@@ -1,12 +1,6 @@
-# Milestone 2: supported installation and lifecycle
+# Installation and lifecycle
 
-Status: bounded public-entry implementation delivered. See [the implemented command/layout/migration contract](workspace-service.md). Lazy project storage, shared workspace state and the installed entry are now integrated; broader schema transitions and operating budgets remain.
-
-## Objective
-
-Make the bounded local Web interaction loop installable and operable through a supported launcher: install, start, status, stop, restart, upgrade, rollback, and uninstall. Preserve the boundaries in the [product vision](../intent/vision.md) between application releases, durable service state, and project-owned sources/data.
-
-The existing [installation experiment](../experiments/2026-09-21-installation.md) and [project database experiment](../experiments/2026-09-21-project-database.md) supply evidence. The [three first-server contract experiments](../experiments/2026-09-21-server-contract.md) now add an installed bundled entry point, a bounded preferences-schema migration/rollback gate, and declared optional backends through installed lifecycle operations. Their paths and private endpoints are not automatically public contracts.
+[SETUP.md](../../SETUP.md) owns user procedures; [workspace service](workspace-service.md) owns service/home layout and selection. This document owns lifecycle and lazy-storage invariants. [Release distribution](release-distribution.md) describes package construction.
 
 ## Accepted project storage policy
 
@@ -33,15 +27,11 @@ Surface metadata is a separate decision. If SQLite is later chosen for the servi
 | Upgrade/rollback | Define compatible service schema transitions and preserve callback executables needed by unresolved work. A service rollback does not imply a project database schema rollback. |
 | Uninstall/reinstall | Remove only owned application resources; preserve service/project data according to the explicit contract and verify it remains usable. |
 
-## Worktree follow-up
+## Compatibility and scope
 
-The [workspace experiment](../experiments/2026-09-21-workspaces.md) now demonstrates one shared service with worktree-scoped resources. It avoids per-worktree service state and keeps lazy domain data outside disposable roots. Source merges through Git; runtime retirement preserves history and data rather than migrating a whole workspace into main. The public entry includes only the current workspace host.
+Activation checks current workspace-ledger and interaction schemas before changing the selected release. Unsupported persisted formats are rejected without replacement; migration requires a separately scoped decision. The retired preferences and namespace-migration experiments do not authorize production migration behavior. See the [current development contract](../decisions/0004-current-development-contract.md).
 
-## Remaining implementation decisions
-
-The public entry selects shared application-data homes, port 4319, pinned Git installation, explicit service selection, optional version-1 backend declarations and private capability inspection. Multiple mounts sharing one workspace backend, execution budgets, general future store migrations and project-specific data promotion remain open.
-
-Keep installation work bounded to the current local Svelte runtime. Native renderers, a general plugin registry, arbitrary application hosting, and domain-specific engines are outside this milestone.
+Workspace retirement is defined by [workspace service](workspace-service.md). Source integration belongs to Git; retirement preserves domain data and interaction history. Multiple mounts sharing a workspace backend, general future store migrations and project-specific data promotion remain outside the adopted implementation.
 
 ## Exit criteria
 
@@ -52,4 +42,4 @@ Keep installation work bounded to the current local Svelte runtime. Native rende
 5. Failed startup/upgrade and supported rollback have explicit, recoverable outcomes; project sources/data survive uninstall and reinstall.
 6. Owned host/installer processes exit as expected. New installed-lifecycle evidence is recorded separately from the development experiment results.
 
-The lazy storage gates are executable in the project database experiment and now also pass through installed releases in the first-server contract experiment. The public entry adds the original-namespace-preserving binding migration and installed workspace verification. General registry/interaction schema upgrades and further internal consolidation remain; the earlier preferences fixture still proves only its own bounded schema.
+Current executable gates are `bun run verify:surface`, the app lifecycle tests and the [release candidate checks](../evaluations/release-candidate.md). Dated experiments remain evidence of their original revisions only.

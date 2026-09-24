@@ -70,7 +70,7 @@ const prepareDependencyLink = (workspace: string, target: string) => {
 };
 
 
-/** Exploratory one-process, one-Vite component host. Separate from the previous runtime experiment. */
+/** One-process, one-Vite component host used by Surface. */
 export const startPageRuntime = async (options: { integration: RuntimeIntegration; stateDir: string; port?: number; browserOrigin?: string; resolveMountPath?: (mount: MountResourceContext) => Promise<string | undefined>; navigation?: (mounts: NavigationMount[]) => NavigationNode[]; application?: (req: IncomingMessage, res: ServerResponse, navigation?: NavigationNode[]) => boolean | Promise<boolean>; openMountResource?: (mount: MountResourceContext) => Promise<MountResource> }) => {
 
   const closeResource = async (mount: Mount) => {
@@ -97,7 +97,7 @@ export const startPageRuntime = async (options: { integration: RuntimeIntegratio
 
     const manifestPath = join(mount.source, 'artifact.json');
     const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : { framework: 'svelte', components: 'src' };
-    if (manifest.framework !== 'svelte') throw new InputError('This experiment currently supports Svelte components only.');
+    if (manifest.framework !== 'svelte') throw new InputError('Surface currently supports Svelte components only.');
     const directory = realpathSync(resolve(mount.source, manifest.components ?? 'src'));
     if (!inside(mount.source, directory)) throw new InputError('Component directory must be within the mounted source.');
     const components: string[] = [];
@@ -137,8 +137,8 @@ export const startPageRuntime = async (options: { integration: RuntimeIntegratio
     try {
       if (realpathSync(mount.source) !== mount.source) throw new InputError('Source path changed. Register the intended path again.');
       const pkg = JSON.parse(readFileSync(join(mount.source, 'package.json'), 'utf8'));
-      if (pkg.dependencies?.svelte !== compilerVersion && pkg.devDependencies?.svelte !== compilerVersion) throw new InputError(`This shared compiler experiment requires svelte exactly ${compilerVersion} in the source package.json.`);
-      if (['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'].some(name => existsSync(join(mount.source, name)))) throw new InputError('This experiment only prepares Bun projects; refusing to replace another package manager lockfile.');
+      if (pkg.dependencies?.svelte !== compilerVersion && pkg.devDependencies?.svelte !== compilerVersion) throw new InputError(`The shared compiler requires svelte exactly ${compilerVersion} in the source package.json.`);
+      if (['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'].some(name => existsSync(join(mount.source, name)))) throw new InputError('Surface only prepares Bun projects; refusing to replace another package manager lockfile.');
       phase(mount, 'installing');
       const locked = existsSync(join(mount.source, 'bun.lock')) || existsSync(join(mount.source, 'bun.lockb'));
       const child = Bun.spawn([process.execPath, 'install', '--ignore-scripts', ...(locked ? ['--frozen-lockfile'] : [])], { cwd: mount.source, stdout: 'pipe', stderr: 'pipe' });
@@ -192,7 +192,7 @@ export const startPageRuntime = async (options: { integration: RuntimeIntegratio
     if (inside(source, stateDir) || inside(stateDir, source)) throw new InputError('Source and singleton state directories must be separate.');
     let record = registry.mounts.find(item => item.namespace === namespace && item.name === name);
     if (record && (record.source !== source || record.projectRoot !== projectRoot)) throw new InputError('A mount name cannot silently change its source or project root.', 409);
-    if (registry.mounts.some(item => item !== record && item.status !== 'unmounted' && (inside(item.source, source) || inside(source, item.source)))) throw new InputError('Overlapping active source directories are not supported in this experiment.', 409);
+    if (registry.mounts.some(item => item !== record && item.status !== 'unmounted' && (inside(item.source, source) || inside(source, item.source)))) throw new InputError('Overlapping active source directories are not supported by this runtime.', 409);
     if (record?.status === 'ready') return view(record);
     if (!record) { record = { namespace, name, source, projectRoot, status: 'registered', components: [], props: {}, log: '', history: [] }; registry.mounts.push(record); }
     phase(record, 'registered');
@@ -256,7 +256,7 @@ export const startPageRuntime = async (options: { integration: RuntimeIntegratio
     const url = new URL(req.url!, browserURL && req.headers.host === browserURL.host ? browserURL.origin : origin);
     res.setHeader('Referrer-Policy', 'no-referrer');
     if (url.pathname.startsWith('/api/')) {
-      if (req.method === 'GET' && url.pathname === '/api/health') return json(res, { status: 'ready', experiment: 'singleton', pid: process.pid, instanceId, viteInstances: 1 });
+      if (req.method === 'GET' && url.pathname === '/api/health') return json(res, { status: 'ready', runtime: 'surface', pid: process.pid, instanceId, viteInstances: 1 });
       const received = Buffer.from(req.headers.authorization?.replace(/^Bearer /, '') ?? ''), expected = Buffer.from(token);
       const admin = received.length === expected.length && timingSafeEqual(received, expected);
       if (await projectRoutes({ pathname: url.pathname, method: req.method, authorized: admin, readBody: () => body(req), json: (outcome, status) => json(res, outcome, status) })) return;
@@ -371,7 +371,7 @@ export const startPageRuntime = async (options: { integration: RuntimeIntegratio
     },
     load(id) {
       if (id === '\0virtual:surface-shell') return shellSource;
-      if (id === '\0virtual:surface-preview') return readFileSync(join(experimentRoot, 'preview-client.js'), 'utf8');
+      if (id === '\0virtual:surface-preview') return readFileSync(join(runtimeRoot, 'preview-client.js'), 'utf8');
       if (!id.startsWith('\0' + virtualPrefix)) return;
       const { record, path } = parseVirtual(id);
       return `import 'virtual:surface-shell'; import { mount } from 'svelte'; ${beforeComponent} import { previewProps } from 'virtual:surface-preview'; import Component from ${JSON.stringify(`/mounts/${record.namespace}/${record.name}/${path}`)}; mount(Component, {target:document.getElementById('app'), props:previewProps()});`;
@@ -382,7 +382,7 @@ export const startPageRuntime = async (options: { integration: RuntimeIntegratio
   const rescans = new Set<Mount>();
   try {
     interactions = options.integration.interactions({ stateDir, find });
-    // Shared framework runtime for this compiler experiment; project dependencies remain in their source folders.
+    // Shared framework runtime for the shared compiler; project dependencies remain in their source folders.
     writeFileSync(join(workspace, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies: { svelte: compilerVersion } }));
     prepareDependencyLink(workspace, compilerAssets);
     vite = await createViteServer({
@@ -446,7 +446,7 @@ export const startPageRuntime = async (options: { integration: RuntimeIntegratio
 
 
 const compilerVersion = '5.57.1';
-const experimentRoot = import.meta.dir;
+const runtimeRoot = import.meta.dir;
 const compilerAssets = realpathSync(resolve(import.meta.dir, '../../../../node_modules'));
 const svelteRoot = packageRoot('svelte');
 const browserFrameworkAssets = [svelteRoot, packageRoot('esm-env', svelteRoot), packageRoot('clsx', svelteRoot), join(packageRoot('vite'), 'dist/client')];
@@ -459,6 +459,6 @@ type Mount = {
   history: { status: Phase; at: string }[];
 };
 type Registry = { namespaces: string[]; mounts: Mount[] };
-/** Optional experiment seam, not a public backend/plugin contract. */
+/** Internal mount-resource integration, not a public plugin contract. */
 export type MountResource = { close(): void | Promise<void> };
 export type MountResourceContext = Pick<Mount, 'namespace' | 'name' | 'source' | 'projectRoot'>;

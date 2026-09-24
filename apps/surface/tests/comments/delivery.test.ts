@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { createServer, type Server } from 'node:net';
 import { CommentDelivery, type Connection } from '../../src/lib/server/comments/delivery.ts';
 import { DeliveryError, type AgentAdapter } from '../../src/lib/server/agent-adapters/codex.ts';
-import type { Batch } from '../../src/lib/comment-experiment/model.ts';
+import type { Batch } from '../../src/lib/comments/model.ts';
 
 const fixture = async (adapter: AgentAdapter) => {
   const root = mkdtempSync(join(tmpdir(), 'surface-comments-'));
@@ -13,7 +13,7 @@ const fixture = async (adapter: AgentAdapter) => {
   const server: Server = createServer();
   await new Promise<void>(resolve => server.listen(socketPath, resolve));
   cleanup.push(() => { server.close(); rmSync(root, { recursive: true, force: true }); });
-  const config: Connection = { threadId: 'fixture-thread', projectRoot: root, socketPath, label: 'Fixture only', token: 'fixture', callbackToken: 'fixture-callback', origin: 'http://localhost', resultCli: '/fixture/result.ts' };
+  const config: Connection = { threadId: 'fixture-thread', projectRoot: root, socketPath, label: 'Fixture only', token: 'fixture', callbackToken: 'fixture-callback', origin: 'http://localhost', resultPath: '/fixture/result' };
   return { root, config, bridge: new CommentDelivery(root, config, adapter) };
 };
 

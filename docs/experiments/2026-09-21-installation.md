@@ -53,7 +53,7 @@ Graceful stop drains adapter operations; it does not wait for an agent turn to f
 
 ## Reproduce
 
-See the [lifecycle README](../../experiments/lifecycle/README.md) for commands and ownership rules. From a checkout with root dependencies installed:
+See the [lifecycle README](../history/retired-experiments/lifecycle.md) for commands and ownership rules. From a checkout with root dependencies installed:
 
 ```sh
 bun node_modules/typescript/bin/tsc --project experiments/lifecycle/tsconfig.json

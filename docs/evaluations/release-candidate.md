@@ -4,7 +4,7 @@
 
 The September 24 direction is to deliver the validated application as an installable product increment. Ordinary project pages own their source and domain form; Surface supplies navigation, element selection, captured comments, exact-recipient delivery and automatic result monitoring. Existing research records remain evidence and regression inputs. This gate does not add another feature experiment.
 
-The standing user policy is to update the design system for every Surface update/release. The provider selected for this candidate is committed main `4f59f8a426d8546b9c81a9db0d29a008196a206a`. Its independently rebuilt 118-file package has content digest `b7fbf1b89a9a2294bf7d94c618d7d88c5f9242d53b36421c62bd1bde7aaef743`. Freeze that selection while validating and packaging; do not mix moving development output with release evidence.
+For every Surface update/release, check the design-system provider's latest committed main, build that exact revision and verify its package bytes against `apps/surface/design-system.lock.json`. Freeze that selection during verification and packaging; record actual identities in the dated candidate report, not this reusable procedure.
 
 ## Build and verification
 
@@ -36,17 +36,10 @@ COMMENTS_E2E_OUTPUT=/absolute/new-matrix-directory \
 bun run test:e2e:comments
 ```
 
-Prepared-release mode checks package integrity before and after the run. It runs the delivery/guard tests and eight demo/mounted browser profiles plus toolbar, keyboard, touch and viewport checks using frozen assets. It does not run a source rebuild or type check inside the immutable release. Run source checks against a separate source export with the same frozen dependencies; do not mutate the tested package. Installed launcher coverage is the separate lifecycle gate above.
+Prepared-release mode checks package integrity before and after the run. It runs the delivery/guard tests and eight demo/mounted browser profiles plus toolbar, keyboard, touch and viewport checks using frozen assets. It checks/builds the fixture overlay in a disposable copy; it does not rebuild or modify the immutable production package. Run source checks against a separate source export with the same frozen dependencies; do not mutate the tested package. Installed launcher coverage is the separate lifecycle gate above.
 
-## September 24 evidence and disposition
+## Evidence retention
 
-Retained evidence: `.decompozr/surface/production-candidate-20260924/`.
+Record source revision, provider revision/package digest, archive checksum, commands, browser/device scope, failures and resolutions in a concise dated history entry. Temporary releases, dependency trees and completed traces are disposable. Preserve user data and unresolved failure evidence under the [retention policy](../history/2026-09-24-working-data-retention.md).
 
-- Initial packaging correctly rejected the existing linked development package because its bytes did not match the committed pin. Added an explicit provider-package input and a regression proving that it retains both pin enforcement and the original development link. No provider checkout was edited.
-- Rebuilt the formerly pinned provider to establish the merged application baseline, then rebuilt the user's updated provider from committed main and adopted its pin.
-- `installed-1` completed upgrade/rollback checks, then caught duplicate fixture project names claiming the same readable route. The fixture now uses unique project names and stops its owned service even when setup fails. The product's conflict guard remains intact.
-- `installed-2` passed the bundled CLI/MCP and lifecycle gates, plus previous-version idle and candidate idle/active desktop/mobile comment flows. Five durable interaction stores, project source and the browser draft survived activation changes. Source export checking against the new package reported zero Svelte errors/warnings.
-- Desktop/mobile result, narrow review and constrained editor captures were inspected with the updated provider. New control density and type styles preserve visible actions, readable status and separate scroll areas. Physical-device behavior is not inferred from browser emulation.
-- The first packaged matrix passed all eight delivery profiles, then exposed a toolbar verifier assumption: the more compact heading reaches the legitimate header clamp before a 60-pixel scroll finishes. The verifier now selects the lower description anchor to retain its full unclamped movement assertion. The focused Chromium/WebKit toolbar, desktop/touch/mobile interaction and keyboard-viewport checks passed; their rendered captures were inspected. No product positioning rule was weakened.
-
-Final artifact identity, checksums, exact source revision, test reports and source-to-package comparison are recorded in the ignored completion receipt and each archive's `surface-release.json`. Earlier candidates and failures remain historical evidence. A passed candidate gate is not public publication, a real-agent queue-consumption claim, or authorization to replace another installation.
+Earlier candidate results are summarized in [workspace history](../history/2026-09-24-workspace-boundaries.md). A passed candidate gate is not public publication, a real-agent queue-consumption claim, or permission to replace another selected installation.

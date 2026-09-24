@@ -1,11 +1,12 @@
+import { materializeDesignSystem } from '@decompozr/surface-cli/installation/design-system';
 import { chromium, expect } from '@playwright/test';
-import { mkdirSync, mkdtempSync, realpathSync, readFileSync, writeFileSync, copyFileSync, lstatSync, readlinkSync, symlinkSync, renameSync, existsSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, readFileSync, writeFileSync, copyFileSync, lstatSync, readlinkSync, symlinkSync, renameSync, existsSync, rmSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { createRequire } from 'node:module';
 import { createServer } from 'node:net';
 import { Database } from 'bun:sqlite';
 import { createHash } from 'node:crypto';
-import { fixture, git, command } from '../../../experiments/workspaces/fixture.ts';
+import { fixture, git, command } from '../../fixtures/workspaces/fixture.ts';
 
 
 const assert: (v: unknown, message: string) => asserts v = (v:unknown,message:string):asserts v => {if(!v)throw new Error(message);};
@@ -50,8 +51,9 @@ const observed=(text:string)=>{observations.push(text);console.log(text);};
 writeFileSync(join(evidence,'result.json'),JSON.stringify({passed:false,status:'running'}));
 try {
   revision=await snapshot();writeFileSync(join(evidence,'source.json'),JSON.stringify({revision,sourceHead:await git(root,'rev-parse','HEAD'),hashes},null,2));
+  materializeDesignSystem(root, repo);
   const installed=await cli(base,'install','--repo',repo,'--ref',revision);assert(installed.host==='surface','Wrong installed host.');launcher=join(home,'bin/surface');
-  const help=await run([launcher,'--help','--home',home],f.a);assert(help.includes('workspace migrate'),'Installed executable did not expose public workspace commands.');
+  const help=await run([launcher,'--help','--home',home],f.a);assert(help.includes('workspace list | current | retire'),'Installed executable did not expose public workspace commands.');
   renameSync(repo,repo+'-moved');repo+='-moved';
   const reserve=createServer();await new Promise<void>(done=>reserve.listen(0,'127.0.0.1',done));const port=(reserve.address() as {port:number}).port;await new Promise<void>(done=>reserve.close(()=>done()));
   await start(port);const origin=connection.origin;assert((await cli(base,'status')).status==='running','Status failed.');
@@ -65,7 +67,7 @@ try {
   assert(!existsSync(join(home,'project-data')),'Mount eagerly allocated data.');
   browser=await chromium.launch({channel:'chrome',headless:true});const page=await browser.newPage();
   const entries=await cli(base,'access'),entry=entries.find((e:any)=>e.scope===`${mounts[1].namespace}/${mounts[1].name}`);assert(entry,'Missing A access.');
-  await page.goto(`${mounts[1].previewUrl}?component=src%2FScenarios.svelte#db=${entry.token}`);
+  await page.goto(`${mounts[1].previewUrl}#db=${entry.token}&scope=${entry.scope}`);
   await page.getByLabel('Scenario name',{exact:true}).fill('Installed workspace decision');assert(!existsSync(join(home,'project-data')),'Draft allocated SQLite.');
   await page.getByRole('button',{name:'Save scenario',exact:true}).click();await expect(page.getByRole('status')).toHaveText('Saved to this project');
   await page.screenshot({path:join(evidence,'installed-workspace.png'),fullPage:true});
@@ -94,4 +96,4 @@ try {
   observed('Public retirement, source cleanup, restart, uninstall and reinstall preserve retired A data/history and the fixed endpoint; unused databases remain absent. All three owned hosts exit, and both disposable fixture worktrees are removed.');
   passed=true;
 }catch(error){errorText=error instanceof Error?error.stack??error.message:String(error);throw error;}
-finally{await mcp?.close();await browser?.close();if(running)await stop();writeFileSync(join(evidence,'result.json'),JSON.stringify({passed,at:new Date().toISOString(),base,fixture:f.directory,revision,pids,observations,error:errorText||undefined},null,2));console.log('Evidence: '+evidence);}
+finally{await mcp?.close();await browser?.close();if(running)await stop();writeFileSync(join(evidence,'result.json'),JSON.stringify({passed,at:new Date().toISOString(),base,fixture:f.directory,revision,pids,observations,error:errorText||undefined},null,2));console.log('Evidence: '+evidence);if(!running){rmSync(base,{recursive:true,force:true});rmSync(f.directory,{recursive:true,force:true});}}

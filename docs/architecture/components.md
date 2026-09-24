@@ -1,6 +1,6 @@
 # Components and ownership
 
-Status: current architecture consolidated from adopted contracts and source at `7fceefc`; no runtime observation in this documentation pass. The earlier process topology and unadopted cross-framework hypotheses remain in [architecture exploration](../experiments/architecture-exploration.md).
+This document describes component collaboration; [package boundaries](package-boundaries.md) owns the module layout. The earlier process topology and unadopted cross-framework hypotheses remain in [architecture exploration](../experiments/architecture-exploration.md).
 
 ```text
 Project source + artifact manifest + dependency lockfiles
@@ -39,7 +39,7 @@ The shell build and mounted compiler have different lifecycles: shell changes re
 
 The [application boundary](package-boundaries.md) keeps two workspaces: Surface and CLI. CLI owns installation and lifecycle internally. Surface owns its interaction SDK, contracts, services, provider adapters, page runtime, MCP and templates as internal modules. Root tooling contains repository-wide tasks; integrated verifiers live in `tests/e2e`.
 
-The previous containment test has been replaced by dependency-direction, declared-dependency and cycle checks. Historical installation paths remain compatibility lookups only.
+Repository checks enforce dependency direction, declared dependencies and an acyclic graph. Installation resolves only the current application layout.
 
 ### Mounted comment ownership
 

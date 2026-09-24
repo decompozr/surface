@@ -13,7 +13,7 @@ The current shell orders global brand/navigation, location breadcrumbs, request 
 | Mount root / route folder | Returned `/workspace/<project>/<worktree>/<folder>/...` alias | Render a declared page or a generated child-route index when the folder has no page. Use returned aliases rather than deriving identity from strings. |
 | Project page | Declared `routes/.../+page.svelte` | View/interact with project content. Supported route files are client-rendered Svelte components, not a full mounted Kit app. |
 | Interaction page | Returned request `previewUrl` with query and capability fragment; it may use a legacy component URL | Shared Agent recipient panel above the form. A clean browsing route does not confer submission capability. |
-| Gated recipient lab | Source under `apps/surface/src/routes/experiments/agent-picker/` and separate [experiment package](../../experiments/agent-picker/README.md) | Experimental harness; not an ordinary navigation destination or evidence of shared-panel draft persistence. |
+| Historical recipient lab | Retired implementation; see the dated [experiment package](../experiments/2026-09-23-agent-recipient.md) | Retired harness; not a current route or evidence of shared-panel draft persistence. |
 
 Illustrative structure below describes source composition, not a rendered or approved wireframe:
 

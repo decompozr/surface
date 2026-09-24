@@ -46,7 +46,7 @@ Current error strings may expose only a technical cause. Desired presentation sh
 | Failed submission | Service keeps saved responses; client supplies no general form draft store | Preserve response ID plus original payload on uncertainty; do not generate a replacement ID to bypass reconciliation. |
 | Persisted domain data | Project backend/schema, independent of request store | Loading/saving domain data must have explicit meaning; a saved form is not a delivery acknowledgement. |
 
-The [agent-picker lab](../../experiments/agent-picker/README.md) has separate persistence behavior. Its tab-draft evidence is not proof for this shared panel. [E-11](../evaluations/ui-eval.md#e-11-drafts-and-results) evaluates a specific project form's declared lifetime rather than claiming universal retention.
+The [agent-picker lab](../experiments/2026-09-23-agent-recipient.md) had separate persistence behavior and is now retired. Its tab-draft evidence is not proof for this shared panel. [E-11](../evaluations/ui-eval.md#e-11-drafts-and-results) evaluates a specific project form's declared lifetime rather than claiming universal retention.
 
 ## D-06: evidence of a result
 

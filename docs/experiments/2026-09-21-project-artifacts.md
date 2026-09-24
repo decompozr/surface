@@ -52,7 +52,7 @@ bun run --cwd experiments/projects check
 bun experiments/projects/verify.ts
 ```
 
-TypeScript checking and the final CLI/browser/concurrency verification passed. Temporary servers and source trees were cleaned up. Follow the [package guide](../../experiments/projects/README.md) for executable setup and usage.
+TypeScript checking and the final CLI/browser/concurrency verification passed. Temporary servers and source trees were cleaned up. Follow the [package guide](../history/retired-experiments/projects.md) for executable setup and usage.
 
 ## Design recommendation
 

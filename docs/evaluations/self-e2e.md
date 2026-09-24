@@ -11,7 +11,7 @@ This procedure was requested on September 23, 2026 after the comments experiment
 5. Within existing preview-update authorization, publish a new immutable snapshot only after tests pass, preserving the selected endpoint and recipient. Test the exact snapshot or record its identity with the tested build. Keep fixtures away from real conversations and do not reset user drafts.
 6. Record commands, revision plus WIP, snapshot, browsers, scenarios, results, artifacts and limitations. Update the relevant source/evaluation and dated experiment. Report what was observed and what remains unverified. Ask the user only for information or physical-device evidence that the available environment cannot establish.
 
-## Comments experiment: one command
+## Comments verification: one command
 
 From the repository root with the existing dependencies and Playwright Chromium/WebKit engines installed:
 
@@ -19,7 +19,7 @@ From the repository root with the existing dependencies and Playwright Chromium/
 bun run test:e2e:comments
 ```
 
-This invokes `tests/e2e/comments/run.ts`. It runs the app check, targeted delivery tests and build, copies the build into a fresh immutable test snapshot, and runs the browser matrix, toolbar scroll regressions, desktop/touch interaction audit and synthetic keyboard viewport checks against disposable loopback services and an isolated Unix-socket provider fixture. It does not start, stop, rebind or submit to the user's preview. A failing step exits nonzero. Evidence defaults to `.decompozr/surface/comments-e2e/<timestamp>/`; set `COMMENTS_E2E_OUTPUT` to a new directory to choose another destination. Do not reuse an existing snapshot directory.
+This invokes `tests/e2e/comments/run.ts`. It checks and builds a disposable production source snapshot, then builds a separate snapshot with the overlay in `tests/fixtures/comments-app`. Mounted-page tests use the untouched production build; selection/capture geometry and demo delivery tests use the fixture build. Both use isolated loopback services and a Unix-socket provider fixture. It does not start, stop, rebind or submit to the user's preview. A failing step exits nonzero. Builds and copied dependencies are removed on exit. Screenshots, traces, source inventories and reports default to `.decompozr/surface/comments-e2e/<timestamp>/`; use `COMMENTS_E2E_OUTPUT` to select a new output directory and summarize/retire completed evidence under the repository retention policy.
 
 Playwright is the browser automation framework (`@playwright/test`); these verifiers are executable Bun scripts using its browser engines and assertions, not a conventional `playwright test` configuration. If engines are absent, install the pinned project's engines with `bunx playwright install chromium webkit`; do not upgrade dependencies or modify shared registration to make a test pass.
 
@@ -41,10 +41,10 @@ The delivery unit suite also verifies duplicate requests, stale turn rejection, 
 
 ### Reproduce a specific immutable release
 
-The lower-level verifier accepts the directory containing `build/index.js` and uses new isolated state regardless of the build's original preview:
+The lower-level fixture verifier requires an explicitly provided test build containing the comments overlay and `build/index.js`. It uses new isolated state:
 
 ```sh
-COMMENTS_E2E_BUILD_DIR=/absolute/immutable/release \
+COMMENTS_E2E_BUILD_DIR=/absolute/immutable/fixture-app \
 COMMENTS_E2E_OUTPUT=/absolute/new/evidence-directory \
 COMMENTS_E2E_ACTIVE=1 \
 bun tests/e2e/comments/full-loop.e2e.ts
@@ -60,7 +60,7 @@ The fake provider exercises the real browser, HTTP routes, persistence, adapter 
 
 ## Ordinary mounted pages
 
-The same command also freezes the app host, compiler and comment sources into the test snapshot and runs `tests/e2e/comments/mounted.e2e.ts` in idle/active × Chromium/WebKit profiles. It creates a separate temporary Git fixture project (no linked worktree), local service/storage and provider socket. The mounted fixture owns ordinary Svelte content and a domain request schema; it does not import a comment component.
+The same command freezes the production app host, compiler and comment sources into a separate test snapshot and runs `tests/e2e/comments/mounted.e2e.ts` in idle/active × Chromium/WebKit profiles. It creates a separate temporary Git fixture project (no linked worktree), local service/storage and provider socket. The mounted fixture owns ordinary Svelte content and a domain request schema; it does not import a comment component.
 
 In addition to the existing matrix, verify normal project controls before selection, selection of controls through nested presentation spans, 320px review and 400px-high editing, per-page/request draft separation, request-token isolation, browser-token rejection at the reply endpoint, and preservation of the original domain response/schema. Retain screenshots/traces and the snapshot file-hash manifest. The runtime compiler and the built shell are both part of the tested snapshot; a built experimental page alone cannot verify mounted behavior.
 
@@ -73,4 +73,4 @@ Run the mounted verifier against an explicitly isolated installation to cover th
 
 Test upgrade/rollback separately from browser delivery: preserve a registered project, its identity, draft/request/result records and project data through stopped activation changes. A successful package build does not prove the installed flow. Retain the exact archive/checksum, source commit and provider pin; a release candidate is not a signed or notarized general-availability release.
 
-`COMMENTS_E2E_PREPARED_RELEASE=/absolute/extracted-release bun run test:e2e:comments` verifies a packaged release with integrity checks before and after the matrix. It skips rebuilding that immutable package; source checking with the same frozen dependencies and installed lifecycle acceptance are separate [candidate gates](release-candidate.md).
+`COMMENTS_E2E_PREPARED_RELEASE=/absolute/extracted-release bun run test:e2e:comments` verifies a packaged release with integrity checks before and after the matrix. It skips rebuilding that immutable package, uses it directly for mounted tests, and compiles the test-only overlay in a disposable copy for fixture tests. Source checking with the same frozen dependencies and installed lifecycle acceptance are separate [candidate gates](release-candidate.md).
