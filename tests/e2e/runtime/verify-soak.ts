@@ -16,7 +16,7 @@ const source = (name: string) => {
 const component = (name: string) => { return `<script>import lodash from 'lodash';import {previewState} from 'virtual:surface-preview';const count=previewState('count',0);</script><h1>${name}</h1><p>{lodash.VERSION}</p><button onclick={()=> $count++}>Count {$count}</button>`; };
 
 const cli = async (...args: string[]) => {
-  const child = Bun.spawn([process.execPath, join(process.cwd(), 'apps/cli/src/runtime.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
+  const child = Bun.spawn([process.execPath, join(process.cwd(), 'tests/e2e/runtime/control.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
   const [out, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
   const result = JSON.parse(out || '{}'); if (code && result.status !== 'failed') throw new Error(`${args[0]}: ${error}`); return result;
 };

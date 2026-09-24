@@ -19,7 +19,7 @@ Full source context and delivery metadata stay in the record. Read them only whe
 
 ## Setup, update, or test
 
-For installation or updates, read [agent setup](references/setup.md). Use the explicit provider skills directory and a symlink to this checkout’s entire `skills/surface` directory. Never copy the skill into a provider folder. Preserve foreign or broken links and existing directories; report conflicts. Use `./bin/setup` for installation and updates; it reconciles the selected installation with the committed checkout. `./bin/refresh` is a compatibility alias. It does not authorize unrelated Git changes or service migration.
+For installation or updates, read [agent setup](references/setup.md). Use the explicit provider skills directory and a symlink to this checkout’s entire `skills/surface` directory. Never copy the skill into a provider folder. Preserve foreign or broken links and existing directories; report conflicts. Use `./bin/setup` for installation and updates; it reconciles the selected installation with the committed checkout. It does not authorize unrelated Git changes or service migration.
 
 ## Select the existing service
 
@@ -54,7 +54,7 @@ Check `surface status` and `surface doctor` for the selected installation. Start
 
 ## Build the interaction component
 
-Import `createInteractionClient` from `virtual:surface-interactions`. It exposes `read()`, `recipient()`, `submit(data, responseId, delivery)`, and `waitForResult()`. Existing components may still use the legacy `createArtifactClient` export and `virtual:artifact-client` / `virtual:artifact-preview` aliases; use Surface names for new source. Copy the guide's linked `preview.d.ts` into the mounted project's included declarations for editor/type-check support.
+Import `createInteractionClient` from `virtual:surface-interactions`. It exposes `read()`, `recipient()`, `submit(data, responseId, delivery)`, and `waitForResult()`. Copy the guide's linked `preview.d.ts` into the mounted project's included declarations for editor/type-check support.
 
 Read `recipient()` before submission. For an active recipient, explicitly offer queue (after the current turn) and steer (during the current turn); pass `{ mode, expectedStatus, expectedTurnId }` from that observation. For idle or notLoaded recipients, use `start`. Refresh and reconfirm after a state-change rejection. Queue receipts identify a queued submission, not a completed turn.
 

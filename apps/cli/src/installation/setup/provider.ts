@@ -5,7 +5,7 @@ import { terminalSelect, type MenuChoice } from './terminal-select.ts';
 import { loadPrompts } from './prompts.ts';
 
 
-export const selectSkills = async (options: { explicit?: string[]; provider?: string[]; saved?: string | string[]; mode: string; userHome?: string; env?: NodeJS.ProcessEnv; interactive?: boolean; exists?: (path:string)=>boolean; ask?: (question:string)=>Promise<string>; choose?: (choices:MenuChoice[],initial:number[])=>Promise<number[]> }) => {
+export const selectSkills = async (options: { explicit?: string[]; provider?: string[]; saved?: string[]; mode: string; userHome?: string; env?: NodeJS.ProcessEnv; interactive?: boolean; exists?: (path:string)=>boolean; ask?: (question:string)=>Promise<string>; choose?: (choices:MenuChoice[],initial:number[])=>Promise<number[]> }) => {
   const env=options.env??process.env, home=options.userHome??homedir(), exists=options.exists??existsSync;
   const providers=[
     {id:'codex',name:'Codex',root:resolve(env.CODEX_HOME??join(home,'.codex'))},
@@ -15,7 +15,7 @@ export const selectSkills = async (options: { explicit?: string[]; provider?: st
   const unique=(paths:string[])=>[...new Set(paths.map(p=>resolve(p)))];
   if(options.explicit)return unique(options.explicit);
   if(options.provider)return unique(options.provider.flatMap(p=>p.split(',')).map(id=>{const match=providers.find(p=>p.id===id);if(!match)throw new Error('Use --provider codex or --provider claude.');return match.path;}));
-  const saved=options.saved?unique(Array.isArray(options.saved)?options.saved:[options.saved]):[];
+  const saved=options.saved?unique(options.saved):[];
   if(saved.length&&options.mode!=='setup')return saved;
   const preferred=saved.length?saved:providers.filter(p=>p.detected).map(p=>p.path);
   if(!(options.interactive??process.stdin.isTTY)) {

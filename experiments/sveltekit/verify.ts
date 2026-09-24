@@ -7,7 +7,7 @@ import type { AgentAdapter } from '@decompozr/surface-app/server/agent-adapters/
 import { startKitFoundation } from './server.ts';
 
 const cli = async (...args: string[]): Promise<any> => {
-  const child = Bun.spawn([process.execPath, join(import.meta.dir, '../../apps/cli/src/runtime.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
+  const child = Bun.spawn([process.execPath, join(import.meta.dir, '../../tests/e2e/runtime/control.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
   const [out, error, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
   assert(code === 0, `Singleton ${args[0]} failed: ${error}\n${out}`);
   return JSON.parse(out);
@@ -46,7 +46,7 @@ const adapter: AgentAdapter = {
   async deliver(binding, message) {
     await this.inspect(binding);
     deliveries.push({ threadId: binding.threadId, ...JSON.parse(message.split('\n')[1]!) });
-    assert(message.includes('apps/cli/src/runtime.ts') && message.includes(stateDir), 'Callback is not routed to the shared interaction core.');
+    assert(message.includes('apps/cli/src/index.ts') && message.includes(stateDir), 'Callback is not routed to the shared interaction core.');
     return { mode: 'start', turnId: `fixture-turn-${deliveries.length}` };
   },
 };

@@ -4,13 +4,12 @@ import { fileURLToPath } from 'node:url';
 import { join, resolve, dirname } from 'node:path';
 import { readFileSync, existsSync } from 'node:fs';
 import { cliOptions } from './options.ts';
-import { scaffold } from './scaffold.ts';
+import { scaffold } from '@decompozr/surface-app/server/templates/index';
 import { projectMain } from './projects.ts';
 import { installationHome, serviceState } from './installation/paths.ts';
 import { lifecycleCommands, lifecycleMain } from './installation/launcher.ts';
 import { workspaceDirectory } from '@decompozr/surface-app/server/workspaces/identity';
 import { retire } from '@decompozr/surface-app/server/workspaces/retire';
-import { planMigration, publicPlan, migrate, rollbackMigration } from '@decompozr/surface-app/server/workspaces/migrate';
 
 const currentProject = async (explicit?:string) => {
   if(explicit)return resolve(explicit);
@@ -29,7 +28,7 @@ const api = async (stateDir:string,path:string,data?:unknown) => {
 };
 
 export const main = async (args=process.argv.slice(2)) => {
-  const {values,positionals,tokens}=parseArgs({args,allowPositionals:true,tokens:true,options:cliOptions});
+  const {values,positionals}=parseArgs({args,allowPositionals:true,options:cliOptions});
   const command=positionals[0],stateDir=serviceState(values);
   const print=(value:unknown)=>console.log(JSON.stringify(value,null,2));
   const required=(key:keyof typeof values)=>{const value=values[key];if(typeof value!=='string'||!value)throw new Error(`Missing --${key}.`);return value;};
@@ -43,12 +42,10 @@ export const main = async (args=process.argv.slice(2)) => {
   upgrade --repo PATH --ref COMMIT
   rollback --release ID | uninstall  Preserve service/project data
   serve [--data-root PATH]           Foreground workspace service
-  init --directory PATH [--framework svelte|vanilla]  Generate app-owned templates locally
+  init --directory PATH              Generate a mounted Svelte page locally
   project init|register|list|add|mount|unmount|archive|restore
     [--project ROOT] [--artifact ID --source PATH --name LABEL]
   workspace list | current | retire [--workspace ID]
-  workspace migrate [--data-root PATH --storage-map FILE --apply]
-  workspace migration-rollback --backup ID
   access                             Private backend mount capabilities
   bind [--project ROOT] --thread ID --socket PATH
   request --binding ID --namespace NAME --name NAME --component PATH --title TEXT --schema-file FILE
@@ -56,21 +53,14 @@ export const main = async (args=process.argv.slice(2)) => {
   send --request ID --response-id ID --data JSON | close --request ID
   mcp                                Stdio tools for the selected service
   doctor
-  legacy COMMAND                     Earlier per-runtime prototype commands
 
 Select one shared installation with --home PATH or SURFACE_HOME.
 Client/foreground commands also accept --state-dir PATH or SURFACE_STATE_DIR.
 Project roots default to the current Git worktree, including when invoked from a subdirectory.
 Register before mounting. No per-worktree service state or automatic database allocation.
-Migration without --apply prints a plan. Existing data requires explicit project-owned storage mapping.`);return;
+Existing data is never automatically migrated.`);return;
   }
-  if(command==='legacy') {
-    const index=tokens.find(t=>t.kind==='positional')!.index;
-    return (await import('./legacy.ts')).main(args.filter((_,i)=>i!==index));
-  }
-  if(command==='init') { print(scaffold(root, required('directory'), values.framework ?? 'svelte')); return; }
-  // Preserve old explicit per-runtime invocations; new service operations have distinct flags.
-  if(['register','runtimes','runtime','logs'].includes(command)||(values.runtime&&['mount','stop','request'].includes(command))||(command==='serve'&&values.dev))return (await import('./legacy.ts')).main(args);
+  if(command==='init') { print(scaffold(required('directory'))); return; }
   if(lifecycleCommands.has(command)) {print(await lifecycleMain(args));return;}
   if(command==='project') {
     const operation=positionals[1];if(!operation||positionals.length!==2)throw new Error('Expected one project operation.');
@@ -80,19 +70,13 @@ Migration without --apply prints a plan. Existing data requires explicit project
   }
   if(command==='workspace') {
     const operation=positionals[1];if(positionals.length!==2)throw new Error('Expected one workspace operation.');
-    if(operation==='migrate') {
-      const dataRoot=resolve(values['data-root']??join(dirname(stateDir),'project-data'));
-      const map=values['storage-map']?JSON.parse(readFileSync(resolve(values['storage-map']),'utf8')):{};
-      print(values.apply?await migrate(stateDir,dataRoot,map):publicPlan(await planMigration(stateDir,dataRoot,map)));return;
-    }
-    if(operation==='migration-rollback') {print(rollbackMigration(stateDir,required('backup')));return;}
     const config=JSON.parse(readFileSync(join(stateDir,'workspace-host.json'),'utf8')),directory=workspaceDirectory(stateDir,config.dataRoot);
     if(operation==='list'){print(directory.snapshot());return;}
     let id=values.workspace;
     if(!id){const projectRoot=await currentProject(values.project),w=directory.snapshot().projects.flatMap(p=>p.workspaces).find(w=>w.root===projectRoot&&w.status!=='retired');if(!w)throw new Error('Register this workspace first.');id=w.id;}
     if(operation==='current'){print(directory.get(id));return;}
     if(operation==='retire'){print(await retire(stateDir,id));return;}
-    throw new Error('Use workspace list, current, retire, migrate, or migration-rollback.');
+    throw new Error('Use workspace list, current, or retire.');
   }
   if(command==='serve') {
     const port=Number(values.port??4319);if(!Number.isInteger(port)||port<0||port>65535)throw new Error('Invalid port.');
@@ -108,7 +92,7 @@ Migration without --apply prints a plan. Existing data requires explicit project
     case 'access': print(await api(stateDir,'/project-db/access'));break;
     case 'bind': print(await api(stateDir,'/api/bindings',{projectRoot:await currentProject(values.project),threadId:required('thread'),socketPath:resolve(required('socket'))}));break;
     case 'request': print(await api(stateDir,'/api/requests',{recipientSelection:values['allow-recipient-selection']===true,bindingId:required('binding'),namespace:required('namespace'),name:required('name'),component:required('component'),title:required('title'),schema:JSON.parse(readFileSync(resolve(required('schema-file')),'utf8'))}));break;
-    case 'list':case 'requests':print(await api(stateDir,'/api/requests'));break;
+    case 'requests':print(await api(stateDir,'/api/requests'));break;
     case 'inspect': print(await api(stateDir,`/api/requests/${encodeURIComponent(required('request'))}`));break;
     case 'result':print(await api(stateDir,`/api/requests/${encodeURIComponent(required('request'))}/result`,JSON.parse(required('data'))));break;
     case 'send':print(await api(stateDir,`/api/requests/${encodeURIComponent(required('request'))}/responses`,{responseId:required('response-id'),data:JSON.parse(required('data'))}));break;

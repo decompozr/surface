@@ -2,7 +2,7 @@
 
 ## User-selected behavior
 
-The user prefers Steer as a conversational “by the way”: receive input during ongoing work, briefly acknowledge it, keep the original objective and decide whether to continue, address the new input immediately or defer it. Queue remains an alternative. The adopted bounded contract is in [agent interaction](../requirements/agent-interaction.md#by-the-way-comments-user-selected-follow-up). It does not authorize arbitrary scheduling, new agents or unrelated edits.
+The user prefers Steer as a conversational “by the way”: receive input during ongoing work, briefly acknowledge it, keep the original objective and decide whether to continue, address the new input immediately or defer it. Queue remains an alternative. The adopted bounded contract is in [agent interaction](../requirements/agent-interaction.md#contextual-comment-batches--experimental). It does not authorize arbitrary scheduling, new agents or unrelated edits.
 
 ## Implementation
 

@@ -2,7 +2,7 @@
   import '@decompozr/design-system/fonts.css';
   import { onMount, tick, type Snippet } from 'svelte';
   import type { NavigationNode } from '../contracts/navigation.ts';
-  import SurfaceLogo from '../comment-experiment/SurfaceLogo.svelte';
+  import { Logo } from '@decompozr/design-system';
   import { AppShell, AppHeader, Brand, Button, Icon, Text, Breadcrumbs } from '@decompozr/design-system';
   import NavigationTree from './NavigationTree.svelte';
   import RecipientPanel from './RecipientPanel.svelte';
@@ -51,7 +51,7 @@
   <AppHeader actions={headerTools}>
     <a class="skip-link" href="#surface-page-content" onclick={skipToContent}>Skip to content</a>
     <Button appearance="quiet" size="compact" onclick={toggle} aria-label="Toggle navigation" title={overlayNavigation ? 'Toggle navigation (M)' : 'Toggle navigation'} aria-keyshortcuts={overlayNavigation ? 'M' : undefined} aria-controls="surface-navigation" aria-expanded={navigationOpen}>
-      {#if surfaceIdentity}<SurfaceLogo palette="slate" />{:else}<Icon name="panel-left" />{/if}
+      {#if surfaceIdentity}<Logo variant="compact" palette="slate" centerSymbol="S" label="Surface" size={38} />{:else}<Icon name="panel-left" />{/if}
     </Button>
     <Brand href="/" data-sveltekit-reload>Surface</Brand>
   </AppHeader>

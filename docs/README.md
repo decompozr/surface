@@ -26,10 +26,10 @@ Direct user and repository instructions govern authorized work. Current intent a
 | `design/` | Screen hierarchy, user journeys, states, recovery, drafts and accessibility | [UI contracts and gaps](design/README.md) |
 | `evaluations/` | Requirement/design traceability, observable gates and evidence limits | [Evaluation index](evaluations/README.md), [runtime](evaluations/runtime-eval.md), [UI](evaluations/ui-eval.md), [consumer loop](evaluations/consumer-eval.md) |
 | `observations/` | Measured telemetry, reported feedback and incidents with provenance | [Observation index](observations/README.md), [findings](observations/findings.md) |
-| `decisions/` | Adopted choices and supersession, with authority | [Naming decision](decisions/0002-surface-name-and-local-state.md), [documentation organization](decisions/0003-source-documentation-organization.md) |
+| `decisions/` | Adopted choices and supersession, with authority | [Naming decision](decisions/0002-surface-name-and-local-state.md), [documentation organization](decisions/0003-source-documentation-organization.md), [current development contract](decisions/0004-current-development-contract.md) |
 | `experiments/` | Dated hypotheses, procedures, results and bounded conclusions | [Original readiness plan](experiments/2026-09-21-readiness-plan.md), [current documentation trial](experiments/docs-takeover/task.md) |
 
-Top-level `source-workflow.md` remains the governance entry. Other old top-level source paths and `implementation/` files are compatibility pointers, not parallel specifications. Executable experiment packages remain under repository-root `experiments/`; moving documentation does not promote their runtimes.
+Top-level `source-workflow.md` remains the governance entry. Former top-level pointers and `implementation/` redirects have been removed; use the canonical destinations below. Executable experiment packages remain under repository-root `experiments/`; moving documentation does not promote their runtimes.
 
 ## Complete migration map
 

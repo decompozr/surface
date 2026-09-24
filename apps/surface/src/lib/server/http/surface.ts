@@ -20,7 +20,7 @@ export const startSurface = async (options: Parameters<typeof startSurfaceApp>[0
   if (existsSync(join(options.stateDir, 'server.lock'))) throw new Error('Surface state is locked by a host or migration.');
   const saved = join(options.stateDir, 'workspace-host.json');
   const dataRoot = resolve(options.dataRoot ?? (existsSync(saved) ? JSON.parse(readFileSync(saved,'utf8')).dataRoot : join(dirname(options.stateDir),'project-data')));
-  if (existsSync(join(options.stateDir, 'project-bindings.json'))) throw new Error('Existing single-root project bindings require migration: run surface workspace migrate, review its plan, then apply it explicitly.');
+  if (existsSync(join(options.stateDir, 'project-bindings.json'))) throw new Error('Unsupported project binding format. Preserve this state and reconcile it explicitly before starting.');
   const directory = workspaceDirectory(options.stateDir, dataRoot);
   const backend = backendRuntime(options.stateDir, context);
   const config = join(options.stateDir, 'workspace-host.json');

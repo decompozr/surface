@@ -34,9 +34,9 @@ From a project/worktree, use `surface project init` if its manifest is absent, t
 
 Default installation/state selection is shared across cwd: `~/.decompozr/surface` on macOS and Linux, with `--home`/`SURFACE_HOME` overrides. Client `--state-dir`/`SURFACE_STATE_DIR` can select an existing service. The default port is 4319. Worktrees do not receive duplicate service state; optional SQLite stays lazy in a persistent project/workspace data location outside disposable source.
 
-`surface workspace retire` preserves data and history, blocks unfinished accepted work, and leaves Git merge/removal explicit. `surface workspace migrate` provides a reviewed, backed-up transition for legacy single-root registrations while preserving original namespaces and interaction records. Existing data requires explicit project-owned storage mapping; databases are not automatically copied or merged.
+`surface workspace retire` preserves data and history, blocks unfinished accepted work, and leaves Git merge/removal explicit. Unsupported state formats require deliberate reconciliation; the service never migrates or replaces them automatically.
 
-The earlier per-runtime prototype is available through `surface legacy`. Historical experiment entry points and checkout-local `.decompozr/surface` evidence remain; installing the shared service does not move them. Use their explicit state directories when continuing old work. The [Surface skill](skills/surface/SKILL.md) describes the public interaction workflow.
+The [Surface skill](skills/surface/SKILL.md) describes the current public interaction workflow. Historical experiment evidence remains in Git and `docs/experiments`.
 
 ## The v0 interaction loop
 

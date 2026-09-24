@@ -6,7 +6,7 @@ declare module 'virtual:surface-preview' {
 }
 
 /** The singleton host supplies this module; do not add it as a package dependency. */
-declare module 'virtual:surface-client' {
+declare module 'virtual:surface-interactions' {
   export type DeliveryIntent = { mode: 'queue' | 'steer' | 'start'; expectedStatus: string; expectedTurnId?: string };
   export type Recipient = { threadId: string; status: string; turnId?: string; canSubmit: boolean };
   export type Interaction = {
@@ -33,12 +33,4 @@ declare module 'virtual:surface-client' {
     submit(data: Record<string, unknown>, responseId: string, delivery?: DeliveryIntent): Promise<Interaction>;
     waitForResult(options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<Record<string, unknown>>;
   };
-  export const createSurfaceClient: typeof createInteractionClient;
-  export const createArtifactClient: typeof createInteractionClient;
 }
-
-/** Compatibility declarations for sources mounted before the Surface rename. */
-declare module 'virtual:artifact-preview' { export * from 'virtual:surface-preview'; }
-declare module 'virtual:artifact-client' { export * from 'virtual:surface-client'; }
-
-declare module 'virtual:surface-interactions' { export * from 'virtual:surface-client'; }

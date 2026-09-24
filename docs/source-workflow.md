@@ -17,7 +17,7 @@ This policy follows the September 23, 2026 project direction. It does not make e
 | Code, tests and reproducible verifiers | Executable behavior and checks | Evidence of implementation; differences from the specification must be reconciled |
 | Ignored receipts, logs and screenshots | Detailed machine/session context | Supporting observations, never the only record of a consequential decision |
 
-Direct user instructions and applicable repository instructions still govern the work. Use [docs/README.md](README.md) for the canonical reading paths and migration map. Compatibility pointers contain no second specification. A historical record must not override a newer adopted contract. When code and docs disagree, record the discrepancy and resolve whether the implementation is wrong, the specification has changed, or the evidence is insufficient. Do not silently rewrite intended behavior to match an accidental implementation.
+Direct user instructions and applicable repository instructions still govern the work. Use [docs/README.md](README.md) for the canonical reading paths and migration map. A historical record must not override a newer adopted contract. When code and docs disagree, record the discrepancy and resolve whether the implementation is wrong, the specification has changed, or the evidence is insufficient. Do not silently rewrite intended behavior to match an accidental implementation.
 
 ## Close the learning loop
 

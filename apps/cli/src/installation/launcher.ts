@@ -4,7 +4,6 @@ import { parseArgs } from 'node:util';
 import { Installation } from './manager.ts';
 import { installationHome } from './paths.ts';
 import { validateRelease } from './compatibility.ts';
-import { installationSource } from './release-source.ts';
 
 export const prepareLauncher = async (home: string, release: string) => {
   const source = join(home,'releases',release), directory = join(home,'tooling',release);
@@ -22,9 +21,9 @@ export const prepareLauncher = async (home: string, release: string) => {
     const {writeFileSync}=await import('node:fs');
     writeFileSync(temporary,script,{mode:0o700});renameSync(temporary,join(home,'bin/surface'));return;
   }
-  const result = await Bun.build({ entrypoints:[installationSource(source, 'launcher.ts')],target:'bun',format:'esm',outdir:directory,banner:'#!/usr/bin/env bun',naming:'launcher.js' });
+  const result = await Bun.build({ entrypoints:[join(source, 'apps/cli/src/installation/launcher.ts')],target:'bun',format:'esm',outdir:directory,banner:'#!/usr/bin/env bun',naming:'launcher.js' });
   if (!result.success) throw new Error('Surface launcher build failed.');
-  copyFileSync(installationSource(source, 'runner.ts'),join(directory,'runner.ts')); chmodSync(join(directory,'launcher.js'),0o700);
+  copyFileSync(join(source, 'apps/cli/src/installation/runner.ts'),join(directory,'runner.ts')); chmodSync(join(directory,'launcher.js'),0o700);
   const temporary = join(home,'bin',`.surface-${crypto.randomUUID()}`); symlinkSync(join(directory,'launcher.js'),temporary); renameSync(temporary,join(home,'bin/surface'));
 };
 
@@ -34,8 +33,8 @@ export const lifecycleMain = async (args: string[]) => {
   const home=installationHome(values.home), manager=new Installation(home,validateRelease);
   const start = async () => {
     const state=join(home,'state');
-    if(existsSync(join(state,'workspace-migration.pending.json')))throw new Error('Migration is incomplete. Use surface workspace migration-rollback with its backup ID.');
-    if(existsSync(join(state,'project-bindings.json')))throw new Error('Migrate legacy project bindings first: surface workspace migrate (review), then --apply.');
+    if(existsSync(join(state,'workspace-migration.pending.json')))throw new Error('Incomplete state transition. Preserve its backup and reconcile explicitly before starting.');
+    if(existsSync(join(state,'project-bindings.json')))throw new Error('Unsupported project binding format. Preserve this state and reconcile it explicitly before starting.');
     return (await manager.start(values.port === undefined ? (existsSync(join(home,'settings.json')) ? undefined : 4319) : Number(values.port))).status;
   };
   switch(positionals[0]) {
@@ -67,16 +66,14 @@ if(import.meta.main) {
     const args=process.argv.slice(2);
     // Bootstrap only lifecycle. All other commands run the selected release's actual CLI,
     // preserving its dependency/source paths without embedding the compiler in this bundle.
-    const parsed=parseArgs({args,allowPositionals:true,strict:false,options:{home:{type:'string'},runtime:{type:'boolean'}}});
+    const parsed=parseArgs({args,allowPositionals:true,strict:false,options:{home:{type:'string'}}});
     const command=parsed.positionals[0];
-    if(lifecycleCommands.has(command ?? '') && !args.includes('--runtime')) console.log(JSON.stringify(await lifecycleMain(args),null,2));
+    if(lifecycleCommands.has(command ?? '')) console.log(JSON.stringify(await lifecycleMain(args),null,2));
     else {
       const home=installationHome(parsed.values.home as string|undefined), active=JSON.parse(readFileSync(join(home,'active.json'),'utf8'));
       if(!/^[a-f0-9]{40}-surface$/.test(active.release)) throw new Error('Select an installed Surface workspace release.');
       const releaseRoot=join(home,'releases',active.release);
-      const currentCLI=join(releaseRoot,'apps/cli/src/index.ts');
-      const previousCLI=join(releaseRoot,'apps/surface/src/cli/index.ts');
-      const cli=existsSync(currentCLI)?currentCLI:existsSync(previousCLI)?previousCLI:join(releaseRoot,'src/cli/index.ts');
+      const cli=join(releaseRoot,'apps/cli/src/index.ts');
       const child=Bun.spawn([process.execPath,cli,...args],{stdin:'inherit',stdout:'inherit',stderr:'inherit',env:{...process.env,SURFACE_HOME:home}});
       for(const signal of ['SIGINT','SIGTERM'] as const)process.once(signal,()=>child.kill(signal));
       process.exitCode=await child.exited;

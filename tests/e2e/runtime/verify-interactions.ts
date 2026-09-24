@@ -12,9 +12,7 @@ const project = (name: string) => {
   const root = join(directory, name), source = join(root, 'panels');
   mkdirSync(join(source, 'src'), { recursive: true });
   writeFileSync(join(source, 'package.json'), JSON.stringify({ name, private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
-  // Existing mounted sources keep working through compatibility aliases.
-  const sourceForm = name === 'beta' ? form.replaceAll('virtual:surface-', 'virtual:artifact-').replaceAll('createSurfaceClient', 'createArtifactClient') : form;
-  writeFileSync(join(source, 'src/Form.svelte'), sourceForm);
+  writeFileSync(join(source, 'src/Form.svelte'), form);
   projects.set(`fixture-${name}`, root);
   return { root, source, component: join(source, 'src/Form.svelte') };
 };
@@ -24,7 +22,7 @@ const assert: (condition: unknown, message: string) => asserts condition = (cond
 const observed = (message: string) => { observations.push(message); console.log(message); };
 
 const cli = async (...args: string[]): Promise<any> => {
-  const process = Bun.spawn([processExec(), join(globalThis.process.cwd(), 'apps/cli/src/runtime.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
+  const process = Bun.spawn([processExec(), join(globalThis.process.cwd(), 'tests/e2e/runtime/control.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
   const [out, error, code] = await Promise.all([new Response(process.stdout).text(), new Response(process.stderr).text(), process.exited]);
   if (code !== 0) throw new Error(`Singleton ${args[0]} failed (${code}): ${error}\n${out}`);
   return JSON.parse(out);
@@ -74,7 +72,7 @@ const adapter: AgentAdapter = {
     if (data.data.label === 'held') { deliveryStarted(); await deliveryGate; }
     if (data.data.label === 'unavailable') throw new DeliveryError('Fixture session became unavailable.', 'failed');
     if (data.data.label === 'uncertain') throw new DeliveryError('Fixture transport disconnected after send.', 'unknown');
-    if (!message.includes('apps/cli/src/runtime.ts') || !message.includes(stateDir)) throw new Error('Callback instructions target the wrong CLI/state.');
+    if (!message.includes('apps/cli/src/index.ts') || !message.includes(stateDir)) throw new Error('Callback instructions target the wrong CLI/state.');
     return { mode: 'start', turnId: `fixture-turn-${deliveries.length}` };
   },
 };
@@ -101,7 +99,7 @@ try {
   context.on('page', page => page.on('pageerror', error => pageErrors.push(error.message)));
   pageA.on('pageerror', error => pageErrors.push(error.message)); pageB.on('pageerror', error => pageErrors.push(error.message));
   await pageA.goto(a.previewUrl); await pageB.goto(b.previewUrl);
-  await pageA.getByRole('button').waitFor(); await pageB.getByRole('button').waitFor();
+  await pageA.getByRole('button', { name: 'Send feedback', exact: true }).waitFor(); await pageB.getByRole('button', { name: 'Send feedback', exact: true }).waitFor();
   await pageA.getByRole('textbox').fill('Preserved custom response');
   await pageA.evaluate(() => { (window as any).documentMarker = 'original'; });
   await pageB.evaluate(() => { (window as any).documentMarker = 'other-namespace'; });
@@ -110,18 +108,18 @@ try {
   assert(await pageA.getByRole('textbox').inputValue() === 'Preserved custom response', 'HMR lost unsent draft.');
   assert(await pageA.evaluate(() => (window as any).documentMarker) === 'original', 'HMR refreshed the document.');
   assert(deliveries.length === 0, 'Opening or editing a form delivered an unsolicited response.');
-  observed('Canonical Surface imports and legacy Artifact compatibility imports both render scoped forms; ordinary HMR preserves the unsent draft without submitting.');
+  observed('Canonical interaction imports render scoped forms; ordinary HMR preserves the unsent draft without submitting.');
 
   writeFileSync(alpha.component, form + '\n<script>');
   await pageA.locator('#artifact-compiler-error').waitFor();
   assert(await pageB.locator('#artifact-compiler-error, vite-error-overlay').count() === 0, 'Compile diagnostic leaked to another namespace.');
   await pageB.getByRole('textbox').fill('Other namespace remains usable');
-  await pageB.getByRole('button').click(); await status(pageB, 'accepted');
+  await pageB.getByRole('button', { name: 'Send feedback', exact: true }).click(); await status(pageB, 'accepted');
   writeFileSync(alpha.component, form.replace('Singleton feedback', 'Singleton feedback recovered'));
   await pageA.getByRole('heading', { name: 'Singleton feedback recovered' }).waitFor();
   await pageA.locator('#artifact-compiler-error').waitFor({ state: 'detached' });
   assert(await pageA.getByRole('textbox').inputValue() === 'Preserved custom response', 'Compile recovery lost unsent input.');
-  await pageA.getByRole('button').click(); await status(pageA, 'accepted');
+  await pageA.getByRole('button', { name: 'Send feedback', exact: true }).click(); await status(pageA, 'accepted');
   let inspected = await cli('inspect', '--request', a.id);
   assert(inspected.response.data.label === 'Preserved custom response', 'Custom schema response was not persisted.');
   assert(deliveries.filter(item => item.requestId === a.id).length === 1, 'Originating request delivered incorrectly.');
@@ -133,7 +131,7 @@ try {
   observed('A local compile failure leaves the second namespace usable; recovery preserves draft, and actual CLI result publication appears in the originating browser.');
 
   const delivered = deliveries.length;
-  const retry = await api(a, '/responses', { responseId: inspected.response.id, data: inspected.response.data });
+  const retry = await api(a, '/responses', { responseId: inspected.response.id, data: inspected.response.data, delivery: inspected.response.delivery });
   assert(retry.ok && deliveries.length === delivered, 'Identical retry was redelivered.');
   assert((await api(a, '/responses', { responseId: inspected.response.id, data: { label: 'changed' } })).status === 409, 'Changed data reused response ID.');
   assert((await api(a, '/responses', { responseId: crypto.randomUUID(), data: inspected.response.data })).status === 409, 'Second submission was accepted.');
@@ -185,11 +183,11 @@ try {
 
   for (const [label, expected] of [['unavailable', 'failed'], ['uncertain', 'unknown']] as const) {
     const record = await request(bindingA.id), responseId = crypto.randomUUID(), data = { label };
-    await pageA.goto(record.previewUrl); await pageA.getByRole('textbox').fill(label); await pageA.getByRole('button').click();
+    await pageA.goto(record.previewUrl); await pageA.getByRole('textbox').fill(label); await pageA.getByRole('button', { name: 'Send feedback', exact: true }).click();
     await status(pageA, expected);
     const saved = await (await api(record)).json() as RequestRecord;
     const before: number = deliveries.length;
-    await api(record, '/responses', { responseId: saved.response!.id, data });
+    await api(record, '/responses', { responseId: saved.response!.id, data, delivery: saved.response!.delivery });
     assert((await api(record, '/responses', { responseId, data })).status === 409, 'A new ID retried a failed or uncertain request.');
     await pageA.reload(); await status(pageA, expected);
     assert(deliveries.length === before, 'Failed or uncertain delivery was retried automatically.');

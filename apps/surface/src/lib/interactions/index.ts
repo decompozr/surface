@@ -67,7 +67,3 @@ export const createInteractionClient = (options?: { api: string; requestId: stri
     },
   };
 }
-
-/** Compatibility aliases for existing mounted sources. */
-export const createSurfaceClient = createInteractionClient;
-export const createArtifactClient = createInteractionClient;

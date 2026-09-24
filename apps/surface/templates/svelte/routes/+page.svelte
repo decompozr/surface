@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { createInteractionClient } from './interactions';
+  import { createInteractionClient } from '../src/interactions';
 
   const submit = async (event: SubmitEvent) => {
     event.preventDefault();

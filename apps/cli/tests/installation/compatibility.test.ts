@@ -3,12 +3,12 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { validateRelease } from '../../src/installation/compatibility.ts';
 
-test('new CLI installation and previous installer releases retain schema-checked rollback', async () => {
+test('current releases reject incompatible stored schemas', async () => {
   const root = mkdtempSync('/tmp/surface-install-layout-');
   try {
     const state = join(root, 'state'); mkdirSync(state);
     writeFileSync(join(state, 'workspaces.json'), JSON.stringify({ version: 1 }));
-    for (const layout of ['apps/cli/src/installation', 'apps/installer/src', 'apps/surface/src/installation', 'src/installation']) {
+    for (const layout of ['apps/cli/src/installation']) {
       const release = join(root, layout.replaceAll('/', '-'));
       const directory = join(release, layout); mkdirSync(directory, { recursive: true });
       const descriptor = join(directory, 'compatibility.json');

@@ -20,15 +20,6 @@ export const text = (value: unknown, name: string, max = 1000): string => {
 
 export { InputError } from '../../contracts/errors.ts';
 const ajv = new Ajv({ strict: true, allErrors: true });
-export const feedbackSchema = {
-  type: 'object', additionalProperties: false, required: ['option', 'width', 'comment'],
-  properties: {
-    option: { type: 'string', enum: ['A', 'B'] },
-    width: { type: 'integer', minimum: 80, maximum: 240 },
-    comment: { type: 'string', maxLength: 1000 },
-  },
-};
-
 export type SubmissionMessage = { requestId: string; responseId: string; title: string; data: Record<string, unknown> };
 
 export class Service {
@@ -56,12 +47,11 @@ export class Service {
     const data = object(input);
     const bindingId = text(data.bindingId, 'binding ID');
     if (!this.store.state.bindings.some(binding => binding.id === bindingId)) throw new InputError('Unknown agent binding.', 404);
-    const schema = data.schema === undefined ? feedbackSchema : object(data.schema);
+    const schema = object(data.schema);
     try { ajv.compile(schema); } catch { throw new InputError('Unsupported JSON schema.'); }
     const record: RequestRecord = {
       id: crypto.randomUUID(), bindingId, title: text(data.title, 'title', 200),
       runtimeId: data.runtimeId === undefined ? undefined : text(data.runtimeId, 'runtime ID'),
-      previewPath: data.previewPath === undefined ? undefined : text(data.previewPath, 'preview path'),
       recipientSelection: data.recipientSelection === true, previewScope, schema, token: randomBytes(32).toString('hex'), createdAt: new Date().toISOString(), closed: false,
     };
     return this.store.update(state => { state.requests.push(record); return record; });

@@ -69,7 +69,7 @@ An illustrative context envelope (not the exact client API payload) could be:
 
 The request determines the destination. The response ID identifies one submission across transport retries. The current contract allows one response per request. A deliberate later interaction needs a new request after the prior outcome is reconciled; it must not bypass an uncertain delivery.
 
-Delivery should preserve the request and response identity alongside user data so the agent can relate the message to its original question. The caller supplies a validated JSON response schema; the compatibility default is the original feedback schema. Requests allow one response, with explicit close rather than a general expiry/retention policy. The illustrative `requestId` and `type` above are context fields; the current submit envelope is `{ responseId, data, delivery? }`, with request identity in the endpoint.
+Delivery should preserve the request and response identity alongside user data so the agent can relate the message to its original question. The caller supplies a validated JSON response schema; there is no implicit example feedback schema. Requests allow one response, with explicit close rather than a general expiry/retention policy. The illustrative `requestId` and `type` above are context fields; the current submit envelope is `{ responseId, data, delivery? }`, with request identity in the endpoint.
 
 ## CLI and backend integration
 
@@ -82,7 +82,7 @@ bun run surface send \
   --data '{"option":"B","width":120,"comment":"Use this version"}'
 ```
 
-At this baseline, [the public CLI send command](../../apps/cli/src/index.ts) sends response ID and data without a delivery intent. The example therefore uses the compatibility idle-start path; active recipients reject it. Active queue/steer selection is available through the request page/browser client. CLI delivery-intent flags are not implemented.
+At this baseline, [the public CLI send command](../../apps/cli/src/index.ts) sends response ID and data without a delivery intent. The example therefore uses the idle-start path; active recipients reject it. Active queue/steer selection is available through the request page/browser client. CLI delivery-intent flags are not implemented.
 
 The request resolves to the registered session, so callers do not supply a second destination that could disagree with it. The CLI and page endpoint use the same validation and delivery operations. The implemented Codex adapter calls the native control API; a configured agent CLI remains another possible adapter mechanism.
 

@@ -61,28 +61,11 @@ No worktree receives its own service `.decompozr/surface`. A small marker in eac
 
 Use `surface bind`, `request`, `requests`, `inspect`, `send`, `result` and `close` for the selected service. A new request supplies its returned namespace/mount, discovered component and explicit schema file. Bind the exact existing conversation and canonical project root. Acceptance is not agent completion; follow the exact callback command supplied with an interaction, including any retained internal CLI path and state directory.
 
-`surface legacy COMMAND` retains the earlier per-runtime prototype. Existing explicit runtime invocations remain compatible. Historical singleton/Kit experiment commands retain their explicit state semantics. Neither old checkout state nor old callbacks are rewritten merely by installing the new entry point. The repository's ignored evidence stays where it is.
+Only the current public CLI and workspace host are supported. Historical per-runtime commands and migration commands have been removed. Low-level host verification uses a test-only controller under `tests/e2e/runtime`, never a shipped CLI.
 
-## Offline migration from single-root registrations
+## Unsupported data
 
-The workspace host refuses a legacy `project-bindings.json` instead of silently rebinding it. Stop that service and review:
-
-```sh
-surface workspace migrate --state-dir /absolute/old-state --data-root /absolute/persistent-project-data
-surface workspace migrate --state-dir /absolute/old-state --data-root /absolute/persistent-project-data --apply
-```
-
-The plan validates canonical Git identities, manifests, original scopes and storage placement. Apply acquires exclusive service-state ownership, retains original metadata in `workspace-migrations/ID/`, allocates markers/workspaces, and retires the obsolete binding ledger. **Existing main namespaces stay unchanged.** Registry and interaction files remain byte-for-byte intact during migration, including accepted unresolved work. Source and project database files are not moved. New linked worktrees receive their own namespaces afterward.
-
-If a project declares a backend or has existing local domain data, migration refuses to guess. Prepare a project-owned persistent directory using that project's valid export/backup process, verify that its backend honors the supplied context, and provide `--storage-map FILE`:
-
-```json
-{ "PROJECT_UUID": "/absolute/persistent-project-data/existing-project" }
-```
-
-This explicitly adopts an existing external location. Overlapping mappings, paths inside a worktree and unknown project IDs are rejected. Surface does not perform generic SQLite copying or schema/data merging. Manual namespaces not owned by mapped projects and earlier per-runtime `state.json` stores require separate reconciliation.
-
-A pending migration blocks host startup. Ordinary failure restores the original bytes/markers. `surface workspace migration-rollback --state-dir STATE --backup ID` also handles an interrupted transaction after verifying its recorded process is dead; it retains abandoned lock evidence. Rollback refuses newer state or changed markers. Once the service has progressed, the migration backup is not a license to discard subsequent work. Marker/metadata writes are journaled, but fsync/power-loss guarantees are not established.
+The host refuses obsolete project binding formats and incomplete state transitions without overwriting them. Preserve the original data and backup; reconcile it explicitly under a separate task when needed. Development refactors do not imply an indefinite old-format support commitment.
 
 ## Lifecycle boundaries
 
@@ -90,7 +73,7 @@ Install/upgrade/rollback/uninstall require a stopped owned host. Release activat
 
 Uninstall retains service metadata, Git source, persistent project data, backups and the bootstrap. Unresolved callback work blocks removal of needed release executables. The owned host runs in its own process group, so the launching terminal/tool session can exit without terminating it. No launchd/systemd service, login item or shell-profile modification is installed. `recover` is conservative about stale process ownership. Compiler budgets, longer uptime evidence, multiple backend mounts per workspace and general data promotion remain separate work.
 
-## Verification
+## Historical verification before compatibility removal
 
 - `bun test tests experiments/singleton/interactions.test.ts experiments/project-database/backend.test.ts experiments/server-contract/contract.test.ts experiments/workspaces/identity.test.ts`
 - `bun run check`, plus affected experiment typechecks.

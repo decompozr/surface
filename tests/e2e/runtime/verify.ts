@@ -27,7 +27,7 @@ const identifier = nanoid(9);
 const observed = (message: string) => { observations.push(message); console.log(message); };
 
 const cli = async (...args: string[]) => {
-  const process = Bun.spawn([Bun.which('bun')!, join(globalThis.process.cwd(), 'apps/cli/src/runtime.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
+  const process = Bun.spawn([Bun.which('bun')!, join(globalThis.process.cwd(), 'tests/e2e/runtime/control.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });
   const [out, error, code] = await Promise.all([new Response(process.stdout).text(), new Response(process.stderr).text(), process.exited]);
   if (code !== 0) throw new Error(`${args.join(' ')} failed (${code}): ${error}\n${out}`);
   return JSON.parse(out);

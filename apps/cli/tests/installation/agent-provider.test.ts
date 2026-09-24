@@ -6,10 +6,10 @@ test('detects both providers and selects both by default',async()=>{
  await expect(selectSkills(base)).rejects.toThrow('no provider');
  expect(await selectSkills({...base,interactive:true,exists:()=>true,choose:async(_choices,initial)=>{expect(initial).toEqual([0,1]);return initial;}})).toEqual(['/user/.codex/skills','/user/.claude/skills']);
 });
-test('retains legacy saved selection and multiple saved directories',async()=>{
- expect(await selectSkills({...base,mode:'refresh',saved:'/old'})).toEqual(['/old']);
+test('retains saved provider directories',async()=>{
+ expect(await selectSkills({...base,mode:'setup',saved:['/saved']})).toEqual(['/saved']);
  expect(await selectSkills({...base,mode:'test',saved:['/one','/two']})).toEqual(['/one','/two']);
- expect(await selectSkills({...base,interactive:true,saved:'/user/.claude/skills',exists:()=>true,choose:async(_c,initial)=>{expect(initial).toEqual([1]);return initial;}})).toEqual(['/user/.claude/skills']);
+ expect(await selectSkills({...base,interactive:true,saved:['/user/.claude/skills'],exists:()=>true,choose:async(_c,initial)=>{expect(initial).toEqual([1]);return initial;}})).toEqual(['/user/.claude/skills']);
 });
 test('repeatable providers and paths deduplicate; conflicting flags fail',async()=>{
  expect(await selectSkills({...base,provider:['codex','claude','codex']})).toEqual(['/user/.codex/skills','/user/.claude/skills']);

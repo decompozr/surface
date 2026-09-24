@@ -52,10 +52,9 @@ const saveSelection = () => {
 };
 
 const {values,positionals}=parseArgs({args,allowPositionals:true,options:{home:{type:'string'},'skills-dir':{type:'string',multiple:true},provider:{type:'string',multiple:true},port:{type:'string'},tailscale:{type:'string'},ref:{type:'string'},help:{type:'boolean'}}});
-const requestedMode=positionals[0];
-const mode=requestedMode==='refresh'?'setup':requestedMode;
-if(values.help){console.log('./bin/setup | ./bin/test | ./bin/refresh [--provider codex|claude | --skills-dir PATH] [--home PATH] [--port PORT] [--tailscale on|off] [--ref COMMIT]\nSetup shows a Codex / Claude Code menu; saved choices or all detected providers are preselected. Space toggles; Enter confirms. Repeat --provider or --skills-dir for multiple destinations.');return;}
-if(!['setup','test','refresh'].includes(mode??'')||positionals.length!==1)throw new Error('Specify setup, test or refresh.');
+const mode=positionals[0];
+if(values.help){console.log('./bin/setup | ./bin/test [--provider codex|claude | --skills-dir PATH] [--home PATH] [--port PORT] [--tailscale on|off] [--ref COMMIT]\nSetup shows a Codex / Claude Code menu; saved choices or all detected providers are preselected. Space toggles; Enter confirms. Repeat --provider or --skills-dir for multiple destinations.');return;}
+if(!['setup','test'].includes(mode??'')||positionals.length!==1)throw new Error('Specify setup or test.');
 const root=resolve(import.meta.dir,'../../../../..'),home=installationHome(values.home);
 const pkg=JSON.parse(readFileSync(join(root,'package.json'),'utf8'));
 requireCompatibleBun(pkg.packageManager,Bun.version);
@@ -66,15 +65,16 @@ ui?.intro('Surface · '+mode);
 const step=(message:string)=>{if(ui)ui.log.step(message);};
 const configuration=join(home,'agent-setup.json');
 const saved=existsSync(configuration)?JSON.parse(readFileSync(configuration,'utf8')):undefined;
+if(saved && (saved.version!==3 || !Array.isArray(saved.skillsDirectories)))throw new Error('Unsupported setup selection format. Preserve the selection file and choose provider directories explicitly.');
 let access=mode==='test' ? saved?.access??{enabled:false} : await selectAccess(saved?.access,values.tailscale,interactive);
-const skills=await selectSkills({explicit:values['skills-dir'],provider:values.provider,saved:saved?.skillsDirectories??saved?.skillsDirectory,mode});
+const skills=await selectSkills({explicit:values['skills-dir'],provider:values.provider,saved:saved?.skillsDirectories,mode});
 if(ui)ui.note(`Install  ${home}\n\n`+skills.map(directory=>`Link     ${join(directory,'surface')}`).join('\n'),'Your setup');
 else {console.log(`Surface ${mode}: ${home}`);for(const directory of skills)console.log(`Skill symlink: ${join(directory,'surface')} -> ${join(root,'skills/surface')}`);}
 const env: NodeJS.ProcessEnv={...process.env,SURFACE_HOME:home};delete env.SURFACE_STATE_DIR;
 for(const directory of skills)inspectSkillLink(root,directory); // Detect conflicts before touching the service.
 const launcher=join(home,'bin/surface');
 if(mode==='test'){await verify();return;}
-if(await run(['git','status','--porcelain']))throw new Error('Commit or preserve checkout changes before setup/refresh. Only committed source is installed.');
+if(await run(['git','status','--porcelain']))throw new Error('Commit or preserve checkout changes before setup. Only committed source is installed.');
 const commit=await run(['git','rev-parse','--verify',`${values.ref??'HEAD'}^{commit}`]);
 // Skills stay linked to this checkout; keep the installed source and instructions aligned.
 if(commit!==await run(['git','rev-parse','HEAD']))throw new Error('Check out the selected commit before setup so linked skills match the installed release.');

@@ -27,7 +27,7 @@ const alive = (pid: number) => {
 };
 
 
-export type Host = 'singleton' | 'sveltekit' | 'contract' | 'surface';
+export type Host = 'surface';
 type Release = { version: 1; release: string; commit: string; host: Host; bun: string; installedAt: string };
 type Owner = { version: 1; release: string; commit: string; host: Host; pid: number; nonce: string; secret: string; instanceId: string; origin: string };
 const read = <T>(path: string): T => JSON.parse(readFileSync(path, 'utf8'));
@@ -65,18 +65,10 @@ export class Installation {
   }
   private selected() {
     const active = read<Release>(join(this.home, 'active.json'));
-    if (!/^[a-f0-9]{40}-(singleton|sveltekit|contract|surface)$/.test(active.release)) throw new Error('Invalid selected release identity.');
+    if (!/^[a-f0-9]{40}-surface$/.test(active.release)) throw new Error('Invalid selected release identity.');
     const manifest = read<Release>(join(this.home, 'releases', active.release, '.artifact-release.json'));
     if (JSON.stringify(active) !== JSON.stringify(manifest)) throw new Error('Selected release manifest mismatch.');
     return active;
-  }
-  /** Serialize an explicit, stopped-only state operation with install/start/stop. */
-  async withStoppedState<T>(operation: (stateDir: string, releaseDir: string) => Promise<T>) {
-    return this.locked(async () => {
-      this.ensureStopped();
-      const release = this.selected();
-      return operation(join(this.home, 'state'), join(this.home, 'releases', release.release));
-    });
   }
   private async control(owner: Owner, operation: 'status' | 'stop') {
     return new Promise<any>((done, reject) => {
@@ -99,10 +91,10 @@ export class Installation {
       socket.on('end', () => { if (!received.includes('\n')) { clearTimeout(timer); reject(new Error('Lifecycle socket ended without a verified response.')); } });
     });
   }
-  async install(repo: string, ref: string, host: Host = 'singleton', prepareEntry?: (directory: string, release: string) => Promise<void>) {
+  async install(repo: string, ref: string, host: Host = 'surface', prepareEntry?: (directory: string, release: string) => Promise<void>) {
     return this.locked(async () => {
       this.ensureStopped();
-      if (!['singleton', 'sveltekit', 'contract', 'surface'].includes(host)) throw new Error('Unknown host.');
+      if (host !== 'surface') throw new Error('Unknown host.');
       const commit = await command(['git', '-C', realpathSync(repo), 'rev-parse', '--verify', `${ref}^{commit}`]);
       if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error('Expected a full Git commit identity.');
       const release = `${commit}-${host}`;
@@ -121,17 +113,11 @@ export class Installation {
         await command(['git', '-C', realpathSync(repo), 'archive', '--format=tar', `--output=${archive}`, commit]);
         await command(['tar', '-xf', archive, '-C', staging]);
         requireBun(staging);
-        const workspace = Array.isArray(read<{ workspaces?: string[] }>(join(staging, 'package.json')).workspaces);
-        const mcpPackages = existsSync(join(staging, 'apps/surface/mcp/package.json')) ? ['apps/surface/mcp'] : [];
-        for (const folder of workspace ? [''] : ['', 'apps/surface/runtime', ...mcpPackages, ...(host === 'surface' ? ['apps/surface'] : host !== 'singleton' ? ['experiments/sveltekit'] : [])]) {
-          const cwd = join(staging, folder);
-          if (!existsSync(join(cwd, 'bun.lock')) && !existsSync(join(cwd, 'bun.lockb'))) throw new Error(`Missing frozen Bun lockfile: ${folder || 'root'}.`);
-          await command([process.execPath, 'install', '--frozen-lockfile', '--ignore-scripts'], cwd);
-        }
-        if (host === 'surface' && read<{ dependencies?: Record<string, string> }>(join(staging, 'apps/surface/package.json')).dependencies?.['@decompozr/design-system']?.startsWith('link:')) {
+        await command([process.execPath, 'install', '--frozen-lockfile', '--ignore-scripts'], staging);
+        if (read<{ dependencies?: Record<string, string> }>(join(staging, 'apps/surface/package.json')).dependencies?.['@decompozr/design-system']?.startsWith('link:')) {
           materializeDesignSystem(realpathSync(repo), staging, this.buildOptions.designSystemPackage);
         }
-        if (host !== 'singleton') await command([process.execPath, 'run', 'build'], join(staging, host === 'surface' ? 'apps/surface' : 'experiments/sveltekit'));
+        await command([process.execPath, 'run', 'build'], join(staging, 'apps/surface'));
         await this.validateRelease?.(staging, join(this.home, 'state'));
         const manifest: Release = { version: 1, release, commit, host, bun: Bun.version, installedAt: new Date().toISOString() };
         atomic(join(staging, '.artifact-release.json'), manifest);
@@ -172,7 +158,7 @@ export class Installation {
   async activate(release: string) {
     return this.locked(async () => {
       this.ensureStopped();
-      if (!/^[a-f0-9]{40}-(singleton|sveltekit|contract|surface)$/.test(release)) throw new Error('Invalid release identity.');
+      if (!/^[a-f0-9]{40}-surface$/.test(release)) throw new Error('Invalid release identity.');
       const manifest = read<Release>(join(this.home, 'releases', release, '.artifact-release.json'));
       if (manifest.release !== release) throw new Error('Release manifest mismatch.');
       requireBun(join(this.home, 'releases', release), manifest);

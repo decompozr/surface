@@ -1,9 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { installationSource } from './release-source.ts';
 
 export const validateRelease = async (directory: string, stateDir: string) => {
-  const descriptor = installationSource(directory, 'compatibility.json');
+  const descriptor = join(directory, 'apps/cli/src/installation/compatibility.json');
   const value = JSON.parse(readFileSync(descriptor,'utf8'));
   if (value.version !== 1 || !Array.isArray(value.workspaceLedgerVersions) || !Array.isArray(value.interactionVersions) || value.registryVersion !== 'singleton-v1') throw new Error('Invalid Surface compatibility descriptor.');
   for (const [name,versions] of [['workspaces.json',value.workspaceLedgerVersions],['interactions.json',value.interactionVersions]] as const) {

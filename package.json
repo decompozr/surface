@@ -9,7 +9,6 @@
     "dev": "bun apps/cli/src/index.ts serve",
     "test": "bun run --cwd apps/surface build && bun test apps/surface/tests apps/cli/tests tests/unit tests/e2e/runtime/interactions.test.ts",
     "check": "tsc --noEmit",
-    "verify:external": "bun tests/e2e/external.ts",
     "verify:mcp": "bun tests/e2e/mcp/verify.ts",
     "verify:project-access": "bun tests/e2e/mcp/verify-projects.ts",
     "surface": "bun apps/cli/src/index.ts",
@@ -35,8 +34,7 @@
     "surface": "./apps/cli/src/index.ts"
   },
   "exports": {
-    "./interactions": "./apps/surface/src/lib/interactions/index.ts",
-    "./client": "./apps/surface/src/lib/interactions/index.ts"
+    "./interactions": "./apps/surface/src/lib/interactions/index.ts"
   },
   "workspaces": [
     "apps/surface",

@@ -27,7 +27,7 @@ Cross-workspace imports use declared exports and `workspace:*` dependencies. Sur
 | `templates` | Complete project scaffold assets |
 | `src/lib/server/templates` | Local template generation and overwrite protection |
 
-Use `createInteractionClient` from `virtual:surface-interactions` in new mounted pages. Existing `createSurfaceClient`, `createArtifactClient` and virtual module aliases remain compatible. Generated standalone projects receive `src/interactions.ts`. The root `./client` export remains a compatibility alias; new consumers use `./interactions`.
+Use `createInteractionClient` from `virtual:surface-interactions` in new mounted pages. Generated standalone projects receive `src/interactions.ts`. The root package exports `./interactions`.
 
 The CLI's `src/surface-api.ts` exposes its management transport. CLI and standalone stdio MCP share the Surface-owned `server/http/project-client` implementation for authenticated local requests, response validation and no-retry behavior. This narrow transport reuse does not require a separate client workspace. Browser interactions never import it or receive management credentials.
 
@@ -41,7 +41,7 @@ Templates stay app-owned and can be generated with the service stopped. CLI call
 
 App-owned unit and integration tests live in each app's `tests/`; agent adapter tests belong to Surface, and installation tests belong to CLI. Root `tests/e2e` owns cross-app browser, MCP and installed lifecycle verification. Root `tests/unit` enforces repository dependency boundaries. Root `scripts/` contains only repository-wide release and documentation tools.
 
-Historical `experiments/` source is excluded from production workspaces, imports and default commands. Installer fallback paths intentionally support previous releases and rollback.
+Historical `experiments/` source is excluded from production workspaces, imports and default commands. Installation resolves only the current Surface and CLI layout.
 
 ## Verification
 

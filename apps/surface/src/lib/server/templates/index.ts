@@ -2,8 +2,8 @@ import { cpSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const templates = resolve(import.meta.dir, '../../../../templates');
-export const scaffold = (directory: string, framework: string) => {
-  if (framework !== 'svelte' && framework !== 'vanilla') throw new Error('Framework must be svelte or vanilla.');
+export const scaffold = (directory: string) => {
+  const framework = 'svelte';
   const target = resolve(directory);
   if (existsSync(target) && readdirSync(target).length) throw new Error('Choose an empty directory; Surface will not overwrite project files.');
   mkdirSync(target, { recursive: true });

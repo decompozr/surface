@@ -15,26 +15,18 @@ const stop = (): Promise<void> => {
 
 // This runner only starts an installed host. Its private socket owns lifecycle control.
 const [home, release, host, portValue] = process.argv.slice(2);
-if (!home || !release || !['singleton', 'sveltekit', 'contract', 'surface'].includes(host!)) throw new Error('Invalid owned runner arguments.');
-const secret = process.env.SURFACE_RUNNER_SECRET ?? process.env.ARTIFACT_RUNNER_SECRET;
-const nonce = process.env.SURFACE_RUNNER_NONCE ?? process.env.ARTIFACT_RUNNER_NONCE;
+if (!home || !release || host !== 'surface') throw new Error('Invalid owned runner arguments.');
+const secret = process.env.SURFACE_RUNNER_SECRET;
+const nonce = process.env.SURFACE_RUNNER_NONCE;
 if (!secret || !nonce) throw new Error('Missing launch identity.');
 delete process.env.SURFACE_RUNNER_SECRET;
-delete process.env.ARTIFACT_RUNNER_SECRET;
 delete process.env.SURFACE_RUNNER_NONCE;
-delete process.env.ARTIFACT_RUNNER_NONCE;
 const socketPath = join(home, 'run/control.sock');
 const ownerPath = join(home, 'run/owner.json');
 const releasePath = join(home, 'releases', release);
 const manifest = JSON.parse(readFileSync(join(releasePath, '.artifact-release.json'), 'utf8'));
 if (manifest.release !== release || manifest.host !== host) throw new Error('Release identity mismatch.');
-let modulePath = host === 'surface' ? 'apps/surface/src/lib/server/http/surface.ts' : host === 'contract' ? 'experiments/server-contract/server.ts' : host === 'sveltekit' ? 'experiments/sveltekit/server.ts' : 'apps/surface/src/lib/server/host/runtime.ts';
-if (!existsSync(join(releasePath, modulePath))) {
-  if (host === 'surface') modulePath = existsSync(join(releasePath, 'apps/surface/src/server/surface.ts')) ? 'apps/surface/src/server/surface.ts' : 'src/server/surface.ts';
-  else if (host === 'singleton') modulePath = existsSync(join(releasePath, 'apps/surface/runtime/server.ts')) ? 'apps/surface/runtime/server.ts' : 'experiments/singleton/server.ts';
-}
-const module = await import(pathToFileURL(join(releasePath, modulePath)).href);
-const start = host === 'surface' ? module.startSurface : host === 'contract' ? module.startContractHost : host === 'sveltekit' ? module.startKitFoundation : module.startSingleton;
+const { startSurface } = await import(pathToFileURL(join(releasePath, 'apps/surface/src/lib/server/http/surface.ts')).href);
 const setupPath = join(home, 'agent-setup.json');
 const access = existsSync(setupPath) ? JSON.parse(readFileSync(setupPath, 'utf8')).access : undefined;
 let browserOrigin: string | undefined;
@@ -42,7 +34,7 @@ if (access?.enabled) {
   if (typeof access.host !== 'string' || !/^[a-z0-9.-]+$/i.test(access.host) || !Number.isInteger(access.port) || access.port < 1 || access.port > 65535) throw new Error('Invalid saved Tailscale origin. Run setup to configure access.');
   browserOrigin = `https://${access.host}:${access.port}`;
 }
-const app = await start({ stateDir: join(home, 'state'), port: Number(portValue ?? 0), browserOrigin });
+const app = await startSurface({ stateDir: join(home, 'state'), port: Number(portValue ?? 0), browserOrigin });
 const publicOwner = { version: 1, release, commit: manifest.commit, host, pid: process.pid, nonce, instanceId: app.instanceId, origin: app.origin, browserOrigin };
 const owner = { ...publicOwner, secret };
 let stopTask: Promise<void> | undefined;

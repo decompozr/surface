@@ -57,7 +57,7 @@ try {
   const comments = async (releaseId: string, scenario: 'idle' | 'active', folder: string) => {
     const app = join(installationHome, 'releases', releaseId, 'apps/surface');
     const child = Bun.spawn([process.execPath, resolve('tests/e2e/comments/mounted.e2e.ts')], {
-      env: { ...process.env, COMMENTS_E2E_LEGACY_INTERACTIONS: folder === 'previous-idle' ? '1' : '0', COMMENTS_E2E_INSTALLED_HOME: installationHome, COMMENTS_E2E_INSTALLED_PORT: String(port), COMMENTS_E2E_APP_DIR: app, COMMENTS_E2E_ACTIVE: scenario === 'active' ? '1' : '0', COMMENTS_E2E_OUTPUT: join(output, folder) },
+      env: { ...process.env, COMMENTS_E2E_INSTALLED_HOME: installationHome, COMMENTS_E2E_INSTALLED_PORT: String(port), COMMENTS_E2E_APP_DIR: app, COMMENTS_E2E_ACTIVE: scenario === 'active' ? '1' : '0', COMMENTS_E2E_OUTPUT: join(output, folder) },
       stdout: Bun.file(join(output, folder + '.log')), stderr: 'inherit',
     });
     if (await child.exited) throw new Error('Installed comment flow failed: ' + folder);
@@ -78,14 +78,14 @@ try {
   const old = JSON.parse(await command([join(previous.directory, 'install'), '--home', installationHome]));
   writeFileSync(join(installationHome, 'e2e-fixture.json'), JSON.stringify({ purpose: 'isolated-release-verification' }));
   // Template generation is local and must work before any service is started.
-  for (const framework of ['svelte', 'vanilla']) {
+  for (const framework of ['svelte']) {
     const target = join(home, 'template-' + framework);
-    const result = await installed('init', '--directory', target, '--framework', framework);
+    const result = await installed('init', '--directory', target);
     expect(result.installed).toBe(false);
-    const clientPath = join(target, existsSync(join(target, 'src/interactions.ts')) ? 'src/interactions.ts' : 'src/surface-client.ts');
+    const clientPath = join(target, 'src/interactions.ts');
     const client = readFileSync(clientPath, 'utf8');
-    expect(client).toContain('createSurfaceClient');
-    await expect(installed('init', '--directory', target, '--framework', framework)).rejects.toThrow('overwrite');
+    expect(client).toContain('createInteractionClient');
+    await expect(installed('init', '--directory', target)).rejects.toThrow('overwrite');
     expect(readFileSync(clientPath, 'utf8')).toBe(client);
   }
   await start();
@@ -112,12 +112,24 @@ try {
   const stored = records.map(path => ({ path, value: readFileSync(path, 'utf8') }));
   const source = readFileSync(join(project, 'ui/routes/+page.svelte'), 'utf8');
   const next = JSON.parse(await command([join(candidate.directory, 'install'), '--home', installationHome]));
-  const candidateTemplate = join(home, 'candidate-template');
-  await installed('init', '--directory', candidateTemplate, '--framework', 'svelte');
-  expect(readFileSync(join(candidateTemplate, 'src/interactions.ts'), 'utf8')).toContain('createSurfaceClient');
+  const candidateTemplate = join(project, 'generated');
+  await installed('init', '--directory', candidateTemplate);
+  expect(readFileSync(join(candidateTemplate, 'src/interactions.ts'), 'utf8')).toContain('createInteractionClient');
   await start(); await retained('upgraded'); await stop();
   await installed('rollback', '--release', old.release); await start(); await retained('rolled-back'); await stop();
   await installed('rollback', '--release', next.release); await start(); await retained('restored-candidate');
+  const generated = await installed('project', 'add', '--source', 'generated', '--name', 'Generated page');
+  expect(generated.ok).toBe(true);
+  const generatedId = JSON.parse(readFileSync(join(project, 'artifact.project.json'), 'utf8')).artifacts.find((item: { source: string }) => item.source === 'generated').id;
+  const generatedMount = await installed('project', 'mount', '--artifact', generatedId);
+  expect(generatedMount.ok).toBe(true);
+  await page.goto(generatedMount.data.previewUrl, { waitUntil: 'networkidle' });
+  await expect(page.getByRole('heading', { name: 'A page for your next idea.' })).toBeVisible();
+  await expect(page.getByLabel('Your message')).toBeVisible();
+  await page.screenshot({ path: join(output, 'generated-desktop.png') });
+  await page.setViewportSize({ width: 390, height: 720 });
+  await page.screenshot({ path: join(output, 'generated-phone.png') });
+  await page.setViewportSize({ width: 1280, height: 900 });
   const payload = join(installationHome, 'releases', next.release);
   const requireInstalled = createRequire(join(payload, 'apps/surface/package.json'));
   const { Client } = requireInstalled('@modelcontextprotocol/client');
@@ -132,7 +144,7 @@ try {
   await comments(next.release, 'idle', 'candidate-idle');
   await comments(next.release, 'active', 'candidate-active');
   await context.tracing.stop({ path: join(output, 'lifecycle-trace.zip') });
-  const report = { status: 'passed', installationHome, previous: previous.metadata.commit, candidate: candidate.metadata.commit, candidateArchive: candidate.archive, candidateSha256: candidate.digest, provider: JSON.parse(readFileSync(join(payload, '.surface-design-system.json'), 'utf8')), preview, port, release: next.release, preservedRecords: stored.length, workspaceBefore, checks: ['local app-owned templates without a running service, with overwrite refusal', 'bundled launcher and runtime on system-only PATH', 'public project registration, mount, binding and requests', 'browser draft across upgrade, rollback and restoration', 'durable comment and domain results retained', 'project source and workspace identity retained', 'installed MCP listing', 'installed previous idle and candidate idle/active Chromium/WebKit flows'], physicalDevice: false, liveAgentDelivery: false };
+  const report = { status: 'passed', installationHome, previous: previous.metadata.commit, candidate: candidate.metadata.commit, candidateArchive: candidate.archive, candidateSha256: candidate.digest, provider: JSON.parse(readFileSync(join(payload, '.surface-design-system.json'), 'utf8')), preview, port, release: next.release, preservedRecords: stored.length, workspaceBefore, checks: ['local app-owned templates without a running service, with overwrite refusal', 'bundled launcher and runtime on system-only PATH', 'public project registration, mount, binding and requests', 'browser draft across upgrade, rollback and restoration', 'durable comment and domain results retained', 'project source and workspace identity retained', 'generated route template mounts and renders on desktop and phone', 'installed MCP listing', 'installed previous idle and candidate idle/active Chromium/WebKit flows'], physicalDevice: false, liveAgentDelivery: false };
   writeFileSync(join(output, 'report.json'), JSON.stringify(report, null, 2)); console.log(JSON.stringify(report, null, 2));
 } catch (error) {
   writeFileSync(join(output, 'failure.json'), JSON.stringify({ installationHome, error: String(error) }, null, 2)); throw error;

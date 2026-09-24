@@ -4,7 +4,7 @@ Treat `docs/` as the project source specification. Read `docs/README.md` and `do
 
 Read `SETUP.md` for user installation and `skills/surface/references/setup.md` for the agent-managed source workflow.
 
-When asked to setup this clone, use `./bin/setup --skills-dir PROVIDER_SKILLS_DIRECTORY`. Discover the actual provider directory; do not copy skills. Keep its `surface` entry as a symlink to this checkout's `skills/surface` directory. Preserve existing directories and foreign/broken links. Use `./bin/setup` for both installation and updates: it reuses a matching running release, starts a stopped matching release, and installs the checkout revision when different. `./bin/test` is read-only; `./bin/refresh` is a compatibility alias for setup. Explicit `--home`/`--port` selection is supported.
+When asked to setup this clone, use `./bin/setup --skills-dir PROVIDER_SKILLS_DIRECTORY`. Discover the actual provider directory; do not copy skills. Keep its `surface` entry as a symlink to this checkout's `skills/surface` directory. Preserve existing directories and foreign/broken links. Use `./bin/setup` for both installation and updates: it reuses a matching running release, starts a stopped matching release, and installs the checkout revision when different. `./bin/test` is read-only. Explicit `--home`/`--port` selection is supported.
 
 The source workflow requires Git and a compatible Bun patch version (currently `>=1.4.0 <1.5.0`). It installs committed HEAD; preserve user changes and never commit, reset, switch branches or pull solely to make an installer pass without task authorization. An update request permits inspecting/fetching and a fast-forward of the intended upstream; divergence requires reconciliation.
 
@@ -29,3 +29,7 @@ Prefer arrow functions for new or modified JavaScript and TypeScript functions, 
 ## Package ownership
 
 Follow `docs/architecture/package-boundaries.md`. Use only the Surface and CLI workspaces under `apps/`; do not split internal modules into packages without concrete independent consumers. Surface owns interactions, contracts, services, agent adapters, page runtime, MCP and templates. Use declared exports across apps and keep the dependency graph acyclic. Surface must not import CLI. Installation and lifecycle implementation belongs in `apps/cli/src/installation`, with no independent installer package. Use the root frozen Bun workspace lockfile. Root scripts are repository-wide tooling only; integrated verifiers belong in `tests/e2e`.
+
+## Development compatibility policy
+
+Support the current source layout and public API only. When renaming or moving code, update all owned callers, tests and current documentation together. Do not add compatibility aliases, historical path probing, retired host modes or old command dispatch solely to keep an earlier experiment working. Compatibility requires a concrete external consumer and an explicit support decision. Preserve user data: reject unsupported formats without overwriting them; any required migration is a separately scoped, explicit operation. Keep historical evidence as dated documentation or Git history, not as production runtime branches.

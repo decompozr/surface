@@ -279,6 +279,7 @@ export const startPageRuntime = async (options: { integration: RuntimeIntegratio
     const catalog = /^\/n\/([a-z0-9-]+)\/([a-z0-9-]+)\/?$/.exec(url.pathname);
     if (readable || catalog) {
       const record = readable ?? find(catalog![1]!, catalog![2]!);
+      if (catalog && record.publicPath) throw new InputError('Use the mounted project page URL.', 404);
       if (record.status !== 'ready') throw new InputError('Mount is not ready.', 404);
       const route = readable ? url.pathname.slice(record.publicPath!.length).replace(/^\/|\/$/g, '') : undefined;
       const pageRouting = readable && Object.keys(record.pages ?? {}).length > 0;
@@ -362,16 +363,14 @@ export const startPageRuntime = async (options: { integration: RuntimeIntegratio
   const plugin: Plugin = {
     name: 'surface-singleton-components',
     resolveId(id) {
-      // Both names resolve to one module identity so compatibility imports share preview state.
-      if (id === 'virtual:surface-interactions' || id === 'virtual:artifact-client' || id === 'virtual:surface-client') return join(browserClient, 'index.ts');
+      // Resolve the public interaction module to one browser module identity.
+      if (id === 'virtual:surface-interactions') return join(browserClient, 'index.ts');
       if (id === 'virtual:surface-shell') return '\0virtual:surface-shell';
-      if (id === 'virtual:artifact-preview') return '\0virtual:surface-preview';
-      if (id === 'virtual:surface-client' || id === 'virtual:surface-preview') return '\0' + id;
+      if (id === 'virtual:surface-preview') return '\0' + id;
       if (id.startsWith(virtualPrefix)) { parseVirtual(id); return '\0' + id; }
     },
     load(id) {
       if (id === '\0virtual:surface-shell') return shellSource;
-      if (id === '\0virtual:surface-client') return new Bun.Transpiler({ loader: 'ts' }).transformSync(readFileSync(join(browserClient, 'index.ts'), 'utf8'));
       if (id === '\0virtual:surface-preview') return readFileSync(join(experimentRoot, 'preview-client.js'), 'utf8');
       if (!id.startsWith('\0' + virtualPrefix)) return;
       const { record, path } = parseVirtual(id);
