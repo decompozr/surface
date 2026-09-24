@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 import { authorize } from '$lib/server/comment-delivery';
-import { allowsCommentOrigin } from '$lib/comment-experiment/access';
+import { allowsCommentOrigin } from '$lib/comments/access';
 
 
 export const GET = async ({ request, url }) => {

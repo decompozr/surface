@@ -1,13 +1,14 @@
 /** Run from the repository root. Builds a disposable immutable snapshot; never touches the live preview. */
-import { cpSync, mkdirSync, symlinkSync, writeFileSync, readFileSync, readdirSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync, readFileSync, readdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:net';
 import { resolve, join } from 'node:path';
 import { materializeDesignSystem } from '@decompozr/surface-cli/installation/design-system';
 import { verifyBundle } from '@decompozr/surface-cli/installation/bundle';
 
-const run = async (args: string[], env: Record<string, string> = {}) => {
-  const child = Bun.spawn(args, { cwd: root, env: { ...process.env, ...env }, stdout: 'inherit', stderr: 'inherit' });
+const run = async (args: string[], env: Record<string, string> = {}, cwd = root) => {
+  const child = Bun.spawn(args, { cwd, env: { ...process.env, ...env }, stdout: 'inherit', stderr: 'inherit' });
   if (await child.exited !== 0) throw new Error(`Failed: ${args.join(' ')}. Evidence: ${output}`);
 };
 
@@ -17,33 +18,46 @@ mkdirSync(output, { recursive: true });
 await run(['bun', 'test', 'apps/surface/tests/comments/delivery.test.ts', 'apps/surface/tests/comments/mounted.test.ts']);
 const prepared = process.env.COMMENTS_E2E_PREPARED_RELEASE && resolve(process.env.COMMENTS_E2E_PREPARED_RELEASE);
 const bundle = prepared ? verifyBundle(prepared) : undefined;
-let snapshot: string, appSnapshot: string;
-const manifest: { path: string; sha256: string }[] = [];
-if (prepared && bundle) {
-  // Validate a packaged release without rebuilding or changing its dependencies.
-  snapshot = join(prepared, 'apps/surface'); appSnapshot = snapshot;
-  for (const [path, sha256] of Object.entries(bundle.files)) manifest.push({ path, sha256 });
-  writeFileSync(join(output, 'prepared-release.json'), JSON.stringify({ directory: prepared, commit: bundle.commit, version: bundle.version }, null, 2));
-} else {
-
-const hashTree = (directory: string) => {
-  for (const entry of readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) hashTree(path);
-    else if (entry.isFile()) manifest.push({ path: path.slice(snapshot.length + 1), sha256: createHash('sha256').update(readFileSync(path)).digest('hex') });
+const temporary = mkdtempSync(join(tmpdir(), 'surface-comments-verification-'));
+try {
+  const productionRoot = prepared ?? join(temporary, 'production');
+  const copySource = (from: string, to: string) => {
+    mkdirSync(to, { recursive: true });
+    for (const directory of ['apps', 'node_modules']) {
+      cpSync(join(from, directory), join(to, directory), {
+        recursive: true, verbatimSymlinks: true,
+        filter: path => !['apps/surface/.svelte-kit', 'apps/surface/build', 'apps/surface/node_modules/.vite', 'node_modules/.vite'].some(excluded => path === join(from, excluded) || path.startsWith(join(from, excluded) + '/')),
+      });
+    }
+    for (const file of ['package.json', 'bun.lock']) cpSync(join(from, file), join(to, file));
+  };
+  if (!prepared) {
+    copySource(root, productionRoot);
+    materializeDesignSystem(root, productionRoot);
+    await run(['bun', 'run', '--cwd', 'apps/surface', 'check'], {}, productionRoot);
+    await run(['bun', 'run', '--cwd', 'apps/surface', 'build'], {}, productionRoot);
   }
-};
-
-await run(['bun', 'run', '--cwd', 'apps/surface', 'check']);
-await run(['bun', 'run', '--cwd', 'apps/surface', 'build']);
-const releaseRoot = join(output, 'release'); mkdirSync(releaseRoot);
-for (const directory of ['apps', 'node_modules']) cpSync(resolve(directory), join(releaseRoot, directory), { recursive: true, verbatimSymlinks: true, filter: path => !path.split('/').some(part => ['.vite'].includes(part)) });
-cpSync(resolve('package.json'), join(releaseRoot, 'package.json'));
-materializeDesignSystem(root, releaseRoot);
-snapshot = join(releaseRoot, 'apps/surface'); appSnapshot = snapshot;
-hashTree(snapshot);
-}
-writeFileSync(join(output, 'snapshot-manifest.json'), JSON.stringify(manifest, null, 2));
+  const appSnapshot = join(productionRoot, 'apps/surface');
+  // Demo endpoints exist only in this separate test build, never in the release.
+  const fixtureRoot = join(temporary, 'fixture');
+  copySource(productionRoot, fixtureRoot);
+  const snapshot = join(fixtureRoot, 'apps/surface');
+  cpSync(join(root, 'tests/fixtures/comments-app/src'), join(snapshot, 'src'), { recursive: true });
+  await run(['bun', 'run', '--cwd', 'apps/surface', 'check'], {}, fixtureRoot);
+  await run(['bun', 'run', '--cwd', 'apps/surface', 'build'], {}, fixtureRoot);
+  const manifest: { path: string; sha256: string }[] = [];
+  const hashTree = (directory: string, prefix: string) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      if (entry.name === 'node_modules' || entry.name === '.svelte-kit') continue;
+      const path = join(directory, entry.name), name = `${prefix}/${entry.name}`;
+      if (entry.isDirectory()) hashTree(path, name);
+      else if (entry.isFile()) manifest.push({ path: name, sha256: createHash('sha256').update(readFileSync(path)).digest('hex') });
+    }
+  };
+  hashTree(join(productionRoot, 'apps'), 'production/apps');
+  hashTree(join(fixtureRoot, 'apps'), 'fixture/apps');
+  writeFileSync(join(output, 'snapshot-manifest.json'), JSON.stringify(manifest, null, 2));
+  if (prepared && bundle) writeFileSync(join(output, 'prepared-release.json'), JSON.stringify({ directory: prepared, commit: bundle.commit, version: bundle.version }, null, 2));
 for (const scenario of ['idle', 'active']) {
   await run(['bun', 'tests/e2e/comments/full-loop.e2e.ts'], {
     COMMENTS_E2E_BUILD_DIR: snapshot,
@@ -58,7 +72,7 @@ for (const scenario of ['idle', 'active']) {
     COMMENTS_E2E_ACTIVE: scenario === 'idle' ? '0' : '1',
   });
 }
-// Geometry tests use the same build with a local-only recipient and no real state.
+// Geometry tests use the fixture build with a local-only recipient and no real state.
 const reservation = createServer();
 await new Promise<void>(resolve => reservation.listen(0, '127.0.0.1', resolve));
 const port = (reservation.address() as { port: number }).port;
@@ -79,9 +93,13 @@ try {
   await run(['bun', 'tests/e2e/comments/mobile-desktop.e2e.ts'], { COMMENTS_E2E_ORIGIN: origin, COMMENTS_E2E_OUTPUT: join(output, 'interaction-audit') });
   await run(['bun', 'tests/e2e/comments/viewport.e2e.ts'], { COMMENTS_E2E_ORIGIN: origin, COMMENTS_E2E_OUTPUT: join(output, 'viewport-audit') });
 } finally { server.kill(); await server.exited; }
-const git = Bun.spawn(['git', 'rev-parse', 'HEAD'], { stdout: 'pipe' });
-const worktreeHead = (await new Response(git.stdout).text()).trim(); await git.exited;
-const head = bundle?.commit ?? worktreeHead;
+const git = Bun.spawn(['git', 'rev-parse', 'HEAD'], { cwd: root, stdout: 'pipe', stderr: 'pipe' });
+const [revision, gitExit] = await Promise.all([new Response(git.stdout).text(), git.exited]);
+const head = bundle?.commit ?? (gitExit === 0 ? revision.trim() : null);
 if (prepared) verifyBundle(prepared); // The verifier must leave the package immutable.
-writeFileSync(join(output, 'report.json'), JSON.stringify({ status: 'passed', head, source: prepared ? 'verified prepared release' : 'current worktree including WIP', snapshot, scenarios: ['idle', 'active'], profiles: ['Chromium desktop', 'WebKit iPhone 13 emulation'], provider: 'isolated local protocol fixture', physicalDevice: false, snapshotManifestSha256: createHash('sha256').update(JSON.stringify(manifest)).digest('hex'), reports: ['idle','active','mounted-idle','mounted-active'].map(name => JSON.parse(readFileSync(join(output, name, 'report.json'), 'utf8'))) }, null, 2));
+writeFileSync(join(output, 'report.json'), JSON.stringify({ status: 'passed', head, source: prepared ? 'verified prepared release' : 'source snapshot including local changes; inventory identifies tested bytes', builds: { production: 'untouched production build', fixture: 'separate test-only source overlay' }, scenarios: ['idle', 'active'], profiles: ['Chromium desktop', 'WebKit iPhone 13 emulation'], provider: 'isolated local protocol fixture', physicalDevice: false, snapshotManifestSha256: createHash('sha256').update(JSON.stringify(manifest)).digest('hex'), reports: ['idle','active','mounted-idle','mounted-active'].map(name => JSON.parse(readFileSync(join(output, name, 'report.json'), 'utf8'))) }, null, 2));
 console.log(`Comments E2E matrix passed. Evidence: ${output}`);
+
+} finally {
+  rmSync(temporary, { recursive: true, force: true });
+}

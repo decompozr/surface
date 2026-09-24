@@ -3,10 +3,10 @@
   import { colorShades, Badge, Button, Switch, Toolbar, ToggleButton, IconButton, TextArea, Icon, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
   import Toast from './Toast.svelte';
   import SurfaceShell from './SurfaceShell.svelte';
-  import { composerPlacement, readViewport } from '../comment-experiment/viewport.ts';
-  import { describeTarget, resolveTarget } from '../comment-experiment/selection.ts';
-  import { captureElement } from '../comment-experiment/capture.ts';
-  import { emptyState, readState, writeState, REVISION, type Target, type Comment, type Batch } from '../comment-experiment/model.ts';
+  import { composerPlacement, readViewport } from '../comments/viewport.ts';
+  import { describeTarget, resolveTarget } from '../comments/selection.ts';
+  import { captureElement } from '../comments/capture.ts';
+  import { emptyState, readState, writeState, REVISION, type Target, type Comment, type Batch } from '../comments/model.ts';
 
   const refreshRecipient = async (signal?: AbortSignal) => {
     const generation = ++inspection;

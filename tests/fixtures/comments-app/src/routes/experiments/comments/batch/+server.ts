@@ -3,8 +3,8 @@ import { authorize } from '$lib/server/comment-delivery';
 import { env } from '$env/dynamic/private';
 import { error, json } from '@sveltejs/kit';
 import { createHash } from 'node:crypto';
-import { allowsCommentOrigin } from '$lib/comment-experiment/access';
-import { validateBatch } from '$lib/comment-experiment/validate';
+import { allowsCommentOrigin } from '$lib/comments/access';
+import { validateBatch } from '$lib/comments/validate';
 
 
 // A deterministic local receipt, not an agent adapter or a real conversation.

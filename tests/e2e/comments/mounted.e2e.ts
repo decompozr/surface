@@ -3,7 +3,7 @@ import { chromium, webkit, devices, expect } from '@playwright/test';
 import { WebSocketServer } from 'ws';
 import { createServer } from 'node:http';
 
-import { existsSync, realpathSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { existsSync, realpathSync, rmSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -188,19 +188,16 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       expect(event.comments[0].imagePath).toBe(image);
       expect(readFileSync(image).subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
       // Publish through the actual callback CLI and assert push without refreshing.
-      const reply = async (message: string, stage = 'completed', next?: string) => {
-        const args = stage === 'acknowledged'
-          ? ['result', '--state-dir', commentsState, '--request', request.id, '--data', JSON.stringify({ message, stage, ...(next ? { next } : {}) })]
-          : [request.id, message, '--state-dir', commentsState];
-        const currentReply = join(release, '../../apps/cli/src/reply.ts');
-        const reply = existsSync(currentReply) ? currentReply : join(release, 'comments/result.ts');
+      const reply = async (message: string, stage = 'completed') => {
+        const args = [request.id, message, '--state-dir', commentsState, ...(stage === 'acknowledged' ? ['--ack'] : [])];
+        const reply = join(release, '../../apps/cli/src/reply.ts');
         const command = Bun.spawn([installedHome ? resolve(release, '../../.distribution/bun') : process.execPath, reply, ...args], { stdout: 'pipe', stderr: 'pipe' });
         expect(await command.exited).toBe(0);
       };
       if (mobile) {
-      await reply(`Received ${name}; continuing the original task.`, 'acknowledged', 'continue-original');
+      await reply(`Received ${name}; continuing the original task.`, 'acknowledged');
       await expect(page.getByText('Agent acknowledged', { exact: true })).toBeVisible();
-      await expect(page.getByText('Continuing the original task', { exact: true })).toBeVisible();
+      await expect(page.locator('.agent-reply')).toHaveText(`Received ${name}; continuing the original task.`);
       await expect(page.getByText('Agent replied', { exact: true })).toHaveCount(0);
       await page.screenshot({ path: join(output, `${name}-acknowledged.png`), fullPage: true });
       }
@@ -303,4 +300,4 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
     finally { await context.tracing.stop({ path: join(output, `${name}-trace.zip`) }); await browser.close(); }
   }
   writeFileSync(join(output, 'report.json'), JSON.stringify({ status: 'passed', state, deliveries: deliveries.length, provider: 'isolated protocol fixture', activeRecipient, release, installedHome, project, origin, physicalDevice: false }, null, 2));
-} finally { await app?.stop(); ws.close(); http.close(); }
+} finally { await app?.stop(); ws.close(); http.close(); rmSync(project, { recursive: true, force: true }); if (!installedHome) rmSync(state, { recursive: true, force: true }); }

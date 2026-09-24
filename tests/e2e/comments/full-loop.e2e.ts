@@ -3,7 +3,7 @@ import { chromium, webkit, devices, expect } from '@playwright/test';
 import { WebSocketServer } from 'ws';
 import { createServer } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { rmSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 const root = process.cwd();
@@ -31,9 +31,10 @@ ws.on('connection', client => client.on('message', raw => {
   client.send(JSON.stringify({ id: message.id, result }));
 }));
 await new Promise<void>(r => http.listen(socket, r));
-writeFileSync(join(state, 'connection.json'), JSON.stringify({ threadId: 'e2e-fixture', projectRoot: root, socketPath: socket, label: 'Isolated E2E receiver', token, callbackToken, origin, resultCli: resolve('apps/cli/src/reply.ts') }), { mode: 0o600 });
+writeFileSync(join(state, 'connection.json'), JSON.stringify({ threadId: 'e2e-fixture', projectRoot: root, socketPath: socket, label: 'Isolated E2E receiver', token, callbackToken, origin, resultPath: '/experiments/comments/result', resultCli: resolve('apps/cli/src/reply.ts') }), { mode: 0o600 });
 // Use the immutable, already-built preview release; never rebuild a running service.
-const release = process.env.COMMENTS_E2E_BUILD_DIR ? resolve(process.env.COMMENTS_E2E_BUILD_DIR) : JSON.parse(readFileSync('.decompozr/surface/comments-preview/preview.json', 'utf8')).cwd;
+if (!process.env.COMMENTS_E2E_BUILD_DIR) throw new Error('Use the comments runner to provide an isolated fixture build.');
+const release = resolve(process.env.COMMENTS_E2E_BUILD_DIR);
 const log = Bun.file(join(output, 'server.log'));
 const server = Bun.spawn(['bun', 'build/index.js'], { cwd: release, env: { ...process.env, HOST: '127.0.0.1', PORT: String(port), ORIGIN: origin, SURFACE_COMMENTS_ORIGIN: origin, SURFACE_COMMENTS_EXPERIMENT: '1', SURFACE_COMMENTS_STATE_DIR: state, BODY_SIZE_LIMIT: '8M' }, stdout: log, stderr: log });
 try {
@@ -118,17 +119,15 @@ try {
       expect(event.comments[0].imagePath).toBe(image);
       expect(readFileSync(image).subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
       // Publish through the actual callback CLI and assert push without refreshing.
-      const reply = async (message: string, stage = 'completed', next?: string) => {
-        const args = stage === 'acknowledged'
-          ? ['result', '--state-dir', state, '--request', request.id, '--data', JSON.stringify({ message, stage, ...(next ? { next } : {}) })]
-          : [request.id, message, '--state-dir', state];
+      const reply = async (message: string, stage = 'completed') => {
+        const args = [request.id, message, '--state-dir', state, ...(stage === 'acknowledged' ? ['--ack'] : [])];
         const command = Bun.spawn(['bun', resolve('apps/cli/src/reply.ts'), ...args], { stdout: 'pipe', stderr: 'pipe' });
         expect(await command.exited).toBe(0);
       };
       if (mobile) {
-      await reply(`Received ${name}; continuing the original task.`, 'acknowledged', 'continue-original');
+      await reply(`Received ${name}; continuing the original task.`, 'acknowledged');
       await expect(page.getByText('Agent acknowledged', { exact: true })).toBeVisible();
-      await expect(page.getByText('Continuing the original task', { exact: true })).toBeVisible();
+      await expect(page.locator('.agent-reply')).toHaveText(`Received ${name}; continuing the original task.`);
       await expect(page.getByText('Agent replied', { exact: true })).toHaveCount(0);
       await page.screenshot({ path: join(output, `${name}-acknowledged.png`), fullPage: true });
       }
@@ -175,4 +174,4 @@ try {
     finally { await context.tracing.stop({ path: join(output, `${name}-trace.zip`) }); await browser.close(); }
   }
   writeFileSync(join(output, 'report.json'), JSON.stringify({ status: 'passed', state, deliveries: deliveries.length, provider: 'isolated protocol fixture', activeRecipient, release, physicalDevice: false }, null, 2));
-} finally { server.kill(); await server.exited; ws.close(); http.close(); }
+} finally { server.kill(); await server.exited; ws.close(); http.close(); rmSync(state, { recursive: true, force: true }); }

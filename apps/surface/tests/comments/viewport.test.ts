@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { composerPlacement } from '../../src/lib/comment-experiment/viewport.ts';
+import { composerPlacement } from '../../src/lib/comments/viewport.ts';
 
 describe('comment composer visible viewport', () => {
   test('keyboard bounds use visible height and pan offset rather than layout height', () => {

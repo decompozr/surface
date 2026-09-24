@@ -20,5 +20,8 @@
     "apps/surface/.svelte-kit/ambient.d.ts",
     "apps/surface/src/lib/contracts/**/*.ts",
     "apps/surface/src/lib/interactions/**/*.ts"
+  ],
+  "exclude": [
+    "tests/fixtures/comments-app"
   ]
 }

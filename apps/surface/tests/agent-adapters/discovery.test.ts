@@ -3,7 +3,7 @@ import {mkdtempSync,realpathSync,rmSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {discoverAgents} from './discovery.ts';
+import {discoverAgents} from '../../src/lib/server/agent-adapters/discovery.ts';
 import type {Rpc} from '@decompozr/surface-app/server/agent-adapters/rpc';
 const root=realpathSync(mkdtempSync(join(tmpdir(),'surface-discovery-test-')));
 beforeAll(()=>{execFileSync('git',['init','-q'],{cwd:root});});

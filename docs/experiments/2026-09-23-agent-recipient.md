@@ -1,6 +1,6 @@
 # Agent discovery, recipient selection and takeover
 
-Status: bounded experiments with separate live read-only discovery and fixture-backed lifecycle evidence. Source checkpoints: `25b7944` (picker), `30f3bad` / `0d2a736` (directory and app import correction), and `dea65c1` (lifecycle), integrated through `a97e34f`. This source record consolidates the [experiment README](../../experiments/agent-picker/README.md); it does not claim a new run.
+Status: bounded experiments with separate live read-only discovery and fixture-backed lifecycle evidence. Source checkpoints: `25b7944` (picker), `30f3bad` / `0d2a736` (directory and app import correction), and `dea65c1` (lifecycle), integrated through `a97e34f`. This record preserves the completed experiment; it does not claim a new run. The lab routes and duplicate workflow were retired during the September 24 production review. Their source remains in Git at `087b043622fc6ad2044d22c8cc73b531dccfab90`. Discovery regression tests now live under `apps/surface/tests/agent-adapters`; current recipient behavior is tested against the production Service.
 
 ## Question and observations
 
@@ -14,7 +14,7 @@ Recorded validation: 11 directory/lifecycle/service tests with 42 assertions; ap
 
 ## Reproduction and boundary
 
-Use the [package instructions](../../experiments/agent-picker/README.md) and its `verify.ts` and `verify-lifecycle.ts` browser scripts. The development lab requires an explicit experiment flag and loopback access. Fixture lifecycle endpoints are disabled in live-directory mode. Do not send fixture input into a real user task or delete a real conversation to simulate loss.
+The retired lab used `verify.ts` and `verify-lifecycle.ts` browser scripts. The development lab requires an explicit experiment flag and loopback access. Fixture lifecycle endpoints are disabled in live-directory mode. Do not send fixture input into a real user task or delete a real conversation to simulate loss.
 
 No production binding controls, authenticated shared-shell directory, live takeover, cross-worktree delivery, or automatic project handoff is established. Production adoption still needs scoped directory access, submit-time identity validation and a deliberate user-driven end-to-end interaction. Existing submitted requests must retain their original identity through any future ownership transition.
 

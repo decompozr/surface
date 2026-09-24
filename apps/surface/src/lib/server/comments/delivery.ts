@@ -6,7 +6,7 @@ import { commentEvent, type StoredComment } from './event.ts';
 import { Service, InputError } from '../services/service.ts';
 import { Store } from '../services/store.ts';
 import { CodexAdapter, type AgentAdapter, type Binding } from '../agent-adapters/codex.ts';
-import type { Batch } from '../../comment-experiment/model.ts';
+import type { Batch } from '../../comments/model.ts';
 
 export type Connection = { threadId: string; projectRoot: string; socketPath: string; label: string; token: string; callbackToken: string; origin: string; resultCli: string; resultPath?: string };
 export class UnsubmittedCommentError extends Error {}

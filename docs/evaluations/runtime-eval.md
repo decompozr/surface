@@ -36,7 +36,7 @@ Available: `bun test tests/service.test.ts tests/adapter.test.ts tests/http.test
 
 Covers [R-10](../requirements/agent-interaction.md#requirement-index). Pass if opt-out refuses discovery/change, foreign worktree candidates cannot be selected, an eligible explicit change atomically closes old and creates new request/token, zero responses/results replay, and submitted/unknown or concurrent preflight blocks takeover. Inject lost acknowledgement and reconcile `replacedBy` without another send. Fail on cross-worktree delivery or old-input replay.
 
-Available: `bun test tests/service.test.ts`; `bun tests/e2e/surface/verify-recipients.ts`; [service implementation/tests](../../apps/surface/tests/service.test.ts). Existing tests encode opt-in, exact-worktree, no replay and preflight locking. The browser script covers a successful explicit fixture change; lost-acknowledgement UI recovery and user-driven live takeover remain untested gates. The separate [recipient lab](../../experiments/agent-picker/README.md) must not be treated as shared-panel acceptance.
+Available: `bun test tests/service.test.ts`; `bun tests/e2e/surface/verify-recipients.ts`; [service implementation/tests](../../apps/surface/tests/service.test.ts). Existing tests encode opt-in, exact-worktree, no replay and preflight locking. The browser script covers a successful explicit fixture change; lost-acknowledgement UI recovery and user-driven live takeover remain untested gates. The separate [recipient lab](../experiments/2026-09-23-agent-recipient.md) must not be treated as shared-panel acceptance.
 
 ## E-13: source setup and private access
 

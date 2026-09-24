@@ -12,4 +12,4 @@ Stable R/D/E identifiers connect requirements, design and evaluations. Proposed 
 
 ## Consequences and verification
 
-Readers use one canonical source per contract and can still follow earlier paths. The [migration map](../README.md#complete-migration-map) and [input hashes](../experiments/docs-takeover/migration.md) preserve traceability. [Completion](../experiments/docs-takeover/completion.md) records actual checks, scope and remaining limits. No application changes, installation, runtime verification, commit, release or independent review is implied by this decision.
+Readers use one canonical source per contract and can still follow earlier paths. The [migration map](../experiments/docs-takeover/migration.md) and [input hashes](../experiments/docs-takeover/migration.md) preserve traceability. [Completion](../experiments/docs-takeover/completion.md) records actual checks, scope and remaining limits. No application changes, installation, runtime verification, commit, release or independent review is implied by this decision.

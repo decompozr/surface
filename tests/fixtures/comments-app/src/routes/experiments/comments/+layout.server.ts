@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { delivery } from '$lib/server/comment-delivery';
 import { error } from '@sveltejs/kit';
-import { allowsCommentOrigin } from '$lib/comment-experiment/access';
+import { allowsCommentOrigin } from '$lib/comments/access';
 
 export const load = ({ url }) => {
   if (env.SURFACE_COMMENTS_EXPERIMENT !== '1') error(404);

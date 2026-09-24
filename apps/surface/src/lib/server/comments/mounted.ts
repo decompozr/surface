@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { CommentDelivery, UnsubmittedCommentError, type Connection } from './delivery.ts';
-import { validateBatch } from '../../comment-experiment/validate.ts';
+import { validateBatch } from '../../comments/validate.ts';
 import { InputError, type Service } from '../services/service.ts';
 import type { RequestRecord } from '../services/store.ts';
 import type { AgentAdapter } from '../agent-adapters/codex.ts';

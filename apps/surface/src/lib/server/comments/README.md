@@ -79,7 +79,7 @@ Run `bun test apps/surface/comments` for all nine model/access and fake-adapter 
 
 The opt-in preview now uses authenticated SSE snapshots instead of the six-second result poll. Reconnect restores current durable results without resending comments. Transport heartbeats are not agent presence; agent availability is checked only when connecting. Browser visual and reconnection acceptance remains pending.
 
-From this checkout, reply with `bun run reply REQUEST_PREFIX "Updated the layout."`. The helper checks unique request identity and the configured conversation/project, then publishes JSON. Existing long callback commands remain supported.
+From this checkout, reply with `bun run reply REQUEST_PREFIX "Updated the layout."`. The helper checks unique request identity and the configured conversation/project, then publishes JSON.
 
 Preview launches must copy the completed adapter build into a separate release directory before starting it. Do not serve directly from apps/surface/build while rebuilding: running manifests can reference removed hashed chunks. Keep the existing state directory and private connection configuration when switching releases.
 
@@ -98,6 +98,6 @@ Inspect a replay with `bunx playwright show-trace .decompozr/surface/comments-fu
 
 Use the shared Switch: on Steer, off Queue. Active submissions freeze the observed turn; idle recipients use Start. Stale preflight restores the draft without sending. SSE monitors durable results and reconnects automatically, without a manual status button or replay.
 
-The agent receives `{type:"surface.comments",requestId,comments:[{selector,text,imagePath?}],replyTo?}`. The Surface skill owns reply guidance. Publish one concise result with `bun run reply REQUEST_ID "Reply"`; add `--ack` only for an interim update. Use `--inspect` for full stored context and `--state-dir` for an explicit replyTo. Older callback commands remain supported.
+The agent receives `{type:"surface.comments",requestId,comments:[{selector,text,imagePath?}],replyTo?}`. The Surface skill owns reply guidance. Publish one concise result with `bun run reply REQUEST_ID "Reply"`; add `--ack` only for an interim update. Use `--inspect` for full stored context and `--state-dir` for an explicit replyTo.
 
 The fixture full-loop verifier covers desktop Chromium and mobile WebKit, stale-turn rejection, Steer/Queue, lost POST responses, automatic result updates, optional acknowledgement, offline recovery and reload without replay. Set COMMENTS_E2E_BUILD_DIR to the isolated app build. Never send test fixtures to a real conversation.

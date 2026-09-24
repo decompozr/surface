@@ -17,6 +17,7 @@ Cross-workspace imports use declared exports and `workspace:*` dependencies. Sur
 | --- | --- |
 | `src/routes` | SvelteKit pages and endpoints |
 | `src/lib/components` | Shared UI components |
+| `src/lib/comments` | Element selection, screenshot capture, comment drafts and viewport placement |
 | `src/lib/interactions` | Page-side interaction state, recipient selection, submission and results |
 | `src/lib/contracts` | Surface-owned operation/navigation types and shared error definitions |
 | `src/lib/server/services` | Project and interaction business rules, state and delivery orchestration |
@@ -27,7 +28,7 @@ Cross-workspace imports use declared exports and `workspace:*` dependencies. Sur
 | `templates` | Complete project scaffold assets |
 | `src/lib/server/templates` | Local template generation and overwrite protection |
 
-Use `createInteractionClient` from `virtual:surface-interactions` in new mounted pages. Generated standalone projects receive `src/interactions.ts`. The root package exports `./interactions`.
+Use `createInteractionClient` from `virtual:surface-interactions` in new mounted pages. Generated projects contain mounted route source and use that same virtual module. Surface also declares `./interactions` as an application export.
 
 The CLI's `src/surface-api.ts` exposes its management transport. CLI and standalone stdio MCP share the Surface-owned `server/http/project-client` implementation for authenticated local requests, response validation and no-retry behavior. This narrow transport reuse does not require a separate client workspace. Browser interactions never import it or receive management credentials.
 
@@ -47,6 +48,4 @@ Historical `experiments/` source is excluded from production workspaces, imports
 
 Use an isolated source export, frozen workspace dependencies and the exact selected design-system package. Run types, SvelteKit checks, app/CLI tests, MCP verifiers, the full comments matrix and installed upgrade/rollback acceptance. Exercise the current interaction API. Verify direct service operations share shutdown admission and the management client remains inaccessible from mounted pages.
 
-The earlier seven-workspace migration and its bounded acceptance are summarized in [history](../history/2026-09-24-workspace-boundaries.md). Those results do not validate the revised layout. Current consolidation evidence is retained under `.decompozr/surface/module-consolidation-20260924/`.
-
-The three-app candidate passed source checks, 111 tests, actual CLI/MCP/browser flows, the immutable comments matrix and installed upgrade/rollback. See the [dated acceptance and limits](../history/2026-09-24-workspace-boundaries.md#three-app-consolidation-acceptance). That historical candidate retained browser SDK aliases; the current development contract removes them.
+Completed layout changes and their revision-specific verification are summarized in [history](../history/2026-09-24-workspace-boundaries.md). Reproducible raw outputs are retired under the [retention policy](../history/2026-09-24-working-data-retention.md); historical results do not validate later changes.

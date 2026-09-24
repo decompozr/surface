@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { createServer, type Server } from 'node:net';
 import { CommentDelivery, type Connection } from '../../src/lib/server/comments/delivery.ts';
 import { DeliveryError, type AgentAdapter } from '../../src/lib/server/agent-adapters/codex.ts';
-import type { Batch } from '../../src/lib/comment-experiment/model.ts';
+import type { Batch } from '../../src/lib/comments/model.ts';
 
 const fixture = async (adapter: AgentAdapter) => {
   const root = mkdtempSync(join(tmpdir(), 'surface-comments-'));
