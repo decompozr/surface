@@ -33,3 +33,7 @@ Follow `docs/architecture/package-boundaries.md`. Use only the Surface and CLI w
 ## Development compatibility policy
 
 Support the current source layout and public API only. When renaming or moving code, update all owned callers, tests and current documentation together. Do not add compatibility aliases, historical path probing, retired host modes or old command dispatch solely to keep an earlier experiment working. Compatibility requires a concrete external consumer and an explicit support decision. Preserve user data: reject unsupported formats without overwriting them; any required migration is a separately scoped, explicit operation. Keep historical evidence as dated documentation or Git history, not as production runtime branches.
+
+## Working-data retention
+
+Keep concise completed history in `docs/history`, not permanent copies of every verification run. After recording results, tested revisions, failures and limits, remove disposable source exports, dependency trees, builds, release archives, test installations, logs, screenshots and traces. Keep raw evidence only for a specific unresolved issue with a stated retention reason and exit condition. Check active process/task references first; preserve runtime state, user drafts, interactions and selected preview releases. Never create nested `.decompozr/.decompozr` output or replace cleanup with another bulk archive.

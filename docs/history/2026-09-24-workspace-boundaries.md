@@ -1,5 +1,7 @@
 # September 24 workspace boundary iterations
 
+Retention update: completed raw artifacts and handoff records named below were removed at the user’s request. See the [working-data cleanup](2026-09-24-working-data-retention.md). The recorded revisions, outcomes and limits remain historical evidence; local artifact paths are no longer available.
+
 The initial consolidation moved production behavior out of experiments. PR 55 integrated mounted comments; PR 56 added installed candidate acceptance. A subsequent draft PR 57 separated CLI and installer, but also introduced four library workspaces without sufficient independent consumers. The user rejected that extra packaging and selected three apps with Surface-owned internal modules instead. The current contract is [application and module ownership](../architecture/package-boundaries.md).
 
 ## Earlier verified candidate
