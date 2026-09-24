@@ -53,7 +53,7 @@ try {
       await page.getByRole('button', { name: 'Add comment to draft' }).click();
       await page.getByRole('button', { name: /Open comments/ }).click();
       const send = page.getByRole('button', { name: 'Send 1 comments together' });
-      await expect(page.getByLabel('How to send')).toHaveValue('by-the-way');
+      await expect(page.getByRole('button', { name: 'Steer', exact: true })).toHaveAttribute('aria-pressed', 'true');
       await expect(send).toBeEnabled();
       // A turn change must retain the unsent draft until an explicit refresh/send.
       activeTurn = `changed-${name}`;
@@ -63,7 +63,7 @@ try {
       await expect(send).toBeDisabled();
       await page.getByRole('button', { name: 'Refresh agent', exact: true }).click();
       await expect(send).toBeEnabled();
-      if (mobile) await page.getByLabel('How to send').selectOption('after-current');
+      if (mobile) await page.getByRole('button', { name: 'Queue', exact: true }).click();
       await page.screenshot({ path: join(output, `${name}-send-choice.png`), fullPage: true });
       // Drop the POST acknowledgement after server acceptance; inspection is GET-only.
       let posts = 0;
