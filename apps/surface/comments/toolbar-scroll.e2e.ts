@@ -8,12 +8,14 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]] as con
  const browser = await engine.launch();
  const context = await browser.newContext({ viewport: { width: 900, height: 520 } });
  await context.route('**/experiments/comments/batch', route => route.abort());
+ await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
  const page = await context.newPage();
  const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
  try {
   await page.goto(origin+'/experiments/comments', {waitUntil:'networkidle'});
   await expect(page.getByRole('button',{name:'Leave comment mode',exact:true})).toBeEnabled();
-  await page.locator('#headline').click();
+  // The paragraph has enough room above it to test unclamped tracking after density changes.
+  await page.locator('#description').click();
   const tools=page.getByRole('toolbar',{name:'Selected element actions'});
   const root=page.locator('.selection-tools');
   await expect(tools).toBeVisible();
@@ -46,5 +48,5 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]] as con
   await page.screenshot({path:`${output}/${name}-selected-toolbar.png`});
   expect(errors).toEqual([]);
   console.log(`${name}: PASS stable selection anchor, monotonic scroll tracking, retained toolbar, transform positioning`);
- } finally {await browser.close();}
+ } catch (error) { await page.screenshot({path:`${output}/${name}-failure.png`}); throw error; } finally {await context.tracing.stop({path:`${output}/${name}-trace.zip`}); await browser.close();}
 }

@@ -65,3 +65,12 @@ The same command also freezes the app host, compiler and comment sources into th
 In addition to the existing matrix, verify normal project controls before selection, selection of controls through nested presentation spans, 320px review and 400px-high editing, per-page/request draft separation, request-token isolation, browser-token rejection at the reply endpoint, and preservation of the original domain response/schema. Retain screenshots/traces and the snapshot file-hash manifest. The runtime compiler and the built shell are both part of the tested snapshot; a built experimental page alone cannot verify mounted behavior.
 
 The interaction audit covers roving keyboard focus with ArrowLeft/Right and Home/End, 44px targets, independent navigation/review scrolling, capture/editor bounds and transient feedback that leaves actions reachable. Wait for image layout and measured placement to settle before recording geometry. A status row is reserved space even where its background does not intercept pointer events.
+
+
+## Installed candidate gate
+
+Run the mounted verifier against an explicitly isolated installation to cover the actual bundled launcher/runtime and frozen design-system assets. Set `COMMENTS_E2E_INSTALLED_HOME` to a stopped test home containing `e2e-fixture.json` with `{"purpose":"isolated-release-verification"}` and set `COMMENTS_E2E_APP_DIR` to its active release's `apps/surface`. This mode starts/stops only that marked installation, uses its launcher with a system-only PATH to register/mount/bind/request, and invokes its bundled runtime for replies. It never selects the default installation. Run both idle and active modes in new evidence directories. The normal source-snapshot mode remains available.
+
+Test upgrade/rollback separately from browser delivery: preserve a registered project, its identity, draft/request/result records and project data through stopped activation changes. A successful package build does not prove the installed flow. Retain the exact archive/checksum, source commit and provider pin; a release candidate is not a signed or notarized general-availability release.
+
+`COMMENTS_E2E_PREPARED_RELEASE=/absolute/extracted-release bun run test:e2e:comments` verifies a packaged release with integrity checks before and after the matrix. It skips rebuilding that immutable package; source checking with the same frozen dependencies and installed lifecycle acceptance are separate [candidate gates](release-candidate.md).
