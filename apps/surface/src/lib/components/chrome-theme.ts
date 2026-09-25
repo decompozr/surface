@@ -1,4 +1,4 @@
-import { colorShades, feedbackColors, focusColors, radius, spacing } from '@decompozr/design-system';
+import { colorShades, elevation, feedbackColors, focusColors, radius, spacing } from '@decompozr/design-system';
 
 // Surface owns layout; the linked design system owns the chrome's visual tokens.
 const tokens = {
@@ -12,6 +12,7 @@ const tokens = {
   hover: colorShades.sage.hover,
   strong: colorShades.sage.deep,
   focus: focusColors.outline,
+  'shadow-floating': elevation.floating,
   warning: feedbackColors.warning.foreground,
   'radius-control': radius.control,
   'radius-surface': radius.surface,
