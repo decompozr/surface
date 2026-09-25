@@ -35,7 +35,9 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]] as con
     const workspace = page.locator('#comment-workspace');
     expect(await workspace.evaluate(el => Math.abs(el.getBoundingClientRect().bottom - (innerHeight - 44)))).toBeLessThan(1);
     const status = page.getByRole('contentinfo', { name: 'Connection status' });
-    expect(await status.evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(255, 255, 255)');
+    const statusBounds = await status.boundingBox();
+    expect(statusBounds!.height).toBe(44);
+    expect(statusBounds!.y + statusBounds!.height).toBe(page.viewportSize()!.height);
     expect(await page.evaluate(() => !!document.elementFromPoint(12, innerHeight - 12)?.closest('#comment-workspace'))).toBe(false);
     await page.locator('#headline').tap();
     await page.getByRole('button', { name: 'Comment on selected element', exact: true }).click();

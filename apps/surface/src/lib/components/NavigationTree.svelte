@@ -13,4 +13,4 @@
   let { nodes, currentPath = '/', currentURL = '' }: { nodes: NavigationNode[]; currentPath?: string; currentURL?: string } = $props();
   const clean = (path: string) => path.replace(/\/$/, '');
 </script>
-<NavigationLinks items={links(nodes)} label="Mounted pages" />
+<NavigationLinks density="compact" items={links(nodes)} label="Mounted pages" />

@@ -50,8 +50,8 @@
 {#snippet header()}
   <AppHeader actions={headerTools}>
     <a class="skip-link" href="#surface-page-content" onclick={skipToContent}>Skip to content</a>
-    <Button appearance="quiet" size="compact" onclick={toggle} aria-label="Toggle navigation" title={overlayNavigation ? 'Toggle navigation (M)' : 'Toggle navigation'} aria-keyshortcuts={overlayNavigation ? 'M' : undefined} aria-controls="surface-navigation" aria-expanded={navigationOpen}>
-      {#if surfaceIdentity}<Logo variant="compact" palette="slate" centerSymbol="S" label="Surface" size={38} />{:else}<Icon name="panel-left" />{/if}
+    <Button appearance="quiet" size="compact" touchAppearance="compact" onclick={toggle} aria-label="Toggle navigation" title={overlayNavigation ? 'Toggle navigation (M)' : 'Toggle navigation'} aria-keyshortcuts={overlayNavigation ? 'M' : undefined} aria-controls="surface-navigation" aria-expanded={navigationOpen}>
+      {#if surfaceIdentity}<Logo variant="compact" palette="slate" centerSymbol="S" label="Surface" size={38} />{:else}<Icon name="panel-left" size={16} />{/if}
     </Button>
     <Brand href="/" data-sveltekit-reload>Surface</Brand>
   </AppHeader>

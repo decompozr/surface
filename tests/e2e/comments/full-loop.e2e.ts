@@ -53,9 +53,9 @@ try {
       await expect(parentAction).toBeVisible();
       await parentAction.click();
       await expect(parentAction).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-      expect(await page.locator('.element-label').evaluate(node => {
+      expect(await page.getByRole('toolbar', { name: 'Selected element actions' }).evaluate(node => {
         const button = node.querySelector('button')!.getBoundingClientRect();
-        const label = node.querySelector('.element-name')!.getBoundingClientRect();
+        const label = node.querySelector('.target-label')!.getBoundingClientRect();
         return label.right <= button.left + 1;
       })).toBe(true);
       await page.locator('#headline').click();
@@ -135,7 +135,7 @@ try {
       await expect(page.locator('.agent-reply')).toHaveText(`Fixture reply ${name}`);
       await expect(page.locator('.reply-wait')).toHaveCount(0);
       // Receive a changed durable result while offline, then reconnect without replay.
-      await expect(page.getByRole('button', { name: 'Live updates connected', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Connected; show connection details', exact: true })).toBeVisible();
       await context.setOffline(true);
       await expect(page.getByText('Connection lost. Reconnecting…', { exact: true })).toBeVisible({ timeout: 15000 });
       await reply(`Recovered reply ${name}`);

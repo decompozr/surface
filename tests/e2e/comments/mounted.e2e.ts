@@ -107,6 +107,13 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
     const commentsState = join(state, 'mounted-comments', parent.id);
     try {
       await page.goto(preview.href);
+      const navigation = page.getByRole('complementary', { name: 'Workspace navigation' });
+      if (mobile) await page.getByRole('button', { name: 'Toggle navigation', exact: true }).tap();
+      await expect.poll(async () => { const bounds = await navigation.boundingBox(); return !!bounds && bounds.width >= 279 && Math.abs(bounds.x) <= 1; }).toBe(true);
+      await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
+      if (mobile) for (const link of await navigation.getByRole('link').all()) expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      await page.screenshot({ path: join(output, name + '-navigation.png'), fullPage: true });
+      if (mobile) await page.getByRole('button', { name: 'Toggle navigation', exact: true }).tap();
       await page.getByRole('button', { name: /Open comments/ }).click();
       const emptyReview = page.getByRole('region', { name: 'Comment review', exact: true });
       await expect(emptyReview.getByText('No comments yet. Select an element to start.', { exact: true })).toBeVisible();
@@ -120,22 +127,22 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       await page.getByRole('textbox', { name: 'Project draft', exact: true }).fill('Keep my project draft');
       await page.getByRole('button', { name: 'Select and comment', exact: true }).click();
       await page.getByRole('button', { name: 'Project counter 1', exact: true }).locator('span').click();
-      await expect(page.locator('.element-name')).toContainText('button');
+      await expect(page.locator('.target-label')).toContainText('button');
       await expect(page.getByRole('button', { name: 'Project counter 1', exact: true })).toBeVisible();
       await page.locator('#option-a h2').click();
       const parentAction = page.getByRole('button', { name: 'Select parent element' });
       await expect(parentAction).toBeVisible();
       await parentAction.click();
       await expect(parentAction).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-      expect(await page.locator('.element-label').evaluate(node => {
+      expect(await page.getByRole('toolbar', { name: 'Selected element actions' }).evaluate(node => {
         const button = node.querySelector('button')!.getBoundingClientRect();
-        const label = node.querySelector('.element-name')!.getBoundingClientRect();
+        const label = node.querySelector('.target-label')!.getBoundingClientRect();
         return label.right <= button.left + 1;
       })).toBe(true);
       await page.getByRole('button', { name: 'Clear selection', exact: true }).click();
       await page.locator('#headline').click();
       const selectedTools = page.getByRole('toolbar', { name: 'Selected element actions' });
-      await expect(selectedTools.locator('.element-name')).toHaveText('h1#headline');
+      await expect(selectedTools.locator('.target-label')).toHaveText('h1#headline');
       expect(await selectedTools.evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
       expect(await selectedTools.evaluate(el => getComputedStyle(el, '::before').backgroundColor)).toBe('rgb(255, 255, 255)');
       expect((await selectedTools.boundingBox())!.width).toBeLessThan(300);
@@ -158,6 +165,25 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       await expect(page.getByRole('textbox', { name: 'Project draft', exact: true })).toHaveValue('Keep my project draft');
       expect(await page.evaluate(() => document.body.dataset.sameDocument)).toBe('retained');
       await expect(page.getByText(`E2E ${name}: fixture submission`, { exact: true })).toBeVisible();
+      const refresh = page.getByRole('button', { name: 'Refresh agent', exact: true });
+      await (mobile ? refresh.tap() : refresh.click());
+      await expect(page.getByText('Agent refreshed.', { exact: true })).toBeVisible();
+      await expect(refresh).toHaveText('');
+      const connected = page.getByRole('button', { name: 'Connected; show connection details', exact: true });
+      await expect(connected).toBeVisible();
+      await expect(connected).toHaveText('');
+      if (mobile) expect(await refresh.evaluate(node => getComputedStyle(node, '::before').backgroundColor)).toBe('rgba(0, 0, 0, 0)');
+      await expect.poll(async () => { const bounds = await emptyReview.boundingBox(); return !!bounds && bounds.width >= 348 && bounds.x + bounds.width <= page.viewportSize()!.width + 1; }).toBe(true);
+      await page.screenshot({ path: join(output, name + '-refresh-feedback.png'), fullPage: true });
+      const inspectionURL = preview.origin + endpoint + '/batch';
+      await page.route(inspectionURL, route => route.fulfill({ status: 503, body: 'Isolated refresh failure' }));
+      await (mobile ? refresh.tap() : refresh.click());
+      await expect(page.getByText('Agent unavailable. Try again.', { exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Agent unavailable; show connection details', exact: true })).toBeVisible();
+      expect(deliveries.length).toBe(count);
+      await page.unroute(inspectionURL);
+      await (mobile ? refresh.tap() : refresh.click());
+      await expect(connected).toBeVisible();
       if (activeRecipient) {
       // A turn change must retain the unsent draft until an explicit refresh/send.
       activeTurn = `changed-${name}`;
@@ -219,7 +245,7 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       await expect(page.locator('.agent-reply')).toHaveText(`Fixture reply ${name}`);
       await expect(page.locator('.reply-wait')).toHaveCount(0);
       // Receive a changed durable result while offline, then reconnect without replay.
-      await expect(page.getByRole('button', { name: 'Live updates connected', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Connected; show connection details', exact: true })).toBeVisible();
       await context.setOffline(true);
       await expect(page.getByText('Connection lost. Reconnecting…', { exact: true })).toBeVisible({ timeout: 15000 });
       await reply(`Recovered reply ${name}`);
