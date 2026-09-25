@@ -23,7 +23,7 @@ try {
   const productionRoot = prepared ?? join(temporary, 'production');
   const copySource = (from: string, to: string) => {
     mkdirSync(to, { recursive: true });
-    for (const directory of ['apps', 'node_modules']) {
+    for (const directory of ['apps', 'node_modules', 'tests/fixtures']) {
       cpSync(join(from, directory), join(to, directory), {
         recursive: true, verbatimSymlinks: true,
         filter: path => !['apps/surface/.svelte-kit', 'apps/surface/build', 'apps/surface/node_modules/.vite', 'node_modules/.vite'].some(excluded => path === join(from, excluded) || path.startsWith(join(from, excluded) + '/')),

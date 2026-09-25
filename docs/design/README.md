@@ -26,6 +26,8 @@ Comments are adopted for ordinary mounted pages under the [interaction requireme
 
 The comment shell reserves a 44px status row. Its compact connection indicator describes transport availability; it must not imply active model work. An interim acknowledgement remains distinct from a completed reply. Reconnection and reload recover durable status without resending input.
 
+The selection toolbar uses a neutral compact surface, a short tag/ID label followed by parent, capture, comment and clear actions, and 16px icons. Do not fill the bar with the selection accent or concatenate content excerpts into its label. The accent is a thin element outline. Touch controls retain 44px hit areas while the visible toolbar surface stays 32px high; desktop controls are 32px. Full target context remains in the comment record and selector tooltip.
+
 The composer follows the selected element and visible viewport, including keyboard resize and scrolling. It clamps to available space, scrolls its body when needed, and keeps editing/actions reachable. The relevant browser and physical-device gates are in [self-owned E2E](../evaluations/self-e2e.md) and [accessibility](accessibility.md).
 
 The former study page now lives only in `tests/fixtures/comments-app`. It is built separately for component geometry and fixture delivery tests; ordinary mounted-page E2E uses the production build. Historical design iterations and limitations remain in the [element-comments study](../experiments/2026-09-23-element-comments.md) and [mounted integration evidence](../experiments/2026-09-24-mounted-comments.md).

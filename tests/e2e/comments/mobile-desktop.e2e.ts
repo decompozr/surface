@@ -80,6 +80,23 @@ for (const profile of ['desktop', 'touch-chromium', 'mobile'] as const) {
     await (profile === 'desktop' ? page.locator('#headline').click() : page.locator('#headline').tap());
     const tools = page.getByRole('toolbar', { name: 'Selected element actions' });
     await expect(tools).toBeVisible();
+    await expect(tools.locator('.element-name')).toHaveText('h1#headline');
+    expect(await tools.evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
+    expect(await tools.evaluate(el => getComputedStyle(el, '::before').backgroundColor)).toBe('rgb(255, 255, 255)');
+    for (const icon of await tools.locator('svg').all()) {
+      const bounds = await icon.boundingBox();
+      expect(bounds!.width).toBeLessThanOrEqual(16);
+      expect(bounds!.height).toBeLessThanOrEqual(16);
+    }
+    if (profile !== 'desktop') for (const button of await tools.getByRole('button').all()) {
+      const bounds = await button.boundingBox();
+      expect(bounds!.width).toBeGreaterThanOrEqual(44);
+      expect(bounds!.height).toBeGreaterThanOrEqual(44);
+    }
+    expect((await tools.boundingBox())!.width).toBeLessThan(300);
+    await page.screenshot({ path: `${output}/${profile}-compact-selection.png` });
+
+    await expect(tools).toBeVisible();
     const toolBounds = await tools.boundingBox();
     expect(toolBounds!.x).toBeGreaterThanOrEqual(0);
     expect(toolBounds!.x + toolBounds!.width).toBeLessThanOrEqual(page.viewportSize()!.width);

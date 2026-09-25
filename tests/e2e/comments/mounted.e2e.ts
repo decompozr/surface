@@ -122,10 +122,15 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       expect(await page.locator('.element-label').evaluate(node => {
         const button = node.querySelector('button')!.getBoundingClientRect();
         const label = node.querySelector('.element-name')!.getBoundingClientRect();
-        return button.right <= label.left + 1;
+        return label.right <= button.left + 1;
       })).toBe(true);
       await page.getByRole('button', { name: 'Clear selection', exact: true }).click();
       await page.locator('#headline').click();
+      const selectedTools = page.getByRole('toolbar', { name: 'Selected element actions' });
+      await expect(selectedTools.locator('.element-name')).toHaveText('h1#headline');
+      expect(await selectedTools.evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
+      expect(await selectedTools.evaluate(el => getComputedStyle(el, '::before').backgroundColor)).toBe('rgb(255, 255, 255)');
+      expect((await selectedTools.boundingBox())!.width).toBeLessThan(300);
       await page.screenshot({ path: join(output, name + '-selection.png'), fullPage: true });
       await page.getByRole('button', { name: 'Capture selected element', exact: true }).click();
       await expect(page.getByRole('button', { name: 'Select parent element' })).toHaveCount(0);
