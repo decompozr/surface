@@ -4,7 +4,7 @@ Source-inspected at `7fceefc`: [shell](../../apps/surface/src/lib/components/Sur
 
 ## D-01: information hierarchy and routes
 
-The current shell orders global brand/navigation, location breadcrumbs, request recipient controls when applicable, then project-owned page content. Projects and worktrees are grouping nodes; mounted folders and route segments are links. Identity comes from the ledger/mount, not the label. The tree includes only active registered workspaces with ready route mounts and pages; it does not expose arbitrary directories or legacy component catalogs.
+The current shell orders global brand/navigation, location breadcrumbs, request recipient controls when applicable, then project-owned page content. Projects, workspaces and mounted source folders are grouping nodes. The mount root has a single Home page link; route segments link to declared pages or generated indexes. Workspace labels use the source directory name without appending Git branches or agent metadata. Only the actual page link is current. Identity comes from the ledger/mount, not the label. The tree includes only active registered workspaces with ready route mounts and pages; it does not expose arbitrary directories or legacy component catalogs.
 
 | Surface | Entry and content | Primary action / boundary |
 | --- | --- | --- |

@@ -107,6 +107,14 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
     const commentsState = join(state, 'mounted-comments', parent.id);
     try {
       await page.goto(preview.href);
+      await page.getByRole('button', { name: /Open comments/ }).click();
+      const emptyReview = page.getByRole('region', { name: 'Comment review', exact: true });
+      await expect(emptyReview.getByText('No comments yet. Select an element to start.', { exact: true })).toBeVisible();
+      await expect(emptyReview.getByRole('button', { name: /Send .* comments together/ })).toHaveCount(0);
+      await expect(emptyReview).not.toContainText(input.title);
+      await expect.poll(async () => { const bounds = await emptyReview.boundingBox(); return !!bounds && bounds.width >= 348 && bounds.x + bounds.width <= page.viewportSize()!.width + 1; }).toBe(true);
+      await page.screenshot({ path: join(output, name + '-empty-comments.png'), fullPage: true });
+      await page.getByRole('button', { name: 'Close comments', exact: true }).click();
       await page.getByRole('button', { name: 'Project counter 0', exact: true }).click();
       await expect(page.getByRole('button', { name: 'Project counter 1', exact: true })).toBeVisible();
       await page.getByRole('textbox', { name: 'Project draft', exact: true }).fill('Keep my project draft');
@@ -159,6 +167,7 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       await expect(send).toBeDisabled();
       await page.getByRole('button', { name: 'Refresh agent', exact: true }).click();
       await expect(send).toBeEnabled();
+      await expect(page.getByText('Agent refreshed.', { exact: true })).toBeVisible();
       }
       if (mobile) {
         await page.locator('label').filter({ has: page.getByRole('switch', { name: 'Steer delivery', exact: true }) }).tap();

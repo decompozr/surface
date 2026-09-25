@@ -432,10 +432,24 @@
     </Toolbar>
 {/snippet}
 {#snippet commentPanel()}
-<SidePanel label="Comment review">
+{#snippet commentFooter()}
+    <div class="composer">
+      {#if review.draft.target && (review.draft.text.trim() || review.draft.capture)}<Button size="compact" onclick={() => { panel = false; editorOpen = true; selected = restoreTarget(review.draft.target); selected?.scrollIntoView({ block: 'nearest' }); updateBox(); tick().then(() => composer?.focus()); }}>Continue draft: {review.draft.target.label}</Button>{/if}
+      {#if notice}<Text size="small" class="notice" role="status">{notice}</Text>{/if}
+      {#if data.live && !connectionKey}<Text size="small" class="hint">Open the private connection link to enable sending.</Text>{/if}
+      {#if review.draft.text.trim() || review.draft.capture}<Text size="small" class="hint">Add this comment to the draft before sending the batch.</Text>{/if}
+      <div class="delivery-actions">
+      {#if data.live && review.comments.length}
+        <Switch label={steer ? 'Steer' : 'Queue'} aria-label="Steer delivery" bind:checked={steer} disabled={locked || pending} />
+      {/if}
+      {#if review.comments.length}<div class="send-action"><IconButton size="compact" icon="arrow-up" appearance="quiet" label={`Send ${review.comments.length} comments together`} title={`Send ${review.comments.length} comments together`} disabled={locked || (data.live && (!agentAvailable || !recipientObservation || inspecting)) || pending || !!review.draft.text.trim() || !!review.draft.capture} onclick={send} /></div>{/if}
+      </div>
+      {#if storageError}<span role="alert">{storageError}</span>{/if}
+    </div>
+{/snippet}
+<SidePanel label="Comment review" footer={review.comments.length || review.draft.text.trim() || review.draft.capture || notice || storageError ? commentFooter : undefined}>
 {#snippet header()}
     <div class="panel-heading"><Text as="h2" size="body">Comments <Badge>{review.comments.length}</Badge></Text><IconButton size="compact" icon="close" label="Close comments" title="Close comments" onclick={() => panel = false} /></div>
-    <div class="recipient">{#if agentAvailable}<Icon name="circle-dot" />{:else}<Icon name="unplug" />{/if}<Text as="span" size="small" tone="muted">{data.label}</Text></div>
 {/snippet}
     <div class="conversation" use:followLatest>
       {#if !review.comments.length && !review.batches.length}<div class="empty"><Text size="small">No comments yet. Select an element to start.</Text></div>{/if}
@@ -448,27 +462,13 @@
       {#each review.comments as comment, i (comment.id)}<SurfaceCard as="article" class="comment-card"><div class="comment-heading"><Badge>{i + 1}</Badge><strong>{comment.target.label}</strong></div>{#if comment.capture}<a href={comment.capture.png} download={`${comment.target.id}.png`} aria-label={`Download screenshot of ${comment.target.label}`}><img src={comment.capture.png} alt={`Captured ${comment.target.label}`} /></a><Text as="span" size="small" tone="muted" class="image-meta">{comment.capture.width} × {comment.capture.height} · frozen capture</Text>{/if}<Text size="small">{comment.text}</Text><div class="card-actions"><IconButton size="compact" icon="pencil" label={`Edit comment ${i + 1}`} title="Edit comment" disabled={locked || review.draft.editing === comment.id} onclick={() => edit(comment)} /><IconButton size="compact" icon="trash-2" label={`Remove comment ${i + 1}`} title="Remove comment" disabled={locked || review.draft.editing === comment.id} onclick={() => review.comments = review.comments.filter(c => c.id !== comment.id)} /></div></SurfaceCard>{/each}
       {#if toast}<Toast inline message={toast.message} tone={toast.tone} dismiss={() => { toast = null; clearTimeout(toastTimer); }} />{/if}
     </div>
-{#snippet footer()}
-    <div class="composer">
-      {#if review.draft.target && (review.draft.text.trim() || review.draft.capture)}<Button size="compact" onclick={() => { panel = false; editorOpen = true; selected = restoreTarget(review.draft.target); selected?.scrollIntoView({ block: 'nearest' }); updateBox(); tick().then(() => composer?.focus()); }}>Continue draft: {review.draft.target.label}</Button>{/if}
-      {#if notice}<Text size="small" class="notice" role="status">{notice}</Text>{/if}
-      {#if data.live && !connectionKey}<Text size="small" class="hint">Open the private connection link to enable sending.</Text>{/if}
-      {#if review.draft.text.trim() || review.draft.capture}<Text size="small" class="hint">Add this comment to the draft before sending the batch.</Text>{/if}
-      <div class="delivery-actions">
-      {#if data.live && review.comments.length}
-        <Switch label={steer ? 'Steer' : 'Queue'} aria-label="Steer delivery" bind:checked={steer} disabled={locked || pending} />
-      {/if}
-      <div class="send-action"><Button size="compact" variant="primary" appearance="default" aria-label={`Send ${review.comments.length} comments together`} title={`Send ${review.comments.length} comments together`} disabled={locked || (data.live && (!agentAvailable || !recipientObservation || inspecting)) || pending || !review.comments.length || !!review.draft.text.trim() || !!review.draft.capture} onclick={send} ><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4v7a4 4 0 0 1-4 4H4m5-5-5 5 5 5" /></svg></Button></div>
-      </div>
-      {#if storageError}<span role="alert">{storageError}</span>{/if}
-    </div>
-{/snippet}
+
 </SidePanel>
 {/snippet}
 {#snippet connectionStatus()}
 <div class="connection-bar"><StatusBar label="Connection status" height="44px">
-  {#if data.live && connectionKey}<Button size="compact" appearance="quiet" disabled={locked || inspecting} onclick={() => refreshRecipient()}>Refresh agent</Button>{/if}
-  <span class="connection-summary">{!data.live ? 'Local test' : !connectionKey ? 'Not connected' : streamConnected ? agentAvailable ? 'Connected' : 'Agent unavailable' : 'Reconnecting…'}</span><span class="live-indicator"><IconButton size="compact" icon="radio" label={streamConnected ? 'Live updates connected' : 'Live updates disconnected'} title={streamConnected ? 'Live updates connected' : connectionKey ? 'Reconnecting' : 'Open the private connection link'} onclick={() => notify(streamConnected ? `Live updates connected. ${agentStatus}.` : connectionKey ? 'Disconnected. Reconnecting automatically.' : 'Open the private connection link to connect.', streamConnected ? 'info' : 'warning')} /></span>
+  {#if data.live && connectionKey}<Button size="compact" appearance="quiet" disabled={locked || inspecting} onclick={async () => { await refreshRecipient(); notify(agentAvailable ? 'Agent refreshed.' : 'Agent unavailable. Try again.', agentAvailable ? 'success' : 'warning'); }}>Refresh agent</Button>{/if}
+  <span class="live-indicator"><IconButton size="compact" icon={!data.live ? 'info' : !connectionKey ? 'unplug' : streamConnected ? agentAvailable ? 'radio' : 'warning' : 'unplug'} label={streamConnected ? 'Live updates connected' : 'Live updates disconnected'} title={streamConnected ? 'Live updates connected' : connectionKey ? 'Reconnecting' : 'Open the private connection link'} onclick={() => notify(streamConnected ? `Live updates connected. ${agentStatus}.` : connectionKey ? 'Disconnected. Reconnecting automatically.' : 'Open the private connection link to connect.', streamConnected ? 'info' : 'warning')} /></span>
 </StatusBar></div>
 {/snippet}
 <SurfaceShell panelContent={commentPanel} bind:panelOpen={panel} status={connectionStatus} statusHeight="44px" navigation={data.navigation} {currentPath} {headerTools} surfaceIdentity={ !mounted } overlayNavigation={!mounted} showBreadcrumbs={mounted}>
@@ -521,11 +521,10 @@
 #comment-workspace { box-sizing:border-box; height:100%; min-width:0; overflow:auto; padding:24px 38px; }
 #comment-workspace.mounted { padding:0; }
 #comment-workspace:not(.mounted) :global(*) { box-sizing:border-box; }
-.panel-heading, .recipient, .comment-heading, .batch-label, .card-actions, .send-action, .selected-title, .editor-actions { display:flex; align-items:center; gap:.5rem; }
+.panel-heading, .comment-heading, .batch-label, .card-actions, .send-action, .selected-title, .editor-actions { display:flex; align-items:center; gap:.5rem; }
 .panel-heading, .batch-label { justify-content:space-between; }
 .selecting :global(*) { cursor:crosshair; }
 #comment-workspace.selecting { touch-action:pan-x pan-y pinch-zoom; }
-.recipient { margin-top:.75rem; overflow-wrap:anywhere; }
 .conversation { display:grid; gap:.75rem; }
 .comment-heading { overflow-wrap:anywhere; }
 .comment-heading strong { min-width:0; }
@@ -572,7 +571,6 @@
 }
 .connection-bar :global(footer) { background:white; border-top:1px solid #E7EBE7; align-items:center; }
 .connection-bar :global(button.dz-button) { font-size:.75rem; padding:.25rem .5rem; min-height:44px; }
-.connection-summary { font-size:.75rem; color:#59615C; }
 @keyframes reply-spin { to { transform:rotate(360deg); } }
 @media(prefers-reduced-motion:reduce) { .reply-spinner { animation:none; } }
 </style>

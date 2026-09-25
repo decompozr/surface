@@ -30,6 +30,10 @@ Prefer arrow functions for new or modified JavaScript and TypeScript functions, 
 
 Follow `docs/architecture/package-boundaries.md`. Use only the Surface and CLI workspaces under `apps/`; do not split internal modules into packages without concrete independent consumers. Surface owns interactions, contracts, services, agent adapters, page runtime, MCP and templates. Use declared exports across apps and keep the dependency graph acyclic. Surface must not import CLI. Installation and lifecycle implementation belongs in `apps/cli/src/installation`, with no independent installer package. Use the root frozen Bun workspace lockfile. Root scripts are repository-wide tooling only; integrated verifiers belong in `tests/e2e`.
 
+## Design-system consumption
+
+Use design-system primitives and their public APIs for shared UI appearance and interaction behavior. Do not create replacement primitives or override internal component selectors for visual density, icons, colors, borders, shadows or interaction states. Keep Surface CSS focused on product-specific layout and positioning where needed. Check existing APIs first; when a capability is missing, submit a concrete upstream design-system request and adopt its committed implementation instead of adding a local workaround. Any unavoidable local exception must state its reason and removal condition.
+
 ## Test placement
 
 Colocate module tests beside their implementation as `<module>.test.ts`; do not create app-level test directories. Follow [test ownership](docs/architecture/package-boundaries.md#tests-and-repository-tooling) for cross-app E2E, fixtures and repository checks.
