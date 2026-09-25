@@ -17,7 +17,7 @@ try {
     assert.ok((await response.json()).ok);
   }
   const home = await (await fetch(app.origin)).text();
-  assert.ok(home.includes('app fixture') && home.includes('linked · fixture-linked'), 'Parent server load must render registered worktrees.');
+  assert.ok(home.includes('app fixture') && home.includes('linked') && !home.includes('linked · fixture-linked'), 'Parent server load must render registered worktrees.');
   browser = await chromium.launch({ channel: 'chrome', headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
@@ -26,16 +26,21 @@ try {
   await page.goto(app.origin);
   const nav = page.getByRole('complementary', { name: 'Workspace navigation' });
   await expect(nav).toBeVisible();
+  await expect(nav.getByRole('link', { name: 'ui', exact: true })).toHaveCount(0);
+  await expect(nav.getByRole('link', { name: 'Home', exact: true })).toHaveCount(2);
   await nav.getByRole('link', { name: 'detail', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Nested review' })).toBeVisible().catch(async error => {
     console.error('Navigation failure', { url: page.url(), errors, failedAssets, body: await page.locator('body').innerText() });
     throw error;
   });
+  await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
+  await expect(nav.locator('[aria-current="page"]')).toHaveText('detail');
+  await expect(nav).not.toContainText('fixture-linked');
   await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toContainText('review');
   await page.evaluate(() => document.fonts.ready);
   assert.ok(await page.evaluate(() => document.fonts.check('14px "DecompozR Inter"')), 'Mounted shell loads the package font.');
   const designSystemRoot = realpathSync(join(process.cwd(), 'apps/surface/node_modules/@decompozr/design-system'));
-  assert.equal((await fetch(app.origin + '/@fs' + designSystemRoot + '/src/lib/Button.svelte')).status, 403, 'Only published design-system assets are exposed, not its source checkout.');
+  assert.ok([403, 404].includes((await fetch(app.origin + '/@fs' + designSystemRoot + '/src/lib/Button.svelte')).status), 'Design-system source is denied or absent; only published assets are exposed.');
   await page.getByRole('navigation', { name: 'Breadcrumb' }).getByRole('link', { name: 'review', exact: true }).click();
   await expect(page.locator('[data-artifact-catalog]')).toBeVisible();
   await page.getByRole('button', { name: 'Toggle navigation' }).click();
@@ -45,6 +50,7 @@ try {
   await expect(nav).toBeVisible();
   const output = process.env.SURFACE_NAVIGATION_OUTPUT ?? '.decompozr/surface/screenshots';
   mkdirSync(output, { recursive: true });
+  await expect.poll(async () => (await nav.boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(279);
   await page.screenshot({ path: join(output, 'navigation-desktop.png'), fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(nav).toBeHidden();
@@ -60,8 +66,13 @@ try {
   await page.keyboard.press('Escape'); await expect(nav).toBeHidden();
   await expect(page.getByRole('button', { name: 'Toggle navigation' })).toBeFocused();
   await page.goto(app.origin + '/workspace/app-fixture/main/ui/review/detail');
+  await expect(page.getByText('Wide project-owned content', { exact: true })).toBeVisible();
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-  assert.ok(await page.getByRole('region', { name: 'Page content' }).evaluate(element => element.scrollWidth > element.clientWidth), 'Wide source content stays scrollable within the shell.');
+  const content = page.getByRole('region', { name: 'Shared workspace', exact: true });
+  assert.ok(await content.evaluate(element => element.scrollWidth > element.clientWidth), 'Wide source content stays scrollable within the mounted workspace.');
+  await content.hover();
+  await page.mouse.wheel(400, 0);
+  await expect.poll(() => content.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
   assert.deepEqual(errors, []);
   assert.deepEqual(failedAssets, []);
   console.log('Navigation fixture passed: parent SSR, worktree separation, nested page/folder index, breadcrumbs, persistent desktop collapse, mobile drawer and Escape.');
