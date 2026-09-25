@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount, tick, type Snippet } from 'svelte';
-  import { colorShades, Badge, Button, Switch, Toolbar, ToggleButton, IconButton, TextArea, Icon, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
+  import { Badge, Button, Switch, Toolbar, ToggleButton, IconButton, TextArea, Icon, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
   import Toast from './Toast.svelte';
+  import { chromeTheme } from './chrome-theme.ts';
   import SurfaceShell from './SurfaceShell.svelte';
   import { composerPlacement, readViewport } from '../comments/viewport.ts';
   import { describeTarget, resolveTarget } from '../comments/selection.ts';
@@ -500,11 +501,11 @@
 {/if}
 {#if box && !panel}<div class="selection-outline"><SelectionOutline {...box} state={hovered && hovered !== selected ? 'hover' : 'selected'} /></div>{/if}
 {#if mode && selected && !editorOpen && !panel}
-  <div class="element-label selection-tools" role="toolbar" aria-label="Selected element actions" aria-orientation="horizontal" use:selectionKeyboard class:offscreen={!selectionBox} inert={!selectionBox} aria-hidden={!selectionBox} bind:clientWidth={selectionToolsWidth} bind:clientHeight={selectionToolsHeight} style:--tools-x={`${toolsPosition.x}px`} style:--tools-y={`${toolsPosition.y}px`} style:--label-background={colorShades.sage.base} style:--label-color={colorShades.neutral.white}>
+  <div class="element-label selection-tools" style={chromeTheme} role="toolbar" aria-label="Selected element actions" aria-orientation="horizontal" use:selectionKeyboard class:offscreen={!selectionBox} inert={!selectionBox} aria-hidden={!selectionBox} bind:clientWidth={selectionToolsWidth} bind:clientHeight={selectionToolsHeight} style:--tools-x={`${toolsPosition.x}px`} style:--tools-y={`${toolsPosition.y}px`}>
+    <span class="element-name" title={metadata(selected).selector}>{selected.tagName.toLowerCase()}{selected.id ? `#${selected.id}` : ''}</span>
     {#if selected}
 {#if selected?.parentElement && selected.parentElement !== workspace}<IconButton size="compact" icon="chevron-up" label="Select parent element" title="Select parent element" disabled={locked} onclick={() => { const parent = selected?.parentElement; if (parent && workspace.contains(parent) && parent !== workspace) { selected = parent; review.draft = { ...review.draft, target: metadata(parent), capture: undefined }; hovered = null; updateBox(); } }} />{/if}
     {/if}
-    <span class="element-name" title={selected ? metadata(selected!).selector : ''}>{selected ? metadata(selected!).label : ''}</span>
     {#if selected}
     <IconButton size="compact" icon="camera" label="Capture selected element" title="Screenshot" disabled={locked} onclick={async () => { await capture(); editorOpen = true; updateBox(); }} />
     <IconButton size="compact" icon="message-square" label="Comment on selected element" title="Comment" disabled={locked} onclick={openComment} />
@@ -555,12 +556,19 @@
 
 .reply-wait { display:flex; align-items:center; gap:.5rem; font-size:.875rem; padding-top:.75rem; }
 .reply-spinner { width:14px; height:14px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:reply-spin .8s linear infinite; }
-.element-label { position:fixed; top:0; left:0; z-index:61; display:flex; align-items:center; width:min(340px, calc(100vw - 24px)); box-sizing:border-box; transform:translate3d(var(--tools-x),var(--tools-y),0); will-change:transform; border-radius:.1875rem .1875rem 0 0; background:var(--label-background); color:var(--label-color); padding:0 .4375rem; }
+.element-label { position:fixed; top:0; left:0; z-index:61; display:flex; align-items:center; width:max-content; max-width:calc(100vw - 24px); box-sizing:border-box; transform:translate3d(var(--tools-x),var(--tools-y),0); will-change:transform; color:var(--surface-ink); padding:0 4px; isolation:isolate; }
+.element-label::before { content:''; position:absolute; inset:0; z-index:-1; border:1px solid var(--surface-line); border-radius:6px; background:var(--surface-surface); box-shadow:0 2px 6px #00000014; }
 .selection-tools.offscreen { visibility:hidden; pointer-events:none; }
-.element-label .element-name { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:.75rem/1.5 ui-monospace,monospace; }
-.element-label :global(button.dz-button), .element-label :global(button.dz-button:hover), .element-label :global(button.dz-button:active) { color:var(--label-color) !important; background:transparent !important; border-color:transparent !important; }
+.element-label .element-name { min-width:0; max-width:100px; padding:0 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:.6875rem/1.5 ui-monospace,monospace; color:var(--surface-muted); }
 .element-label :global(.icon-button) { flex-shrink:0; }
-.element-label :global(button.dz-button) { min-width:44px; min-height:44px; padding:0; }
+.element-label :global(button.dz-button) { min-width:32px; min-height:32px; padding:0; color:var(--surface-ink); }
+.element-label :global(.icon) { width:16px; height:16px; }
+.selection-outline :global(.outline) { border-width:1px; }
+@media(pointer:coarse) {
+  .element-label::before { inset:6px 0; }
+  .element-label :global(button.dz-button) { min-width:44px; min-height:44px; }
+  .element-label :global(.icon) { width:16px; height:16px; }
+}
 .connection-bar :global(footer) { background:white; border-top:1px solid #E7EBE7; align-items:center; }
 .connection-bar :global(button.dz-button) { font-size:.75rem; padding:.25rem .5rem; min-height:44px; }
 .connection-summary { font-size:.75rem; color:#59615C; }

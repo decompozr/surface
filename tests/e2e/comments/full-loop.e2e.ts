@@ -56,7 +56,7 @@ try {
       expect(await page.locator('.element-label').evaluate(node => {
         const button = node.querySelector('button')!.getBoundingClientRect();
         const label = node.querySelector('.element-name')!.getBoundingClientRect();
-        return button.right <= label.left + 1;
+        return label.right <= button.left + 1;
       })).toBe(true);
       await page.locator('#headline').click();
       await page.screenshot({ path: join(output, name + '-selection.png'), fullPage: true });
