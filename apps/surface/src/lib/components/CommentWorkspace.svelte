@@ -1,8 +1,7 @@
 <script lang="ts">
   import { onMount, tick, type Snippet } from 'svelte';
-  import { Badge, Button, Switch, Toolbar, ToggleButton, IconButton, TextArea, Icon, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
+  import { Badge, Button, Switch, Toolbar, ToggleButton, IconButton, TextArea, StatusIndicator, Spinner, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
   import Toast from './Toast.svelte';
-  import { chromeTheme } from './chrome-theme.ts';
   import SurfaceShell from './SurfaceShell.svelte';
   import { composerPlacement, readViewport } from '../comments/viewport.ts';
   import { describeTarget, resolveTarget } from '../comments/selection.ts';
@@ -36,32 +35,6 @@
   const notify = (message: string, tone: 'info' | 'success' | 'warning') => {
     clearTimeout(toastTimer); toast = { message, tone };
     toastTimer = setTimeout(() => { toast = null; }, 5000);
-  };
-
-  const selectionKeyboard = (node: HTMLElement) => {
-    const buttons = () => Array.from(node.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'));
-    const focus = (event: FocusEvent) => {
-      for (const button of buttons()) button.tabIndex = button === event.target ? 0 : -1;
-    };
-    const sync = () => {
-      const controls = buttons();
-      const current = controls.find(button => button === document.activeElement)
-        ?? controls.find(button => button.tabIndex === 0) ?? controls[0];
-      for (const button of controls) button.tabIndex = button === current ? 0 : -1;
-    };
-    const key = (event: KeyboardEvent) => {
-      if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
-      const controls = buttons(), index = controls.indexOf(document.activeElement as HTMLButtonElement);
-      if (index < 0) return;
-      event.preventDefault();
-      const next = event.key === 'Home' ? 0 : event.key === 'End' ? controls.length - 1
-        : (index + (event.key === 'ArrowRight' ? 1 : -1) + controls.length) % controls.length;
-      controls[next]?.focus();
-    };
-    const observer = new MutationObserver(sync);
-    observer.observe(node, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled'] });
-    sync(); node.addEventListener('focusin', focus); node.addEventListener('keydown', key);
-    return { destroy() { observer.disconnect(); node.removeEventListener('focusin', focus); node.removeEventListener('keydown', key); } };
   };
 
   const schedulePosition = () => {
@@ -427,28 +400,12 @@
 {#snippet headerTools()}
     <Toolbar label="Review tools">
 
-      <ToggleButton size="compact" icon="mouse-pointer-2" label={mode ? 'Leave comment mode' : 'Select and comment'} aria-keyshortcuts="S" title={mode ? 'Leave comment mode (S / Esc)' : 'Select and comment (S)'} pressed={mode} disabled={locked} onPressedChange={(value) => { mode = value; hovered = null; if (!mode) editorOpen = false; updateBox(); }} />
-      <IconButton size="compact" icon="message-square" label={`Open comments (${review.comments.length} drafts)`} title="Comments (I)" aria-keyshortcuts="I" aria-expanded={panel} aria-controls="surface-comments" onclick={togglePanel}>{#snippet badge()}{#if review.comments.length}<Badge tone="sage">{review.comments.length}</Badge>{/if}{/snippet}</IconButton>
+      <ToggleButton size="compact" touchAppearance="compact" icon="mouse-pointer-2" label={mode ? 'Leave comment mode' : 'Select and comment'} aria-keyshortcuts="S" title={mode ? 'Leave comment mode (S / Esc)' : 'Select and comment (S)'} pressed={mode} disabled={locked} onPressedChange={(value) => { mode = value; hovered = null; if (!mode) editorOpen = false; updateBox(); }} />
+      <IconButton size="compact" touchAppearance="compact" icon="message-square" label={`Open comments (${review.comments.length} drafts)`} title="Comments (I)" aria-keyshortcuts="I" aria-expanded={panel} aria-controls="surface-comments" onclick={togglePanel}>{#snippet badge()}{#if review.comments.length}<Badge tone="sage">{review.comments.length}</Badge>{/if}{/snippet}</IconButton>
     </Toolbar>
 {/snippet}
 {#snippet commentPanel()}
-<SidePanel label="Comment review">
-{#snippet header()}
-    <div class="panel-heading"><Text as="h2" size="body">Comments <Badge>{review.comments.length}</Badge></Text><IconButton size="compact" icon="close" label="Close comments" title="Close comments" onclick={() => panel = false} /></div>
-    <div class="recipient">{#if agentAvailable}<Icon name="circle-dot" />{:else}<Icon name="unplug" />{/if}<Text as="span" size="small" tone="muted">{data.label}</Text></div>
-{/snippet}
-    <div class="conversation" use:followLatest>
-      {#if !review.comments.length && !review.batches.length}<div class="empty"><Text size="small">No comments yet. Select an element to start.</Text></div>{/if}
-      {#each review.batches as batch (batch.id)}<SurfaceCard as="section" class="batch" tone="subtle" aria-label="Submitted batch"><div class="batch-label"><strong>You · {batch.comments.length} comments</strong><span>{batch.recipient === 'local-fixture' ? 'Local test' : batch.result ? batch.result.stage === 'acknowledged' ? 'Agent acknowledged' : 'Agent replied' : batch.status === 'accepted' ? batch.deliveryMode === 'queue' ? 'Queued' : 'Delivered' : batch.status === 'failed' ? 'Not delivered' : 'Unconfirmed'}</span></div>
-        {#each batch.comments as comment}<div class="sent-comment"><strong>{comment.target.label}</strong>{#if comment.capture}<a href={comment.capture.png} download={`${comment.target.id}.png`} aria-label={`Download screenshot of ${comment.target.label}`}><img src={comment.capture.png} alt={`Captured ${comment.target.label}`} /></a>{/if}<Text size="small">{comment.text}</Text></div>{/each}
-        {#if batch.recipient === 'local-fixture' && batch.status === 'accepted'}<Divider /><Text size="small" class="fixture-reply">Local test only. This was not sent to an agent.</Text>{:else if batch.result}<Divider /><Text size="small" class="agent-reply">{batch.result.message}</Text>{:else if batch.status === 'accepted'}{:else if batch.status === 'pending'}<Text size="small">Submission unconfirmed. Nothing is resent automatically.</Text>{#if batch.recipient === 'local-fixture'}<Button size="compact" disabled={sending} onclick={() => deliver(batch.id)}>Retry local test</Button>{/if}{:else if batch.status === 'unknown' || batch.status === 'failed'}<Text size="small" class="notice">{batch.error ?? 'Delivery needs reconciliation. Nothing is resent automatically.'}</Text>{/if}
-        {#if batch.recipient !== 'local-fixture' && (batch.status === 'accepted' || batch.status === 'pending') && (!batch.result || batch.result.stage === 'acknowledged')}<div class="reply-wait" role="status"><span class="reply-spinner" aria-hidden="true"></span>{streamConnected ? 'Waiting for reply…' : 'Reconnecting…'}</div>{/if}
-      </SurfaceCard>{/each}
-      {#if review.comments.length}<Text size="eyebrow" tone="muted">Draft · not sent</Text>{/if}
-      {#each review.comments as comment, i (comment.id)}<SurfaceCard as="article" class="comment-card"><div class="comment-heading"><Badge>{i + 1}</Badge><strong>{comment.target.label}</strong></div>{#if comment.capture}<a href={comment.capture.png} download={`${comment.target.id}.png`} aria-label={`Download screenshot of ${comment.target.label}`}><img src={comment.capture.png} alt={`Captured ${comment.target.label}`} /></a><Text as="span" size="small" tone="muted" class="image-meta">{comment.capture.width} × {comment.capture.height} · frozen capture</Text>{/if}<Text size="small">{comment.text}</Text><div class="card-actions"><IconButton size="compact" icon="pencil" label={`Edit comment ${i + 1}`} title="Edit comment" disabled={locked || review.draft.editing === comment.id} onclick={() => edit(comment)} /><IconButton size="compact" icon="trash-2" label={`Remove comment ${i + 1}`} title="Remove comment" disabled={locked || review.draft.editing === comment.id} onclick={() => review.comments = review.comments.filter(c => c.id !== comment.id)} /></div></SurfaceCard>{/each}
-      {#if toast}<Toast inline message={toast.message} tone={toast.tone} dismiss={() => { toast = null; clearTimeout(toastTimer); }} />{/if}
-    </div>
-{#snippet footer()}
+{#snippet commentFooter()}
     <div class="composer">
       {#if review.draft.target && (review.draft.text.trim() || review.draft.capture)}<Button size="compact" onclick={() => { panel = false; editorOpen = true; selected = restoreTarget(review.draft.target); selected?.scrollIntoView({ block: 'nearest' }); updateBox(); tick().then(() => composer?.focus()); }}>Continue draft: {review.draft.target.label}</Button>{/if}
       {#if notice}<Text size="small" class="notice" role="status">{notice}</Text>{/if}
@@ -458,18 +415,34 @@
       {#if data.live && review.comments.length}
         <Switch label={steer ? 'Steer' : 'Queue'} aria-label="Steer delivery" bind:checked={steer} disabled={locked || pending} />
       {/if}
-      <div class="send-action"><Button size="compact" variant="primary" appearance="default" aria-label={`Send ${review.comments.length} comments together`} title={`Send ${review.comments.length} comments together`} disabled={locked || (data.live && (!agentAvailable || !recipientObservation || inspecting)) || pending || !review.comments.length || !!review.draft.text.trim() || !!review.draft.capture} onclick={send} ><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4v7a4 4 0 0 1-4 4H4m5-5-5 5 5 5" /></svg></Button></div>
+      {#if review.comments.length}<div class="send-action"><IconButton size="compact" touchAppearance="compact" icon="arrow-up" appearance="quiet" label={`Send ${review.comments.length} comments together`} title={`Send ${review.comments.length} comments together`} disabled={locked || (data.live && (!agentAvailable || !recipientObservation || inspecting)) || pending || !!review.draft.text.trim() || !!review.draft.capture} onclick={send} /></div>{/if}
       </div>
       {#if storageError}<span role="alert">{storageError}</span>{/if}
     </div>
 {/snippet}
+<SidePanel label="Comment review" footer={review.comments.length || review.draft.text.trim() || review.draft.capture || notice || storageError ? commentFooter : undefined}>
+{#snippet header()}
+    <div class="panel-heading"><Text as="h2" size="body">Comments <Badge>{review.comments.length}</Badge></Text><IconButton size="compact" touchAppearance="compact" icon="close" label="Close comments" title="Close comments" onclick={() => panel = false} /></div>
+{/snippet}
+    <div class="conversation" use:followLatest>
+      {#if !review.comments.length && !review.batches.length}<div class="empty"><Text size="small">No comments yet. Select an element to start.</Text></div>{/if}
+      {#each review.batches as batch (batch.id)}<SurfaceCard as="section" class="batch" tone="subtle" aria-label="Submitted batch"><div class="batch-label"><strong>You · {batch.comments.length} comments</strong><span>{batch.recipient === 'local-fixture' ? 'Local test' : batch.result ? batch.result.stage === 'acknowledged' ? 'Agent acknowledged' : 'Agent replied' : batch.status === 'accepted' ? batch.deliveryMode === 'queue' ? 'Queued' : 'Delivered' : batch.status === 'failed' ? 'Not delivered' : 'Unconfirmed'}</span></div>
+        {#each batch.comments as comment}<div class="sent-comment"><strong>{comment.target.label}</strong>{#if comment.capture}<a href={comment.capture.png} download={`${comment.target.id}.png`} aria-label={`Download screenshot of ${comment.target.label}`}><img src={comment.capture.png} alt={`Captured ${comment.target.label}`} /></a>{/if}<Text size="small">{comment.text}</Text></div>{/each}
+        {#if batch.recipient === 'local-fixture' && batch.status === 'accepted'}<Divider /><Text size="small" class="fixture-reply">Local test only. This was not sent to an agent.</Text>{:else if batch.result}<Divider /><Text size="small" class="agent-reply">{batch.result.message}</Text>{:else if batch.status === 'accepted'}{:else if batch.status === 'pending'}<Text size="small">Submission unconfirmed. Nothing is resent automatically.</Text>{#if batch.recipient === 'local-fixture'}<Button size="compact" disabled={sending} onclick={() => deliver(batch.id)}>Retry local test</Button>{/if}{:else if batch.status === 'unknown' || batch.status === 'failed'}<Text size="small" class="notice">{batch.error ?? 'Delivery needs reconciliation. Nothing is resent automatically.'}</Text>{/if}
+        {#if batch.recipient !== 'local-fixture' && (batch.status === 'accepted' || batch.status === 'pending') && (!batch.result || batch.result.stage === 'acknowledged')}<div class="reply-wait" role="status"><Spinner size={16} />{streamConnected ? 'Waiting for reply…' : 'Reconnecting…'}</div>{/if}
+      </SurfaceCard>{/each}
+      {#if review.comments.length}<Text size="eyebrow" tone="muted">Draft · not sent</Text>{/if}
+      {#each review.comments as comment, i (comment.id)}<SurfaceCard as="article" class="comment-card"><div class="comment-heading"><Badge>{i + 1}</Badge><strong>{comment.target.label}</strong></div>{#if comment.capture}<a href={comment.capture.png} download={`${comment.target.id}.png`} aria-label={`Download screenshot of ${comment.target.label}`}><img src={comment.capture.png} alt={`Captured ${comment.target.label}`} /></a><Text as="span" size="small" tone="muted" class="image-meta">{comment.capture.width} × {comment.capture.height} · frozen capture</Text>{/if}<Text size="small">{comment.text}</Text><div class="card-actions"><IconButton size="compact" touchAppearance="compact" icon="pencil" label={`Edit comment ${i + 1}`} title="Edit comment" disabled={locked || review.draft.editing === comment.id} onclick={() => edit(comment)} /><IconButton size="compact" touchAppearance="compact" icon="trash-2" label={`Remove comment ${i + 1}`} title="Remove comment" disabled={locked || review.draft.editing === comment.id} onclick={() => review.comments = review.comments.filter(c => c.id !== comment.id)} /></div></SurfaceCard>{/each}
+      {#if toast}<Toast inline message={toast.message} tone={toast.tone} dismiss={() => { toast = null; clearTimeout(toastTimer); }} />{/if}
+    </div>
+
 </SidePanel>
 {/snippet}
 {#snippet connectionStatus()}
-<div class="connection-bar"><StatusBar label="Connection status" height="44px">
-  {#if data.live && connectionKey}<Button size="compact" appearance="quiet" disabled={locked || inspecting} onclick={() => refreshRecipient()}>Refresh agent</Button>{/if}
-  <span class="connection-summary">{!data.live ? 'Local test' : !connectionKey ? 'Not connected' : streamConnected ? agentAvailable ? 'Connected' : 'Agent unavailable' : 'Reconnecting…'}</span><span class="live-indicator"><IconButton size="compact" icon="radio" label={streamConnected ? 'Live updates connected' : 'Live updates disconnected'} title={streamConnected ? 'Live updates connected' : connectionKey ? 'Reconnecting' : 'Open the private connection link'} onclick={() => notify(streamConnected ? `Live updates connected. ${agentStatus}.` : connectionKey ? 'Disconnected. Reconnecting automatically.' : 'Open the private connection link to connect.', streamConnected ? 'info' : 'warning')} /></span>
-</StatusBar></div>
+<StatusBar label="Connection status" height="44px">
+  {#if data.live && connectionKey}<IconButton size="compact" touchAppearance="compact" icon="refresh" label="Refresh agent" title="Refresh agent" disabled={locked || inspecting} onclick={async () => { await refreshRecipient(); notify(agentAvailable ? 'Agent refreshed.' : 'Agent unavailable. Try again.', agentAvailable ? 'success' : 'warning'); }} />{/if}
+  <StatusIndicator kind={!data.live || !connectionKey ? 'error' : !streamConnected || !agentAvailable ? 'warning' : 'success'} label={!data.live ? 'Local test; show connection details' : !connectionKey ? 'Not connected; show connection details' : !streamConnected ? 'Reconnecting; show connection details' : !agentAvailable ? 'Agent unavailable; show connection details' : 'Connected; show connection details'} onclick={() => notify(!data.live ? 'Local test. No agent connected.' : !connectionKey ? 'Open the private connection link to connect.' : streamConnected ? `Live updates connected. ${agentStatus}.` : 'Disconnected. Reconnecting automatically.', streamConnected && agentAvailable ? 'info' : 'warning')} />
+</StatusBar>
 {/snippet}
 <SurfaceShell panelContent={commentPanel} bind:panelOpen={panel} status={connectionStatus} statusHeight="44px" navigation={data.navigation} {currentPath} {headerTools} surfaceIdentity={ !mounted } overlayNavigation={!mounted} showBreadcrumbs={mounted}>
   <section id="comment-workspace" class:selecting={mode} class:mounted bind:this={workspace} aria-label="Shared workspace">
@@ -480,7 +453,7 @@
   <div class="editor-anchor" use:measureEditor>
   <FloatingComposer label="Comment on selected element" x={editorPosition.x} y={editorPosition.y} width={`${editorPosition.width}px`} maxHeight={`${editorPosition.maxHeight}px`}>
 {#snippet header()}
-    <div class="selected-title"><strong title={review.draft.target?.selector}>{review.draft.target?.label}</strong><IconButton size="compact" icon="close" label="Close comment editor" title="Close (draft retained)" disabled={locked} onclick={closeEditor} /></div>
+    <div class="selected-title"><strong title={review.draft.target?.selector}>{review.draft.target?.label}</strong><IconButton size="compact" touchAppearance="compact" icon="close" label="Close comment editor" title="Close (draft retained)" disabled={locked} onclick={closeEditor} /></div>
 {/snippet}
     <div class="editor-body">
     {#if review.draft.capture}<img class="capture-preview" src={review.draft.capture.png} alt="Selected element screenshot preview" />{/if}
@@ -488,29 +461,30 @@
     </div>
 {#snippet actions()}
     <div class="editor-actions">
-      <IconButton size="compact" icon="camera" label={review.draft.capture ? 'Retake element screenshot' : 'Capture element screenshot'} title={busy ? 'Capturing…' : 'Capture selected element'} disabled={locked || !selected} onclick={capture} />
+      <IconButton size="compact" touchAppearance="compact" icon="camera" label={review.draft.capture ? 'Retake element screenshot' : 'Capture element screenshot'} title={busy ? 'Capturing…' : 'Capture selected element'} disabled={locked || !selected} onclick={capture} />
 
-      {#if review.draft.capture}<IconButton size="compact" icon="trash-2" label="Remove screenshot" title="Remove screenshot" disabled={locked} onclick={() => review.draft.capture = undefined} />{/if}
+      {#if review.draft.capture}<IconButton size="compact" touchAppearance="compact" icon="trash-2" label="Remove screenshot" title="Remove screenshot" disabled={locked} onclick={() => review.draft.capture = undefined} />{/if}
       <span class="editor-status">{busy ? 'Capturing…' : ''}</span>
-      <IconButton size="compact" icon="check" variant="primary" appearance="default" label={review.draft.editing ? 'Save comment' : 'Add comment to draft'} aria-keyshortcuts="Meta+Enter Control+Enter" title={review.draft.editing ? 'Save comment (⌘/Ctrl + Enter)' : 'Add comment (⌘/Ctrl + Enter)'} disabled={locked || (!review.draft.text.trim() && !review.draft.capture)} onclick={() => addComment()} />
+      <IconButton size="compact" touchAppearance="compact" icon="check" variant="primary" appearance="default" label={review.draft.editing ? 'Save comment' : 'Add comment to draft'} aria-keyshortcuts="Meta+Enter Control+Enter" title={review.draft.editing ? 'Save comment (⌘/Ctrl + Enter)' : 'Add comment (⌘/Ctrl + Enter)'} disabled={locked || (!review.draft.text.trim() && !review.draft.capture)} onclick={() => addComment()} />
     </div>
 {/snippet}
 {#snippet footer()}{#if notice && !compactEditor}<Text size="small" role="status">{notice}</Text>{/if}{/snippet}
   </FloatingComposer>
   </div>
 {/if}
-{#if box && !panel}<div class="selection-outline"><SelectionOutline {...box} state={hovered && hovered !== selected ? 'hover' : 'selected'} /></div>{/if}
+{#if box && !panel}<div class="selection-outline"><SelectionOutline {...box} size="compact" tone="neutral" elevation="floating" state={hovered && hovered !== selected ? 'hover' : 'selected'} /></div>{/if}
 {#if mode && selected && !editorOpen && !panel}
-  <div class="element-label selection-tools" style={chromeTheme} role="toolbar" aria-label="Selected element actions" aria-orientation="horizontal" use:selectionKeyboard class:offscreen={!selectionBox} inert={!selectionBox} aria-hidden={!selectionBox} bind:clientWidth={selectionToolsWidth} bind:clientHeight={selectionToolsHeight} style:--tools-x={`${toolsPosition.x}px`} style:--tools-y={`${toolsPosition.y}px`}>
-    <span class="element-name" title={metadata(selected).selector}>{selected.tagName.toLowerCase()}{selected.id ? `#${selected.id}` : ''}</span>
+  <div class="selection-tools" class:offscreen={!selectionBox} inert={!selectionBox} aria-hidden={!selectionBox} bind:clientWidth={selectionToolsWidth} bind:clientHeight={selectionToolsHeight} style:--tools-x={`${toolsPosition.x}px`} style:--tools-y={`${toolsPosition.y}px`}>
+    <Toolbar label="Selected element actions" appearance="floating" targetLabel={`${selected.tagName.toLowerCase()}${selected.id ? `#${selected.id}` : ''}`}>
     {#if selected}
-{#if selected?.parentElement && selected.parentElement !== workspace}<IconButton size="compact" icon="chevron-up" label="Select parent element" title="Select parent element" disabled={locked} onclick={() => { const parent = selected?.parentElement; if (parent && workspace.contains(parent) && parent !== workspace) { selected = parent; review.draft = { ...review.draft, target: metadata(parent), capture: undefined }; hovered = null; updateBox(); } }} />{/if}
+{#if selected?.parentElement && selected.parentElement !== workspace}<IconButton size="compact" touchAppearance="compact" icon="chevron-up" label="Select parent element" title="Select parent element" disabled={locked} onclick={() => { const parent = selected?.parentElement; if (parent && workspace.contains(parent) && parent !== workspace) { selected = parent; review.draft = { ...review.draft, target: metadata(parent), capture: undefined }; hovered = null; updateBox(); } }} />{/if}
     {/if}
     {#if selected}
-    <IconButton size="compact" icon="camera" label="Capture selected element" title="Screenshot" disabled={locked} onclick={async () => { await capture(); editorOpen = true; updateBox(); }} />
-    <IconButton size="compact" icon="message-square" label="Comment on selected element" title="Comment" disabled={locked} onclick={openComment} />
-    <IconButton size="compact" icon="close" label="Clear selection" title="Clear selection" disabled={locked} onclick={() => { selected = null; hovered = null; updateBox(); }} />
+    <IconButton size="compact" touchAppearance="compact" icon="camera" label="Capture selected element" title="Screenshot" disabled={locked} onclick={async () => { await capture(); editorOpen = true; updateBox(); }} />
+    <IconButton size="compact" touchAppearance="compact" icon="message-square" label="Comment on selected element" title="Comment" disabled={locked} onclick={openComment} />
+    <IconButton size="compact" touchAppearance="compact" icon="close" label="Clear selection" title="Clear selection" disabled={locked} onclick={() => { selected = null; hovered = null; updateBox(); }} />
     {/if}
+    </Toolbar>
   </div>
 {/if}
 
@@ -521,11 +495,10 @@
 #comment-workspace { box-sizing:border-box; height:100%; min-width:0; overflow:auto; padding:24px 38px; }
 #comment-workspace.mounted { padding:0; }
 #comment-workspace:not(.mounted) :global(*) { box-sizing:border-box; }
-.panel-heading, .recipient, .comment-heading, .batch-label, .card-actions, .send-action, .selected-title, .editor-actions { display:flex; align-items:center; gap:.5rem; }
+.panel-heading, .comment-heading, .batch-label, .card-actions, .send-action, .selected-title, .editor-actions { display:flex; align-items:center; gap:.5rem; }
 .panel-heading, .batch-label { justify-content:space-between; }
 .selecting :global(*) { cursor:crosshair; }
 #comment-workspace.selecting { touch-action:pan-x pan-y pinch-zoom; }
-.recipient { margin-top:.75rem; overflow-wrap:anywhere; }
 .conversation { display:grid; gap:.75rem; }
 .comment-heading { overflow-wrap:anywhere; }
 .comment-heading strong { min-width:0; }
@@ -534,7 +507,6 @@
 .conversation :global(.image-meta) { display:block; margin:.25rem 0; }
 .card-actions, .send-action { justify-content:flex-end; }
 .send-action { margin-left:auto; }
-.delivery-actions :global(button.dz-button), .card-actions :global(button.dz-button), .editor-actions :global(button.dz-button) { min-width:44px; min-height:44px; }
 .delivery-actions { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
 .composer { padding-bottom:0; }
 .composer :global(p) { margin:.5rem 0; overflow-wrap:anywhere; }
@@ -555,23 +527,6 @@
 }
 
 .reply-wait { display:flex; align-items:center; gap:.5rem; font-size:.875rem; padding-top:.75rem; }
-.reply-spinner { width:14px; height:14px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:reply-spin .8s linear infinite; }
-.element-label { position:fixed; top:0; left:0; z-index:61; display:flex; align-items:center; width:max-content; max-width:calc(100vw - 24px); box-sizing:border-box; transform:translate3d(var(--tools-x),var(--tools-y),0); will-change:transform; color:var(--surface-ink); padding:0 4px; isolation:isolate; }
-.element-label::before { content:''; position:absolute; inset:0; z-index:-1; border:1px solid var(--surface-line); border-radius:6px; background:var(--surface-surface); box-shadow:0 2px 6px #00000014; }
+.selection-tools { position:fixed; top:0; left:0; z-index:61; width:max-content; max-width:calc(100vw - 24px); transform:translate3d(var(--tools-x),var(--tools-y),0); will-change:transform; }
 .selection-tools.offscreen { visibility:hidden; pointer-events:none; }
-.element-label .element-name { min-width:0; max-width:100px; padding:0 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:.6875rem/1.5 ui-monospace,monospace; color:var(--surface-muted); }
-.element-label :global(.icon-button) { flex-shrink:0; }
-.element-label :global(button.dz-button) { min-width:32px; min-height:32px; padding:0; color:var(--surface-ink); }
-.element-label :global(.icon) { width:16px; height:16px; }
-.selection-outline :global(.outline) { border-width:1px; }
-@media(pointer:coarse) {
-  .element-label::before { inset:6px 0; }
-  .element-label :global(button.dz-button) { min-width:44px; min-height:44px; }
-  .element-label :global(.icon) { width:16px; height:16px; }
-}
-.connection-bar :global(footer) { background:white; border-top:1px solid #E7EBE7; align-items:center; }
-.connection-bar :global(button.dz-button) { font-size:.75rem; padding:.25rem .5rem; min-height:44px; }
-.connection-summary { font-size:.75rem; color:#59615C; }
-@keyframes reply-spin { to { transform:rotate(360deg); } }
-@media(prefers-reduced-motion:reduce) { .reply-spinner { animation:none; } }
 </style>

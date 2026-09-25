@@ -10,11 +10,11 @@ export const navigationTree = (mounts: NavigationMount[], directory: Directory):
     const label = representative?.publicPath?.split('/')[2]?.replaceAll('-', ' ') ?? basename(project.commonDir.replace(/\/\.git$/, ''));
     const node: NavigationNode = { id: project.id, label, children: [] };
     for (const workspace of project.workspaces.filter(item => item.status === 'active')) {
-      const worktree: NavigationNode = { id: workspace.id, label: basename(workspace.root) === workspace.branch ? workspace.branch : `${basename(workspace.root)} · ${workspace.branch}`, children: [] };
+      const worktree: NavigationNode = { id: workspace.id, label: basename(workspace.root), children: [] };
       for (const mount of mounts.filter(item => item.status === 'ready' && item.projectRoot === workspace.root && item.publicPath && Object.keys(item.pages ?? {}).length)) {
-        const folder: NavigationNode = { id: mount.namespace + '/' + mount.name, label: basename(mount.source), href: mount.publicPath + '/', children: [] };
+        const folder: NavigationNode = { id: mount.namespace + '/' + mount.name, label: basename(mount.source), children: [] };
         for (const route of Object.keys(mount.pages!).sort()) {
-          if (!route) { folder.children.push({ id: folder.id + ':home', label: 'Home', href: folder.href, children: [] }); continue; }
+          if (!route) { folder.children.push({ id: folder.id + ':home', label: 'Home', href: mount.publicPath + '/', children: [] }); continue; }
           let parent = folder;
           const segments = route.split('/');
           for (let index = 0; index < segments.length; index++) {

@@ -80,7 +80,7 @@ for (const profile of ['desktop', 'touch-chromium', 'mobile'] as const) {
     await (profile === 'desktop' ? page.locator('#headline').click() : page.locator('#headline').tap());
     const tools = page.getByRole('toolbar', { name: 'Selected element actions' });
     await expect(tools).toBeVisible();
-    await expect(tools.locator('.element-name')).toHaveText('h1#headline');
+    await expect(tools.locator('.target-label')).toHaveText('h1#headline');
     expect(await tools.evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
     expect(await tools.evaluate(el => getComputedStyle(el, '::before').backgroundColor)).toBe('rgb(255, 255, 255)');
     for (const icon of await tools.locator('svg').all()) {
