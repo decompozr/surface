@@ -1,0 +1,13 @@
+# Width-preserving navigation adoption
+
+The September 25 report identified text compression during desktop navigation opening. The previous responsive AppShell animated its grid track from zero to 280px, reducing page width; the installed counter heading moved by 140px as centered content reflowed. The requested behavior is a fixed-width drawer sliding in and pushing the whole page, not overlay-only navigation.
+
+Surface adopts the public `navigationMode="push"` API from design-system main `94fd87a57d143848d31d6ffd083c56516c389e87` (provider PR7). Frozen package identity: `d8e67d83ab533989872551537178de817378368d2ac3533aaedf8980e59ed15e`. No provider checkout, development link, recipient, or user draft was modified. Navigation starts closed on both server and client; the old sessionStorage-driven opening after hydration is removed. `viewportContent` now names the independent page-height layout policy.
+
+Source disposition: [navigation](../design/navigation.md), [accessibility](../design/accessibility.md), and [design-system ownership](../design/README.md). Header/status stay fixed; displaced content is clipped until the drawer closes. The design system owns motion, backdrop, inert state and focus restoration.
+
+Verification uses an isolated source export, production build, fake recipients and fresh storage. Mounted Chromium and iPhone-sized WebKit sample 25 frames per opening, asserting invariant page/drawer width and label heights, unchanged vertical position, equal horizontal travel, and full drawer displacement. Navigation checks cover folder/page identity, reload, mobile Escape/focus restoration and horizontal scrolling. Existing comment checks preserve Queue/Steer, compact typed delivery, acknowledgement recovery, SSE results, offline recovery and reload.
+
+Desktop and phone screenshots were inspected. The first desktop navigation capture occurred during animation because the old test waited for width alone; capture now also waits for the drawer to reach x=0. Physical iPhone acceptance remains separate. Completed raw build/test artifacts are disposable after recording results; the selected installed preview and its state remain retained.
+
+Results: root and Surface type checks passed with zero Svelte warnings; 105 unit/module tests passed (989 assertions); dedicated navigation verifier passed; complete comments matrix passed (fixture and mounted idle/active, desktop Chromium and mobile WebKit, plus touch Chromium, toolbar scroll and viewport checks). Documentation validation passed for 109 Markdown files and 661 local references. The release installation identity and post-install checks are recorded in the local preview receipt after deployment.

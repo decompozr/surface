@@ -25,6 +25,8 @@ try {
   page.on('response', response => { if (response.status() >= 400 && !response.url().endsWith('/favicon.ico')) failedAssets.push(`${response.status()} ${response.url()}`); });
   await page.goto(app.origin);
   const nav = page.getByRole('complementary', { name: 'Workspace navigation' });
+  await expect(nav).toBeHidden();
+  await page.getByRole('button', { name: 'Toggle navigation' }).click();
   await expect(nav).toBeVisible();
   await expect(nav.getByRole('link', { name: 'ui', exact: true })).toHaveCount(0);
   await expect(nav.getByRole('link', { name: 'Home', exact: true })).toHaveCount(2);
@@ -33,6 +35,7 @@ try {
     console.error('Navigation failure', { url: page.url(), errors, failedAssets, body: await page.locator('body').innerText() });
     throw error;
   });
+  await page.getByRole('button', { name: 'Toggle navigation' }).click();
   await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
   await expect(nav.locator('[aria-current="page"]')).toHaveText('detail');
   await expect(nav).not.toContainText('fixture-linked');
@@ -41,17 +44,18 @@ try {
   assert.ok(await page.evaluate(() => document.fonts.check('14px "DecompozR Inter"')), 'Mounted shell loads the package font.');
   const designSystemRoot = realpathSync(join(process.cwd(), 'apps/surface/node_modules/@decompozr/design-system'));
   assert.ok([403, 404].includes((await fetch(app.origin + '/@fs' + designSystemRoot + '/src/lib/Button.svelte')).status), 'Design-system source is denied or absent; only published assets are exposed.');
+  await page.keyboard.press('Escape');
   await page.getByRole('navigation', { name: 'Breadcrumb' }).getByRole('link', { name: 'review', exact: true }).click();
   await expect(page.locator('[data-artifact-catalog]')).toBeVisible();
-  await page.getByRole('button', { name: 'Toggle navigation' }).click();
   await expect(nav).toBeHidden();
   await page.reload(); await expect(nav).toBeHidden();
   await page.getByRole('button', { name: 'Toggle navigation' }).click();
   await expect(nav).toBeVisible();
   const output = process.env.SURFACE_NAVIGATION_OUTPUT ?? '.decompozr/surface/screenshots';
   mkdirSync(output, { recursive: true });
-  await expect.poll(async () => (await nav.boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(279);
+  await expect.poll(async () => { const bounds = await nav.boundingBox(); return !!bounds && bounds.width >= 279 && Math.abs(bounds.x) < 1; }).toBe(true);
   await page.screenshot({ path: join(output, 'navigation-desktop.png'), fullPage: true });
+  await page.keyboard.press('Escape');
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(nav).toBeHidden();
   await page.getByRole('button', { name: 'Toggle navigation' }).click();
@@ -75,5 +79,5 @@ try {
   await expect.poll(() => content.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
   assert.deepEqual(errors, []);
   assert.deepEqual(failedAssets, []);
-  console.log('Navigation fixture passed: parent SSR, worktree separation, nested page/folder index, breadcrumbs, persistent desktop collapse, mobile drawer and Escape.');
+  console.log('Navigation fixture passed: parent SSR, worktree separation, nested page/folder index, breadcrumbs, closed initial navigation, mobile drawer and Escape.');
 } finally { await browser?.close(); await app?.stop(); rmSync(f.directory, { recursive: true, force: true }); }

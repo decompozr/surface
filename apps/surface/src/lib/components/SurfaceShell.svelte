@@ -14,7 +14,7 @@
     pageContent.focus();
   };
 
-  const toggle = () => { navigationOpen = !navigationOpen; if (!overlayNavigation && !mobile) { collapsed = !navigationOpen; try { sessionStorage.setItem('surface-sidebar', String(collapsed)); } catch {} } };
+  const toggle = () => { navigationOpen = !navigationOpen; };
 
   const trail = (nodes: NavigationNode[], parents: NavigationNode[] = []): NavigationNode[] => {
     for (const node of nodes) {
@@ -25,32 +25,28 @@
     return [];
   };
 
-  let { navigation = [], currentPath = '/', children, headerTools, surfaceIdentity = false, overlayNavigation = false, showBreadcrumbs = true, panelContent, panelOpen = $bindable(false), status, statusHeight = '0px' }: {
+  let { navigation = [], currentPath = '/', children, headerTools, surfaceIdentity = false, viewportContent = false, showBreadcrumbs = true, panelContent, panelOpen = $bindable(false), status, statusHeight = '0px' }: {
     navigation?: NavigationNode[]; currentPath?: string; children?: Snippet; headerTools?: Snippet;
-    surfaceIdentity?: boolean; overlayNavigation?: boolean; showBreadcrumbs?: boolean;
+    surfaceIdentity?: boolean; viewportContent?: boolean; showBreadcrumbs?: boolean;
     panelContent?: Snippet; panelOpen?: boolean; status?: Snippet; statusHeight?: string;
   } = $props();
-  let navigationOpen = $state(false), currentURL = $state(''), mobile = $state(false), collapsed = $state(false);
+  let navigationOpen = $state(false), currentURL = $state('');
   let pageContent: HTMLDivElement;
   const breadcrumbs = $derived(trail(navigation));
   onMount(() => {
     currentURL = location.href;
-    try { collapsed = sessionStorage.getItem('surface-sidebar') === 'true'; } catch {}
-    const query = matchMedia('(max-width: 760px)');
-    const update = () => { mobile = query.matches; if (!overlayNavigation) navigationOpen = mobile ? false : !collapsed; };
-    update(); query.addEventListener('change', update);
-    return () => query.removeEventListener('change', update);
+
   });
 </script>
 <svelte:window onkeydown={(event) => {
   const target = event.target;
   const typing = target instanceof HTMLElement && (target.isContentEditable || !!target.closest('input, textarea, select, [role="textbox"]'));
-  if (overlayNavigation && !typing && !event.isComposing && !event.repeat && !event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === 'm') { event.preventDefault(); toggle(); }
+  if (viewportContent && !typing && !event.isComposing && !event.repeat && !event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === 'm') { event.preventDefault(); toggle(); }
 }} />
 {#snippet header()}
   <AppHeader actions={headerTools}>
     <a class="skip-link" href="#surface-page-content" onclick={skipToContent}>Skip to content</a>
-    <Button appearance="quiet" size="compact" touchAppearance="compact" onclick={toggle} aria-label="Toggle navigation" title={overlayNavigation ? 'Toggle navigation (M)' : 'Toggle navigation'} aria-keyshortcuts={overlayNavigation ? 'M' : undefined} aria-controls="surface-navigation" aria-expanded={navigationOpen}>
+    <Button appearance="quiet" size="compact" touchAppearance="compact" onclick={toggle} aria-label="Toggle navigation" title={viewportContent ? 'Toggle navigation (M)' : 'Toggle navigation'} aria-keyshortcuts={viewportContent ? 'M' : undefined} aria-controls="surface-navigation" aria-expanded={navigationOpen}>
       {#if surfaceIdentity}<Logo variant="compact" palette="slate" centerSymbol="S" label="Surface" size={38} />{:else}<Icon name="panel-left" size={16} />{/if}
     </Button>
     <Brand href="/" data-sveltekit-reload>Surface</Brand>
@@ -60,8 +56,8 @@
   <Text size="eyebrow" tone="muted">Projects &amp; workspaces</Text>
   {#if navigation.length}<NavigationTree nodes={navigation} {currentPath} {currentURL} />{:else}<Text size="small" tone="muted">No route pages are mounted yet.</Text>{/if}
 {/snippet}
-<AppShell navigationMode={overlayNavigation ? 'overlay' : 'responsive'} {header} navigation={navigationContent} bind:navigationOpen navigationId="surface-navigation" navigationLabel="Workspace navigation" panel={panelContent} bind:panelOpen panelId="surface-comments" panelLabel="Comments and conversation" {status} {statusHeight}>
-  <div class="content" class:viewport={overlayNavigation}>
+<AppShell navigationMode="push" {header} navigation={navigationContent} bind:navigationOpen navigationId="surface-navigation" navigationLabel="Workspace navigation" panel={panelContent} bind:panelOpen panelId="surface-comments" panelLabel="Comments and conversation" {status} {statusHeight}>
+  <div class="content" class:viewport={viewportContent}>
     {#if showBreadcrumbs}<Breadcrumbs items={[
       { label: 'Home', href: '/', current: currentPath === '/', attributes: { 'data-sveltekit-reload': true } },
       ...breadcrumbs.map(node => ({ label: node.label,

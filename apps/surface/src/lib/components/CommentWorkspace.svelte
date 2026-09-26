@@ -444,7 +444,7 @@
   <StatusIndicator kind={!data.live || !connectionKey ? 'error' : !streamConnected || !agentAvailable ? 'warning' : 'success'} label={!data.live ? 'Local test; show connection details' : !connectionKey ? 'Not connected; show connection details' : !streamConnected ? 'Reconnecting; show connection details' : !agentAvailable ? 'Agent unavailable; show connection details' : 'Connected; show connection details'} onclick={() => notify(!data.live ? 'Local test. No agent connected.' : !connectionKey ? 'Open the private connection link to connect.' : streamConnected ? `Live updates connected. ${agentStatus}.` : 'Disconnected. Reconnecting automatically.', streamConnected && agentAvailable ? 'info' : 'warning')} />
 </StatusBar>
 {/snippet}
-<SurfaceShell panelContent={commentPanel} bind:panelOpen={panel} status={connectionStatus} statusHeight="44px" navigation={data.navigation} {currentPath} {headerTools} surfaceIdentity={ !mounted } overlayNavigation={!mounted} showBreadcrumbs={mounted}>
+<SurfaceShell panelContent={commentPanel} bind:panelOpen={panel} status={connectionStatus} statusHeight="44px" navigation={data.navigation} {currentPath} {headerTools} surfaceIdentity={ !mounted } viewportContent={!mounted} showBreadcrumbs={mounted}>
   <section id="comment-workspace" class:selecting={mode} class:mounted bind:this={workspace} aria-label="Shared workspace">
     {#if children}{@render children(mode)}{:else}<div id="surface-page"></div>{/if}
   </section>

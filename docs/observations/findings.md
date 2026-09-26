@@ -201,3 +201,7 @@ PR54 integration follow-up preserved the newer compact strip and reserved status
 ## September 24 module ownership correction
 
 The user identified unnecessary library workspaces and an ambiguous client boundary. Incorporated: three apps, Surface-owned internal modules, a purpose-named page interaction SDK, and direct host service calls sharing the HTTP mutation queue. The standalone MCP transport remains an external process calling the existing host. Current ownership is specified in [application boundaries](../architecture/package-boundaries.md); [dated history](../history/2026-09-24-workspace-boundaries.md#three-app-consolidation-acceptance) records verified source/package identities, the legacy-fixture correction and acceptance limits.
+
+## September 26: navigation motion without text compression
+
+The user clarified that opening navigation must slide the drawer in and push the page without squeezing either layout. Adopted disposition: design-system push mode, fixed widths through animation and stable closed hydration state; see [completed adoption evidence](../history/2026-09-26-push-navigation.md) and the [navigation accessibility contract](../design/accessibility.md).

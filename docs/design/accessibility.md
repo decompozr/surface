@@ -4,7 +4,7 @@ Status: source-backed mechanics with bounded keyboard-bypass browser evidence fr
 
 ## D-07: responsive behavior
 
-[SurfaceShell](../../apps/surface/src/lib/components/SurfaceShell.svelte) uses a 280px sidebar and a 760px breakpoint. Desktop collapse is stored in sessionStorage. At or below 760px navigation becomes a drawer with a backdrop, Escape dismissal and toggle focus restoration on close. Hidden navigation is inert. The named, focusable Page content region contains horizontal overflow from wide project content. [RecipientPanel](../../apps/surface/src/lib/components/RecipientPanel.svelte) stacks labels at 600px and wraps long identity text.
+[SurfaceShell](../../apps/surface/src/lib/components/SurfaceShell.svelte) uses design-system push navigation on desktop and phone. Navigation starts closed consistently through hydration. The fixed-width drawer slides in and moves the page horizontally without reducing its layout width or changing line breaks. Offscreen content is clipped until navigation closes. Escape and backdrop dismissal restore toggle focus. Hidden navigation is inert. The named, focusable Page content region contains horizontal overflow from wide project content. [RecipientPanel](../../apps/surface/src/lib/components/RecipientPanel.svelte) stacks labels at 600px and wraps long identity text.
 
 These dimensions describe current code, not a frozen universal design system. [E-12](../evaluations/ui-eval.md#e-12-mobile-and-accessibility) exercises current 1440px and 390px fixture coverage separately from proposed smaller widths, zoom and physical-device checks. Private HTTPS configuration alone does not verify the mobile journey.
 
