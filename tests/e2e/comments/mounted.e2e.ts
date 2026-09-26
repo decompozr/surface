@@ -108,12 +108,37 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
     try {
       await page.goto(preview.href);
       const navigation = page.getByRole('complementary', { name: 'Workspace navigation' });
-      if (mobile) await page.getByRole('button', { name: 'Toggle navigation', exact: true }).tap();
+      // Sample the real mounted page throughout opening, not only its final position.
+      const frames = await page.evaluate(async () => {
+        const main = document.querySelector('#surface-page-content')!;
+        const drawer = document.querySelector('#surface-navigation')!;
+        const measure = () => {
+          const pageBounds = main.getBoundingClientRect(), navBounds = drawer.getBoundingClientRect();
+          return { x: pageBounds.x, y: pageBounds.y, width: pageBounds.width, navX: navBounds.x, navWidth: navBounds.width,
+            labels: Array.from(drawer.querySelectorAll('a')).map(link => link.getBoundingClientRect().height) };
+        };
+        const samples = [measure()];
+        (document.querySelector('[aria-controls="surface-navigation"]') as HTMLButtonElement).click();
+        for (let i = 0; i < 24; i++) {
+          await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+          samples.push(measure());
+        }
+        return samples;
+      });
+      for (const frame of frames) {
+        expect(frame.width).toBe(frames[0].width);
+        expect(frame.y).toBe(frames[0].y);
+        expect(frame.navWidth).toBe(frames[0].navWidth);
+        expect(frame.labels).toEqual(frames[0].labels);
+        expect(Math.abs((frame.x - frames[0].x) - (frame.navX - frames[0].navX))).toBeLessThan(1);
+      }
+      expect(frames.at(-1)!.x - frames[0].x).toBeCloseTo(frames[0].navWidth, 0);
+
       await expect.poll(async () => { const bounds = await navigation.boundingBox(); return !!bounds && bounds.width >= 279 && Math.abs(bounds.x) <= 1; }).toBe(true);
       await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
       if (mobile) for (const link of await navigation.getByRole('link').all()) expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
       await page.screenshot({ path: join(output, name + '-navigation.png'), fullPage: true });
-      if (mobile) await page.getByRole('button', { name: 'Toggle navigation', exact: true }).tap();
+      await page.getByRole('button', { name: 'Toggle navigation', exact: true }).click();
       await page.getByRole('button', { name: /Open comments/ }).click();
       const emptyReview = page.getByRole('region', { name: 'Comment review', exact: true });
       await expect(emptyReview.getByText('No comments yet. Select an element to start.', { exact: true })).toBeVisible();
