@@ -1,3 +1,4 @@
+import { verifyEdgeSwipes } from './edge-swipes.ts';
 import { chromium, webkit, devices, expect } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 const origin = process.env.COMMENTS_E2E_ORIGIN;
@@ -34,6 +35,7 @@ for (const profile of ['desktop', 'touch-chromium', 'mobile'] as const) {
       }
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    if (profile !== 'desktop') await verifyEdgeSwipes(page, profile === 'touch-chromium', output, profile);
     const menu = page.getByRole('button', { name: 'Toggle navigation' });
     if (profile === 'desktop') {
       await page.keyboard.press('s');
