@@ -1,3 +1,4 @@
+import { verifyEdgeSwipes } from './edge-swipes.ts';
 /** Real browser/HTTP/store/SSE; isolated provider protocol fixture, never a real agent socket. */
 import { chromium, webkit, devices, expect } from '@playwright/test';
 import { WebSocketServer } from 'ws';
@@ -139,6 +140,7 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       if (mobile) for (const link of await navigation.getByRole('link').all()) expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
       await page.screenshot({ path: join(output, name + '-navigation.png'), fullPage: true });
       await page.getByRole('button', { name: 'Toggle navigation', exact: true }).click();
+      if (mobile) await verifyEdgeSwipes(page, false, output, name);
       await page.getByRole('button', { name: /Open comments/ }).click();
       const emptyReview = page.getByRole('region', { name: 'Comment review', exact: true });
       await expect(emptyReview.getByText('No comments yet. Select an element to start.', { exact: true })).toBeVisible();

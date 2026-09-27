@@ -56,7 +56,7 @@
   <Text size="eyebrow" tone="muted">Projects &amp; workspaces</Text>
   {#if navigation.length}<NavigationTree nodes={navigation} {currentPath} {currentURL} />{:else}<Text size="small" tone="muted">No route pages are mounted yet.</Text>{/if}
 {/snippet}
-<AppShell navigationMode="push" {header} navigation={navigationContent} bind:navigationOpen navigationId="surface-navigation" navigationLabel="Workspace navigation" panel={panelContent} bind:panelOpen panelId="surface-comments" panelLabel="Comments and conversation" {status} {statusHeight}>
+<AppShell navigationMode="push" edgeSwipes {header} navigation={navigationContent} bind:navigationOpen navigationId="surface-navigation" navigationLabel="Workspace navigation" panel={panelContent} bind:panelOpen panelId="surface-comments" panelLabel="Comments and conversation" {status} {statusHeight}>
   <div class="content" class:viewport={viewportContent}>
     {#if showBreadcrumbs}<Breadcrumbs items={[
       { label: 'Home', href: '/', current: currentPath === '/', attributes: { 'data-sveltekit-reload': true } },

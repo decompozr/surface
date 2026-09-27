@@ -8,6 +8,12 @@ Status: source-backed mechanics with bounded keyboard-bypass browser evidence fr
 
 These dimensions describe current code, not a frozen universal design system. [E-12](../evaluations/ui-eval.md#e-12-mobile-and-accessibility) exercises current 1440px and 390px fixture coverage separately from proposed smaller widths, zoom and physical-device checks. Private HTTPS configuration alone does not verify the mobile journey.
 
+### Mobile edge gestures
+
+User direction on September 26: swipe right from the left edge to open navigation and left to close it; swipe left from the right edge to open comments and right to close them. Surface enables the public AppShell `edgeSwipes` API from [design-system issue #8](https://github.com/decompozr/design-system/issues/8). It applies to touch input at <=680 CSS px with a coarse primary pointer. Opening begins within 24px of the corresponding edge; release requires 64px of horizontal travel within 700ms. Panes animate after release rather than tracking the finger. Navigation takes precedence when both panes are open; closing it preserves the comments panel.
+
+Acceptance: retain existing buttons and keyboard dismissal; recognize horizontal intent from narrow edge regions; short, vertical, cancelled or multitouch gestures must not change state. Preserve ordinary scrolling, editable controls, selection, nested horizontal content, input drafts and focus. Test both panes and their simultaneous-open policy at phone sizes, including reduced motion and accidental click suppression. Native browser back/forward gestures and physical iPhone behavior require separate acceptance from synthetic touch events.
+
 ## D-08: accessibility criteria
 
 | Concern | Current source mechanics | Acceptance criterion and gap |

@@ -1,0 +1,11 @@
+# Mobile navigation and comments edge swipes
+
+The user requested symmetric edge gestures after width-preserving push navigation was installed. Surface now enables AppShell's public `edgeSwipes` prop from design-system main `235f668fec83c5128e783ab05708af54e7e9b87b` (provider PR9). Package identity is `cc42ea62ab68fe5290251477563e2bf3b971418d0f168919689498951467bcd2`; dependencies and package bytes are built from an isolated committed source export, without changing the provider checkout or development link.
+
+The [mobile contract](../design/accessibility.md#mobile-edge-gestures) specifies left-edge/rightward navigation opening, right-edge/leftward comments opening and opposite-direction closing. Buttons, Escape, focus return, drafts and delivery semantics remain available. The provider owns recognition and motion; Surface adds no replacement gesture implementation or internal CSS overrides.
+
+The isolated integration verifier exercises both ordinary mounted pages and the comment fixture. Chromium uses trusted CDP touch input; WebKit uses DOM-dispatched touch events and checks mobile rendering. Cases cover both panes, reverse close, trigger focus restoration, short/central/vertical swipes, cancellation, and document overflow. Existing comment authorization, Queue/Steer, acknowledgement loss, SSE, offline recovery, reload and width-preserving navigation tests run with the new package.
+
+Physical iPhone Safari history-edge arbitration remains unverified: native browser gestures may take priority or cancel page events. The recognizer animates on qualifying release; it does not provide interactive finger-tracking motion. The selected preview is updated only after isolated validation; its existing connection and interaction records must remain unchanged.
+
+Source-snapshot validation passed: 105 tests (989 assertions), type checks and full isolated comment matrix including mounted idle/active Chromium/WebKit, touch Chromium gesture integration, scroll and viewport checks. Mobile navigation/comments screenshots were inspected; desktop controls remain covered by the same matrix. The exact packaged release is rechecked before installation, including the active-editing/draft gesture guard. Final release identity and state-preservation checks are retained in the local preview receipt.
