@@ -108,6 +108,7 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
     const commentsState = join(state, 'mounted-comments', parent.id);
     try {
       await page.goto(preview.href);
+      await expect(page.getByRole('button', { name: 'Toggle navigation', exact: true }).getByRole('img', { name: 'Surface', exact: true })).toBeVisible();
       const navigation = page.getByRole('complementary', { name: 'Workspace navigation' });
       // Sample the real mounted page throughout opening, not only its final position.
       const frames = await page.evaluate(async () => {
@@ -138,6 +139,13 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       await expect.poll(async () => { const bounds = await navigation.boundingBox(); return !!bounds && bounds.width >= 279 && Math.abs(bounds.x) <= 1; }).toBe(true);
       await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
       if (mobile) for (const link of await navigation.getByRole('link').all()) expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      // Geometry above deliberately used a programmatic click. Audit actual touch/mouse modality separately.
+      const navToggle = page.getByRole('button', { name: 'Toggle navigation', exact: true });
+      await (mobile ? navToggle.tap() : navToggle.click());
+      await expect(navigation).toBeHidden();
+      await (mobile ? navToggle.tap() : navToggle.click());
+      await expect.poll(async () => Math.abs((await navigation.boundingBox())?.x ?? 999)).toBeLessThan(1);
+      await expect(navigation).toBeFocused();
       await page.screenshot({ path: join(output, name + '-navigation.png'), fullPage: true });
       await page.getByRole('button', { name: 'Toggle navigation', exact: true }).click();
       if (mobile) await verifyEdgeSwipes(page, false, output, name);

@@ -13,8 +13,8 @@
 
 <style>
   :global(body) { margin: 0; font-family: system-ui; background: #f7f6f0; color: #213b31; }
-  main { max-width: 640px; margin: 10vh auto; padding: 24px; }
-  label { display: block; margin-block: 24px; }
+  main { max-width: 640px; margin: 0 auto; padding: 24px 16px; }
+  label { display: block; margin-block: 12px; }
   input, button { padding: 12px; font: inherit; }
   button { background: #213b31; color: white; border: 0; border-radius: 6px; }
 </style>

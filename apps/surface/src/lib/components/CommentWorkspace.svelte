@@ -444,14 +444,15 @@
   <StatusIndicator kind={!data.live || !connectionKey ? 'error' : !streamConnected || !agentAvailable ? 'warning' : 'success'} label={!data.live ? 'Local test; show connection details' : !connectionKey ? 'Not connected; show connection details' : !streamConnected ? 'Reconnecting; show connection details' : !agentAvailable ? 'Agent unavailable; show connection details' : 'Connected; show connection details'} onclick={() => notify(!data.live ? 'Local test. No agent connected.' : !connectionKey ? 'Open the private connection link to connect.' : streamConnected ? `Live updates connected. ${agentStatus}.` : 'Disconnected. Reconnecting automatically.', streamConnected && agentAvailable ? 'info' : 'warning')} />
 </StatusBar>
 {/snippet}
-<SurfaceShell panelContent={commentPanel} bind:panelOpen={panel} status={connectionStatus} statusHeight="44px" navigation={data.navigation} {currentPath} {headerTools} surfaceIdentity={ !mounted } viewportContent={!mounted} showBreadcrumbs={mounted}>
+{#snippet editorNotice()}<Text size="small" role="status">{notice}</Text>{/snippet}
+<SurfaceShell panelContent={commentPanel} bind:panelOpen={panel} status={connectionStatus} statusHeight="44px" navigation={data.navigation} {currentPath} {headerTools} viewportContent={!mounted} showBreadcrumbs={mounted}>
   <section id="comment-workspace" class:selecting={mode} class:mounted bind:this={workspace} aria-label="Shared workspace">
     {#if children}{@render children(mode)}{:else}<div id="surface-page"></div>{/if}
   </section>
 
 {#if editorOpen && review.draft.target}
   <div class="editor-anchor" use:measureEditor>
-  <FloatingComposer label="Comment on selected element" x={editorPosition.x} y={editorPosition.y} width={`${editorPosition.width}px`} maxHeight={`${editorPosition.maxHeight}px`}>
+  <FloatingComposer density="compact" footer={notice && !compactEditor ? editorNotice : undefined} label="Comment on selected element" x={editorPosition.x} y={editorPosition.y} width={`${editorPosition.width}px`} maxHeight={`${editorPosition.maxHeight}px`}>
 {#snippet header()}
     <div class="selected-title"><strong title={review.draft.target?.selector}>{review.draft.target?.label}</strong><IconButton size="compact" touchAppearance="compact" icon="close" label="Close comment editor" title="Close (draft retained)" disabled={locked} onclick={closeEditor} /></div>
 {/snippet}
@@ -465,10 +466,9 @@
 
       {#if review.draft.capture}<IconButton size="compact" touchAppearance="compact" icon="trash-2" label="Remove screenshot" title="Remove screenshot" disabled={locked} onclick={() => review.draft.capture = undefined} />{/if}
       <span class="editor-status">{busy ? 'Capturing…' : ''}</span>
-      <IconButton size="compact" touchAppearance="compact" icon="check" variant="primary" appearance="default" label={review.draft.editing ? 'Save comment' : 'Add comment to draft'} aria-keyshortcuts="Meta+Enter Control+Enter" title={review.draft.editing ? 'Save comment (⌘/Ctrl + Enter)' : 'Add comment (⌘/Ctrl + Enter)'} disabled={locked || (!review.draft.text.trim() && !review.draft.capture)} onclick={() => addComment()} />
+      <IconButton size="compact" touchAppearance="compact" icon="check" variant="primary" appearance="quiet" label={review.draft.editing ? 'Save comment' : 'Add comment to draft'} aria-keyshortcuts="Meta+Enter Control+Enter" title={review.draft.editing ? 'Save comment (⌘/Ctrl + Enter)' : 'Add comment (⌘/Ctrl + Enter)'} disabled={locked || (!review.draft.text.trim() && !review.draft.capture)} onclick={() => addComment()} />
     </div>
 {/snippet}
-{#snippet footer()}{#if notice && !compactEditor}<Text size="small" role="status">{notice}</Text>{/if}{/snippet}
   </FloatingComposer>
   </div>
 {/if}

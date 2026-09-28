@@ -9,5 +9,5 @@
   <NavigationLinks label="Service" items={[{ id: 'health', label: 'Server health', href: '/health', attributes: { 'data-sveltekit-reload': true } }]} />
 </section>
 <style>
-  .home { max-width:760px; margin:8vh auto; padding:32px; display:grid; gap:24px; }
+  .home { max-width:760px; margin:0 auto; padding:24px 16px; display:grid; gap:12px; }
 </style>
