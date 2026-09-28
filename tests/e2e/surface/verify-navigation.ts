@@ -24,6 +24,7 @@ try {
   const failedAssets: string[] = [];
   page.on('response', response => { if (response.status() >= 400 && !response.url().endsWith('/favicon.ico')) failedAssets.push(`${response.status()} ${response.url()}`); });
   await page.goto(app.origin);
+  await expect(page.getByRole('button', { name: 'Toggle navigation', exact: true }).getByRole('img', { name: 'Surface', exact: true })).toBeVisible();
   const nav = page.getByRole('complementary', { name: 'Workspace navigation' });
   await expect(nav).toBeHidden();
   await page.getByRole('button', { name: 'Toggle navigation' }).click();
@@ -77,6 +78,16 @@ try {
   await content.hover();
   await page.mouse.wheel(400, 0);
   await expect.poll(() => content.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+  await page.goto(app.origin);
+  const homeTitle = page.getByRole('heading', { name: 'Pick up where you left off.' });
+  await expect(homeTitle).toBeVisible();
+  assert.ok((await homeTitle.boundingBox())!.y < 220, 'Home content should start near the breadcrumb, without viewport-sized spacer.');
+  await page.screenshot({ path: join(output, 'home-mobile.png'), fullPage: true });
+  await page.goto(app.origin + '/workspace/app-fixture/main/ui/counter');
+  const counterTitle = page.getByRole('heading', { name: 'Shared runtime counter' });
+  await expect(counterTitle).toBeVisible();
+  assert.ok((await counterTitle.boundingBox())!.y < 230, 'Counter content should not have a viewport-sized top spacer.');
+  await page.screenshot({ path: join(output, 'counter-mobile.png'), fullPage: true });
   assert.deepEqual(errors, []);
   assert.deepEqual(failedAssets, []);
   console.log('Navigation fixture passed: parent SSR, worktree separation, nested page/folder index, breadcrumbs, closed initial navigation, mobile drawer and Escape.');

@@ -3,7 +3,7 @@
   import { onMount, tick, type Snippet } from 'svelte';
   import type { NavigationNode } from '../contracts/navigation.ts';
   import { Logo } from '@decompozr/design-system';
-  import { AppShell, AppHeader, Brand, Button, Icon, Text, Breadcrumbs } from '@decompozr/design-system';
+  import { AppShell, AppHeader, Brand, Button, Text, Breadcrumbs } from '@decompozr/design-system';
   import NavigationTree from './NavigationTree.svelte';
   import RecipientPanel from './RecipientPanel.svelte';
 
@@ -25,9 +25,9 @@
     return [];
   };
 
-  let { navigation = [], currentPath = '/', children, headerTools, surfaceIdentity = false, viewportContent = false, showBreadcrumbs = true, panelContent, panelOpen = $bindable(false), status, statusHeight = '0px' }: {
+  let { navigation = [], currentPath = '/', children, headerTools, viewportContent = false, showBreadcrumbs = true, panelContent, panelOpen = $bindable(false), status, statusHeight = '0px' }: {
     navigation?: NavigationNode[]; currentPath?: string; children?: Snippet; headerTools?: Snippet;
-    surfaceIdentity?: boolean; viewportContent?: boolean; showBreadcrumbs?: boolean;
+    viewportContent?: boolean; showBreadcrumbs?: boolean;
     panelContent?: Snippet; panelOpen?: boolean; status?: Snippet; statusHeight?: string;
   } = $props();
   let navigationOpen = $state(false), currentURL = $state('');
@@ -47,7 +47,7 @@
   <AppHeader actions={headerTools}>
     <a class="skip-link" href="#surface-page-content" onclick={skipToContent}>Skip to content</a>
     <Button appearance="quiet" size="compact" touchAppearance="compact" onclick={toggle} aria-label="Toggle navigation" title={viewportContent ? 'Toggle navigation (M)' : 'Toggle navigation'} aria-keyshortcuts={viewportContent ? 'M' : undefined} aria-controls="surface-navigation" aria-expanded={navigationOpen}>
-      {#if surfaceIdentity}<Logo variant="compact" palette="slate" centerSymbol="S" label="Surface" size={38} />{:else}<Icon name="panel-left" size={16} />{/if}
+      <Logo variant="compact" palette="slate" centerSymbol="S" label="Surface" size={38} />
     </Button>
     <Brand href="/" data-sveltekit-reload>Surface</Brand>
   </AppHeader>
