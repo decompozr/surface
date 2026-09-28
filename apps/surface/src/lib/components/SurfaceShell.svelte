@@ -47,7 +47,7 @@
   <AppHeader actions={headerTools}>
     <a class="skip-link" href="#surface-page-content" onclick={skipToContent}>Skip to content</a>
     <Button appearance="quiet" size="compact" touchAppearance="compact" onclick={toggle} aria-label="Toggle navigation" title={viewportContent ? 'Toggle navigation (M)' : 'Toggle navigation'} aria-keyshortcuts={viewportContent ? 'M' : undefined} aria-controls="surface-navigation" aria-expanded={navigationOpen}>
-      <Logo variant="compact" palette="slate" centerSymbol="S" label="Surface" size={38} />
+      <Logo variant="compact" palette="cream" centerSymbol="S" label="Surface" size={38} />
     </Button>
     <Brand href="/" data-sveltekit-reload>Surface</Brand>
   </AppHeader>

@@ -138,7 +138,10 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
 
       await expect.poll(async () => { const bounds = await navigation.boundingBox(); return !!bounds && bounds.width >= 279 && Math.abs(bounds.x) <= 1; }).toBe(true);
       await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
-      if (mobile) for (const link of await navigation.getByRole('link').all()) expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      if (mobile) for (const link of await navigation.getByRole('link').all()) {
+        const bounds = (await link.boundingBox())!;
+        expect(bounds.height, 'Compact navigation must reduce actual row height, not only its painted label').toBe(32);
+      }
       // Geometry above deliberately used a programmatic click. Audit actual touch/mouse modality separately.
       const navToggle = page.getByRole('button', { name: 'Toggle navigation', exact: true });
       await (mobile ? navToggle.tap() : navToggle.click());

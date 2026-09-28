@@ -64,7 +64,7 @@ The same command freezes the production app host, compiler and comment sources i
 
 In addition to the existing matrix, verify normal project controls before selection, selection of controls through nested presentation spans, 320px review and 400px-high editing, per-page/request draft separation, request-token isolation, browser-token rejection at the reply endpoint, and preservation of the original domain response/schema. Retain screenshots/traces and the snapshot file-hash manifest. The runtime compiler and the built shell are both part of the tested snapshot; a built experimental page alone cannot verify mounted behavior.
 
-The interaction audit covers roving keyboard focus with ArrowLeft/Right and Home/End, 44px targets, independent navigation/review scrolling, capture/editor bounds and transient feedback that leaves actions reachable. Wait for image layout and measured placement to settle before recording geometry. A status row is reserved space even where its background does not intercept pointer events.
+The interaction audit covers roving keyboard focus with ArrowLeft/Right and Home/End, 44px toolbar targets and actual 32px compact navigation rows without overlapping hit regions, independent navigation/review scrolling, capture/editor bounds and transient feedback that leaves actions reachable. Wait for image layout and measured placement to settle before recording geometry. A status row is reserved space even where its background does not intercept pointer events.
 
 
 ## Installed candidate gate
