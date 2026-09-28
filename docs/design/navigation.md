@@ -1,6 +1,6 @@
 # Navigation and screen hierarchy
 
-Source-inspected at `7fceefc`: [shell](../../apps/surface/src/lib/components/SurfaceShell.svelte), [tree](../../apps/surface/src/lib/components/NavigationTree.svelte), [tree builder](../../apps/surface/src/lib/server/http/navigation.ts), [home](../../apps/surface/src/routes/+page.svelte), [page guide](../../skills/surface/references/pages.md). Existing verifier: [navigation fixture](../../tests/e2e/surface/verify-navigation.ts). No screenshot was captured in this task.
+Source references: [shell](../../apps/surface/src/lib/components/SurfaceShell.svelte), [tree](../../apps/surface/src/lib/components/NavigationTree.svelte), [tree builder](../../apps/surface/src/lib/server/http/navigation.ts), [home](../../apps/surface/src/routes/+page.svelte), [page guide](../../skills/surface/references/pages.md). Existing verifier: [navigation fixture](../../tests/e2e/surface/verify-navigation.ts).
 
 ## D-01: information hierarchy and routes
 
@@ -28,6 +28,12 @@ Illustrative structure below describes source composition, not a rendered or app
 
 Navigation and breadcrumbs preserve query/fragment only for the current page. Unrelated page links remain clean; never forward a request capability to another page. Current source uses `data-sveltekit-reload`, so navigation can create a new document. Do not imply that form drafts persist across these links.
 
+### Compact navigation and brand
+
+The shell keeps the compact Surface mark on home and mounted pages, using the design-system Logo's `cream` palette: warm neutral background, dark green-gray brackets and sage center. Keep the existing mark geometry and use the public palette API rather than local SVG color overrides.
+
+The September 28 spacing correction uses the public NavigationLinks `touchDensity="compact"` API for actual 32 CSS px touch rows for the dense navigation list, not a smaller painted label inside a 44px row. Consecutive leaf links have no extra vertical spacer; hierarchy comes from indentation and group labels. Hit regions must not overlap. Toolbar actions retain their separate larger touch targets. Validate real touch activation and visible keyboard focus as well as row geometry. The upstream implementation is tracked in [design-system issue #12](https://github.com/decompozr/design-system/issues/12).
+
 ## D-02: navigation states
 
 | State | Current behavior | Required review or proposed improvement |
@@ -38,6 +44,6 @@ Navigation and breadcrumbs preserve query/fragment only for the current page. Un
 | Mount failed/unmounted | Non-ready mounts are omitted on a rebuilt tree; old page access may fail | No continuous tree refresh is promised. Proposed: show a stale-page explanation and route to inspection without erasing project drafts. |
 | Offline/service unavailable | Browser/network failure; no dedicated shared offline screen | Proposed: distinguish unreachable service from no mounts and from unavailable recipient. No automatic mutation replay. |
 | Long/deep tree | Labels wrap; nested list indentation; route keys sorted within each mount | Project/workspace/mount order follows supplied records. Deep-tree overflow, duplicate labels and ordering are open design choices, not complete coverage. |
-| Desktop collapsed / mobile closed | Navigation is hidden and inert; desktop preference stored in sessionStorage | See [mobile/accessibility](accessibility.md); no global persisted account preference. |
+| Desktop collapsed / mobile closed | Navigation is hidden and inert; it starts closed consistently through hydration | See [mobile/accessibility](accessibility.md); no global persisted account preference. |
 
 Pass/fail and evidence boundaries are [E-07](../evaluations/ui-eval.md#e-07-navigation-and-location) and [E-10](../evaluations/ui-eval.md#e-10-failure-and-freshness-presentation).

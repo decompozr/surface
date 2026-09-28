@@ -49,7 +49,7 @@ for (const profile of ['desktop', 'touch-chromium', 'mobile'] as const) {
       await page.keyboard.press('m');
       await page.waitForTimeout(250);
     }
-    await expect(menu.locator('svg')).toHaveAttribute('data-palette', 'slate');
+    await expect(menu.locator('svg')).toHaveAttribute('data-palette', 'cream');
     const main = page.locator('#comment-workspace');
     const before = await main.boundingBox();
     await menu.evaluate(el => (el as HTMLButtonElement).click());
