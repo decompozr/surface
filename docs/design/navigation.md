@@ -65,3 +65,5 @@ Project/workspace roots show a workspace icon, Git worktree rows a branch icon, 
 Selection-mode pointer activation releases button focus so a later global shortcut cannot turn a stale pointer focus into a keyboard ring. Keyboard traversal still retains native focus indication. Mode pressed state and page selection outline remain separate from focus.
 
 Workspaces and Comments pane visibility persists in browser-local origin-wide preferences and synchronizes across Surface documents. Refresh restores each pane. This is a UI preference, not project data or tab/draft persistence; unavailable browser storage must not break navigation.
+
+Overflowing tab strips support horizontal trackpad and vertical mouse-wheel scrolling. Tabs retain their 120px minimum; the outer page must not scroll sideways as the strip moves.

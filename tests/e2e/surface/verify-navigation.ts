@@ -102,6 +102,14 @@ try {
     assert.equal(await page.evaluate(()=>window.scrollX),0);
     await expect(page.getByRole('button',{name:'Toggle navigation',exact:true})).toBeInViewport();
     await page.screenshot({path:join(output,mobile?'phone-crowded-tabs.png':'desktop-crowded-tabs.png')});
+    if (!mobile) await page.setViewportSize({width:700,height:1000});
+    const strip=page.getByRole('tablist',{name:'Open surfaces'});
+    await strip.evaluate(el=>el.scrollLeft=0);
+    await strip.hover(); await page.mouse.wheel(0,300);
+    await expect.poll(()=>strip.evaluate(el=>el.scrollLeft)).toBeGreaterThan(0);
+    await page.mouse.wheel(0,-300);
+    await expect.poll(()=>strip.evaluate(el=>el.scrollLeft)).toBe(0);
+    if (!mobile) await page.setViewportSize({width:1440,height:1000});
     for (const name of ['alpha','gamma','delta','epsilon','zeta','eta','theta']) await page.getByRole('button',{name:`Close ${name}`,exact:true}).click();
     await expect(page.getByRole('tab')).toHaveCount(0);
     await page.screenshot({path:join(output,mobile?'phone-empty.png':'desktop-empty.png')});
