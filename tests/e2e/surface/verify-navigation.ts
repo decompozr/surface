@@ -33,6 +33,30 @@ try {
     if (!mobile) { const width=await page.getByRole('tab',{name:'alpha',exact:true}).locator('..').evaluate(el=>el.getBoundingClientRect().width); assert.ok(width >= 240 && width <= 384); }
     const alpha=page.frameLocator('iframe[title="alpha"]'); await alpha.getByRole('textbox',{name:'Draft'}).fill('Keep this draft');
     await expect(alpha.locator('header')).toHaveCount(0);
+    await page.getByRole('button',{name:'Select and comment',exact:true}).click();
+    for (const id of ['', 'an-extremely-long-selected-element-identifier-that-must-truncate']) {
+      await alpha.locator('h1').evaluate((el,id)=>{el.id=id;},id);
+      await alpha.locator('h1').click();
+      const tools=alpha.getByRole('toolbar',{name:'Selected element actions'});
+      await expect(tools).toBeVisible();
+      const geometry=await tools.evaluate(el=>{const r=el.getBoundingClientRect();return {left:r.left,right:r.right,ys:Array.from(el.querySelectorAll('button')).map(b=>b.getBoundingClientRect().y)};});
+      assert.equal(geometry.ys.length,4);assert.ok(Math.max(...geometry.ys)-Math.min(...geometry.ys)<1,JSON.stringify(geometry));
+      assert.ok(geometry.left>=0 && geometry.right<=(mobile?390:1440));
+      await page.screenshot({path:join(output,`${mobile?'phone':'desktop'}-selection-${id?'long':'short'}.png`)});
+      await tools.getByRole('button',{name:'Clear selection',exact:true}).click();
+    }
+    await page.getByRole('button',{name:'Select and comment',exact:true}).click();
+    if (!mobile) {
+      await alpha.locator('h1').hover(); await page.keyboard.press('c');
+      const editor=alpha.getByRole('textbox',{name:'Comment on selected element',exact:true});
+      await expect(editor).toBeFocused(); await editor.fill('cs');
+      await expect(alpha.getByAltText('Selected element screenshot preview')).toHaveCount(0);
+      await editor.fill(''); await alpha.getByRole('button',{name:'Close comment editor',exact:true}).click();
+      await alpha.locator('h1').hover(); await page.keyboard.press('s');
+      await expect(alpha.getByAltText('Selected element screenshot preview')).toBeVisible();
+      await alpha.getByRole('button',{name:'Remove screenshot',exact:true}).click();
+      await alpha.getByRole('button',{name:'Close comment editor',exact:true}).click();
+    }
     await page.getByRole('button',{name:'Toggle navigation',exact:true}).click(); await nav.getByRole('link',{name:'beta',exact:true}).click();
     await page.frameLocator('iframe[title="beta"]').getByRole('textbox',{name:'Draft'}).fill('Second draft');
     await page.goBack();
@@ -67,7 +91,7 @@ try {
       await page.getByRole('button',{name:'Toggle navigation',exact:true}).click(); await nav.getByRole('link',{name,exact:true}).click();
     }
     const widths=await page.getByRole('tab').evaluateAll(nodes=>nodes.map(node=>node.parentElement?.getBoundingClientRect().width ?? 0));
-    assert.ok(widths.every(width=>width>=119 && width<320)); assert.ok(Math.max(...widths)-Math.min(...widths)<1);
+    assert.ok(widths.every(width=>width>=119 && width<320)); 
     const selected=page.getByRole('tab',{name:'theta',exact:true}); await expect(selected).toBeInViewport();
     const suffixVisible=await selected.locator('.label').evaluate(el=>{const text=el.querySelector('bdi')?.firstChild;if(!(text instanceof Text))return false;const range=document.createRange();range.setStart(text,text.length-5);range.setEnd(text,text.length);const r=range.getBoundingClientRect(),box=el.getBoundingClientRect();return r.left>=box.left-1 && r.right<=box.right+1;});assert.ok(suffixVisible);
     await expect.poll(async()=>page.locator('main').first().evaluate(el=>parseFloat(getComputedStyle(el).left))).toBe(0);

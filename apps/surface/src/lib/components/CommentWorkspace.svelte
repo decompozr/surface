@@ -311,8 +311,18 @@
     persistQueue = persistQueue.catch(() => {}).then(() => writeState(snapshot, storageKey)).then(() => { storageError = ''; }, () => { storageError = 'Could not save comments. Keep this page open.'; });
   });
   onMount(() => {
+    let pointerTarget: HTMLElement | null = null;
+    const hoverAction = async (action: 'comment' | 'capture') => {
+      const target = pointerTarget;
+      if (locked || !target?.isConnected || editorOpen || panel) return;
+      mode = true; await select(target);
+      if (selected !== target) return;
+      if (action === 'capture') await capture();
+      await openComment();
+    };
     const reviewTool = (event: Event) => {
       if (!(event instanceof CustomEvent)) return;
+      if (event.detail === 'comment' || event.detail === 'capture') void hoverAction(event.detail);
       if (event.detail === 'comments') void togglePanel();
       if (event.detail === 'select' && !locked) { mode = !mode; hovered = null; if (!mode) editorOpen = false; updateBox(); }
     };
@@ -377,6 +387,7 @@
     };
     const move = (event: PointerEvent) => {
       if (gesture && Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 8) gesture.moved = true;
+      pointerTarget = event.pointerType === 'mouse' && !event.buttons ? targetFrom(event) : null;
       hovered = event.pointerType === 'mouse' && !event.buttons && mode && !busy ? targetFrom(event) : null;
       schedulePosition();
     };
@@ -388,7 +399,8 @@
       const target = event.target;
       const typing = target instanceof HTMLElement && (target.isContentEditable || !!target.closest('input, textarea, select, [role="textbox"]'));
       if (!typing && !event.metaKey && !event.ctrlKey && !event.altKey) {
-        if (event.key.toLowerCase() === 's' && !locked) { event.preventDefault(); mode = !mode; hovered = null; if (!mode) editorOpen = false; updateBox(); return; }
+        if ((event.key.toLowerCase() === 'c' || event.key.toLowerCase() === 's') && pointerTarget && !locked) { event.preventDefault(); void hoverAction(event.key.toLowerCase() === 'c' ? 'comment' : 'capture'); return; }
+        if (event.key.toLowerCase() === 'v' && !locked) { event.preventDefault(); mode = !mode; hovered = null; if (!mode) editorOpen = false; updateBox(); return; }
         if (event.key.toLowerCase() === 'i') { event.preventDefault(); void togglePanel(); return; }
       }
       if (event.key === 'Escape') {
@@ -406,7 +418,7 @@
 {#snippet headerTools()}
     <Toolbar label="Review tools">
 
-      <ToggleButton size="compact" touchAppearance="compact" icon="mouse-pointer-2" label={mode ? 'Leave comment mode' : 'Select and comment'} aria-keyshortcuts="S" title={mode ? 'Leave comment mode (S / Esc)' : 'Select and comment (S)'} pressed={mode} disabled={locked} onPressedChange={(value) => { mode = value; hovered = null; if (!mode) editorOpen = false; updateBox(); }} />
+      <ToggleButton size="compact" touchAppearance="compact" icon="mouse-pointer-2" label={mode ? 'Leave comment mode' : 'Select and comment'} aria-keyshortcuts="V" title={mode ? 'Leave comment mode (V / Esc)' : 'Select and comment (V); hover + C to comment, S to capture'} pressed={mode} disabled={locked} onPressedChange={(value) => { mode = value; hovered = null; if (!mode) editorOpen = false; updateBox(); }} />
       <IconButton size="compact" touchAppearance="compact" icon="message-square" label={`Open comments (${review.comments.length} drafts)`} title="Comments (I)" aria-keyshortcuts="I" aria-expanded={panel} aria-controls="surface-comments" onclick={togglePanel}>{#snippet badge()}{#if review.comments.length}<Badge tone="sage">{review.comments.length}</Badge>{/if}{/snippet}</IconButton>
     </Toolbar>
 {/snippet}
@@ -486,8 +498,8 @@
 {#if selected?.parentElement && selected.parentElement !== workspace}<IconButton size="compact" touchAppearance="compact" icon="chevron-up" label="Select parent element" title="Select parent element" disabled={locked} onclick={() => { const parent = selected?.parentElement; if (parent && workspace.contains(parent) && parent !== workspace) { selected = parent; review.draft = { ...review.draft, target: metadata(parent), capture: undefined }; hovered = null; updateBox(); } }} />{/if}
     {/if}
     {#if selected}
-    <IconButton size="compact" touchAppearance="compact" icon="camera" label="Capture selected element" title="Screenshot" disabled={locked} onclick={async () => { await capture(); editorOpen = true; updateBox(); }} />
-    <IconButton size="compact" touchAppearance="compact" icon="message-square" label="Comment on selected element" title="Comment" disabled={locked} onclick={openComment} />
+    <IconButton size="compact" touchAppearance="compact" icon="camera" label="Capture selected element" title="Screenshot (S)" aria-keyshortcuts="S" disabled={locked} onclick={async () => { await capture(); editorOpen = true; updateBox(); }} />
+    <IconButton size="compact" touchAppearance="compact" icon="message-square" label="Comment on selected element" title="Comment (C)" aria-keyshortcuts="C" disabled={locked} onclick={openComment} />
     <IconButton size="compact" touchAppearance="compact" icon="close" label="Clear selection" title="Clear selection" disabled={locked} onclick={() => { selected = null; hovered = null; updateBox(); }} />
     {/if}
     </Toolbar>

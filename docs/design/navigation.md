@@ -54,6 +54,8 @@ Pass/fail and evidence boundaries are [E-07](../evaluations/ui-eval.md#e-07-navi
 
 ## Compact path tabs
 
-Tabs have a 320px preferred basis, grow to 384px, and shrink evenly to 120px before the strip scrolls. The complete readable route path is ordered ancestor-to-page and truncated from the left so the final page name remains visible. The title exposes the complete path. Revealing the selected tab scrolls only the tab strip, never the header or document.
+Tabs size to their full path and close control without expanding into spare space, and shrink to 120px before the strip scrolls. The complete readable route path is ordered ancestor-to-page and truncated from the left so the final page name remains visible. The title exposes the complete path. Revealing the selected tab scrolls only the tab strip, never the header or document.
 
-Desktop and touch-phone verification checks 36px header height, fully contained controls, generous initial tab width, uniform shrinkage under crowding, page-name suffix visibility, full-path titles, and fixed header controls. Draft, scroll, keyboard and close regressions remain covered.
+Desktop and touch-phone verification checks 36px header height, fully contained controls, generous initial tab width, shrinkage under crowding, page-name suffix visibility, full-path titles, and fixed header controls. Draft, scroll, keyboard and close regressions remain covered.
+
+Hover shortcuts: with the mouse over page content, C selects that element and opens the comment editor; S selects and captures it, then opens the editor for review. V toggles selection mode. Ignore shortcuts in editable fields, during composition/repeats, and with command/control/alt modifiers. Capturing never sends a comment.

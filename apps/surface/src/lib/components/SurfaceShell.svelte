@@ -56,7 +56,7 @@
     tabs = tabs.filter(tab => tab.id !== id);
     if (activeTab === id) { activeTab = tabs[Math.min(index, tabs.length - 1)]?.id ?? ''; recordSelection(true); }
   };
-  const tool = (action: 'select' | 'comments') => {
+  const tool = (action: 'select' | 'comments' | 'comment' | 'capture') => {
     const frame = document.getElementById(`surface-frame-${activeTab}`);
     if (frame instanceof HTMLIFrameElement) frame.contentWindow?.postMessage({ type:'surface:review-tool', action }, location.origin);
   };
@@ -81,7 +81,7 @@
     const receive = (event: MessageEvent<unknown>) => {
       if (event.origin !== location.origin || typeof event.data !== 'object' || !event.data) return;
       const data = event.data;
-      if (embedded && event.source === parent && 'type' in data && data.type === 'surface:review-tool' && 'action' in data && (data.action === 'select' || data.action === 'comments')) window.dispatchEvent(new CustomEvent('surface:review-tool', { detail:data.action }));
+      if (embedded && event.source === parent && 'type' in data && data.type === 'surface:review-tool' && 'action' in data && (data.action === 'select' || data.action === 'comments' || data.action === 'comment' || data.action === 'capture')) window.dispatchEvent(new CustomEvent('surface:review-tool', { detail:data.action }));
       if (!embedded && tabs.some(tab => { const frame = document.getElementById(`surface-frame-${tab.id}`); return frame instanceof HTMLIFrameElement && frame.contentWindow === event.source; }) && 'type' in data && data.type === 'surface:open-tab' && 'href' in data && typeof data.href === 'string' && 'label' in data && typeof data.label === 'string') openSurface(data.href, data.label);
     };
     const follow = (event: MouseEvent) => {
@@ -98,6 +98,7 @@
 <svelte:window onkeydown={(event) => {
   const target = event.target;
   const typing = target instanceof HTMLElement && (target.isContentEditable || !!target.closest('input, textarea, select, [role="textbox"]'));
+  if (!embedded && !typing && !originalVisible && !event.isComposing && !event.repeat && !event.metaKey && !event.ctrlKey && !event.altKey && ['c','s'].includes(event.key.toLowerCase())) { event.preventDefault(); tool(event.key.toLowerCase() === 'c' ? 'comment' : 'capture'); }
   if (!embedded && !typing && !event.isComposing && !event.repeat && !event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === 'm') { event.preventDefault(); toggle(); }
 }} />
 {#snippet actions()}
