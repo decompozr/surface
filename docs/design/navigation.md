@@ -60,4 +60,4 @@ Desktop and touch-phone verification checks 36px header height, fully contained 
 
 Hover shortcuts: with the mouse over page content, C selects that element and opens the comment editor; S selects and captures it, then opens the editor for review. V toggles selection mode. Ignore shortcuts in editable fields, during composition/repeats, and with command/control/alt modifiers. Capturing never sends a comment.
 
-Workspace hierarchy rows show a workspace icon, mounted folders a folder icon, and routes a page icon. Icons are decorative, aligned at 16px, and do not change the uniform label typography.
+Project/workspace roots show a workspace icon, Git worktree rows a branch icon, mounted folders a folder icon, and routes an HTML/code-page icon. Icons are decorative, aligned at 16px, and do not change the uniform label typography.

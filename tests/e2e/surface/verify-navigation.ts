@@ -27,8 +27,9 @@ try {
     await expect(page.getByRole('navigation',{name:'Breadcrumb'})).toHaveCount(0);
     const styles = await nav.locator('.group-label, .link-label').evaluateAll(nodes => nodes.map(node => { const style=getComputedStyle(node); const row=node.closest('a') ?? node; return {size:style.fontSize, weight:style.fontWeight, height:row.getBoundingClientRect().height}; }));
     await expect(nav.locator('[data-icon="panels-top-left"]').first()).toBeVisible();
+    await expect(nav.locator('[data-icon="git-branch"]').first()).toBeVisible();
     await expect(nav.locator('[data-icon="folder"]').first()).toBeVisible();
-    await expect(nav.locator('[data-icon="file"]').first()).toBeVisible();
+    await expect(nav.locator('[data-icon="file-code"]').first()).toBeVisible();
     assert.ok(styles.length > 3); assert.ok(styles.every(item => item.size === '14px' && item.weight === '400' && item.height === 32), JSON.stringify(styles));
     await page.screenshot({path:join(output, mobile?'phone-navigation.png':'desktop-navigation.png')});
     await nav.getByRole('link',{name:'alpha',exact:true}).click();
