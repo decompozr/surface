@@ -69,3 +69,7 @@ Workspaces and Comments pane visibility persists in browser-local origin-wide pr
 Overflowing tab strips support horizontal trackpad and vertical mouse-wheel scrolling. Tabs retain their 120px minimum; the outer page must not scroll sideways as the strip moves.
 
 The global I shortcut toggles Comments without leaving focus on the header trigger or a pane control. Tab navigation and explicit keyboard activation retain their visible focus behavior.
+
+### Delivery settings placement
+
+Recipient and delivery configuration must not appear above mounted page content. Keep it collapsed under Delivery settings in the Comments pane; the existing recipient controller remains mounted for form delivery. Verify normal mounted pages on desktop and phone without submitting fixture messages to real conversations.

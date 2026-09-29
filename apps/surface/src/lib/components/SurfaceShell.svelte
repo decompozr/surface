@@ -133,9 +133,14 @@
   <Text size="body">Workspaces</Text>
   {#if navigation.length}<NavigationTree nodes={navigation} currentPath={activePath} currentURL={activeSurface?.href ?? currentURL} open={openSurface} />{:else}<Text size="small" tone="muted">No route pages are mounted yet.</Text>{/if}
 {/snippet}
-<AppShell navigationMode="push" edgeSwipes {header} headerHeight={embedded ? '0px' : '36px'} navigation={embedded ? undefined : navigationContent} bind:navigationOpen navigationId="surface-navigation" navigationLabel="Workspace navigation" panel={originalVisible ? panelContent : undefined} bind:panelOpen panelId="surface-comments" panelLabel="Comments and conversation" status={originalVisible ? status : undefined} statusHeight={originalVisible ? statusHeight : '0px'}>
+{#snippet rightContent()}
+  <div class="right-pane">
+    <div class="right-body">{@render panelContent?.()}</div>
+    <details class="recipient-settings"><summary>Delivery settings</summary><RecipientPanel /></details>
+  </div>
+{/snippet}
+<AppShell navigationMode="push" edgeSwipes {header} headerHeight={embedded ? '0px' : '36px'} navigation={embedded ? undefined : navigationContent} bind:navigationOpen navigationId="surface-navigation" navigationLabel="Workspace navigation" panel={originalVisible && panelContent ? rightContent : undefined} bind:panelOpen panelId="surface-comments" panelLabel="Comments and conversation" status={originalVisible ? status : undefined} statusHeight={originalVisible ? statusHeight : '0px'}>
   {#if !originalClosed}<div class="content" class:viewport={viewportContent || tabs.length > 0} hidden={!originalVisible}>
-    <RecipientPanel />
     <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this horizontal scroll region.) -->
     <div id="surface-page-content" bind:this={pageContent} class="page-content" role="region" aria-label="Page content" tabindex="0">{#if children}{@render children()}{:else}<div id="surface-page"></div>{/if}</div>
   </div>{/if}
@@ -145,6 +150,8 @@
   {/each}
 </AppShell>
 <style>
+  .right-pane{height:100%;display:flex;flex-direction:column;min-height:0}.right-body{flex:1;min-height:0}.recipient-settings{font:12px/1.4 system-ui;border-top:1px solid #ddd;padding:6px 12px;max-height:50%;overflow:auto;flex-shrink:0}
+
   :global(body) { margin:0; }
   .skip-link { position:fixed; top:8px; left:8px; z-index:60; transform:translateY(calc(-100% - 16px)); background:#fff; color:#1e293b; padding:8px 14px; border:2px solid #334155; border-radius:4px; }
   .skip-link:focus { transform:translateY(0); outline:3px solid #2563eb; outline-offset:2px; }
