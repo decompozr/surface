@@ -109,6 +109,19 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
     const after=await movable.boundingBox();expect(after?.x).toBeGreaterThan(before.x+40);
     await page.reload();await expect(movable).toBeVisible();
     expect((await movable.boundingBox())?.x).toBe(after?.x);
+    const originalPosition=await movable.boundingBox();
+    await page.getByRole('button',{name:'Toggle navigation',exact:true}).click();
+    const openNavigation=page.getByRole('complementary',{name:'Workspace navigation'});
+    await expect.poll(async()=>{const nav=await openNavigation.boundingBox();return !!nav&&Math.abs(nav.x)<1&&Math.abs(nav.width-280)<1;}).toBe(true);
+    if(mobile) await expect(movable).toBeHidden();
+    else {
+      const navigation=page.getByRole('complementary',{name:'Workspace navigation'});
+      await expect.poll(async()=>{const nav=await navigation.boundingBox(),tools=await movable.boundingBox();return !!nav&&!!tools&&tools.x>=nav.x+nav.width+15;}).toBe(true);
+    }
+    await page.screenshot({path:'/tmp/comment-toolbar-navigation-'+(mobile?'phone':'desktop')+'.png'});
+    await page.getByRole('button',{name:'Toggle navigation',exact:true}).click();
+    await expect(movable).toBeVisible();
+    expect((await movable.boundingBox())?.x).toBe(originalPosition?.x);
     for(let i=0;i<2;i++) {
       const close=page.getByRole('button',{name:'Close comments',exact:true});if(await close.isVisible())await close.click();
       await page.getByRole('toolbar',{name:'Comment tools',exact:true}).getByRole('button',{name:'Comment',exact:true}).click();

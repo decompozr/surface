@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { workbench } from '../workbench/state.svelte';
   import { Toolbar, ToggleButton } from '@decompozr/design-system';
   let { active, disabled, onchoose }: {
     active: 'comment' | 'capture' | null;
@@ -8,6 +9,8 @@
   } = $props();
   let host: HTMLDivElement;
   let x = $state(16), y = $state(80);
+  let narrow = $state(false);
+  const placedX = $derived(Math.max(x, !narrow && workbench.left ? workbench.leftWidth + 16 : 8));
   let drag: { pointer: number; x: number; y: number; originX: number; originY: number } | null = null;
   const constrain = () => {
     x = Math.max(8, Math.min(x, window.innerWidth - (host?.offsetWidth ?? 96) - 8));
@@ -18,7 +21,7 @@
   };
   const start = (event: PointerEvent) => {
     if (event.target instanceof Element && event.target.closest('button')) return;
-    drag = { pointer: event.pointerId, x: event.clientX, y: event.clientY, originX: x, originY: y };
+    drag = { pointer: event.pointerId, x: event.clientX, y: event.clientY, originX: placedX, originY: y };
     host.setPointerCapture(event.pointerId); event.preventDefault();
   };
   const move = (event: PointerEvent) => {
@@ -38,13 +41,16 @@
       const saved: unknown = JSON.parse(localStorage.getItem('surface.comment-tools.position') ?? 'null');
       if (saved && typeof saved === 'object' && 'x' in saved && 'y' in saved && typeof saved.x === 'number' && Number.isFinite(saved.x) && typeof saved.y === 'number' && Number.isFinite(saved.y)) { x = saved.x; y = saved.y; }
     } catch { /* Invalid saved position never prevents toolbar access. */ }
+    const media = window.matchMedia('(max-width: 760px)');
+    const syncWidth = () => { narrow = media.matches; };
+    syncWidth(); media.addEventListener('change', syncWidth);
     constrain(); window.addEventListener('resize', constrain);
-    return () => window.removeEventListener('resize', constrain);
+    return () => { window.removeEventListener('resize', constrain); media.removeEventListener('change', syncWidth); };
   });
 </script>
 <!-- The focusable group provides keyboard movement of this spatial control; its children retain Toolbar action navigation. -->
 <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
-<div bind:this={host} class="floating-tools" role="group" aria-label="Move comment tools" tabindex="0" title="Drag toolbar background to move; arrow keys when focused" style:left={`${x}px`} style:top={`${y}px`} onpointerdown={start} onpointermove={move} onpointerup={end} onpointercancel={end} onkeydown={key}>
+<div bind:this={host} hidden={narrow && workbench.left} class="floating-tools" role="group" aria-label="Move comment tools" tabindex="0" title="Drag toolbar background to move; arrow keys when focused" style:left={`${placedX}px`} style:top={`${y}px`} onpointerdown={start} onpointermove={move} onpointerup={end} onpointercancel={end} onkeydown={key}>
   <Toolbar label="Comment tools" appearance="floating">
     <ToggleButton size="compact" touchAppearance="compact" icon="message-square" label="Comment" title="Comment: choose an element, or hover and press C" aria-keyshortcuts="C" pressed={active === 'comment'} {disabled} onPressedChange={() => onchoose('comment')} />
     <ToggleButton size="compact" touchAppearance="compact" icon="camera" label="Screenshot" title="Screenshot: choose an element, or hover and press S" aria-keyshortcuts="S" pressed={active === 'capture'} {disabled} onPressedChange={() => onchoose('capture')} />
