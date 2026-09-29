@@ -63,3 +63,5 @@ Hover shortcuts: with the mouse over page content, C selects that element and op
 Project/workspace roots show a workspace icon, Git worktree rows a branch icon, mounted folders a folder icon, and routes an HTML/code-page icon. Icons are decorative, aligned at 16px, and do not change the uniform label typography.
 
 Selection-mode pointer activation releases button focus so a later global shortcut cannot turn a stale pointer focus into a keyboard ring. Keyboard traversal still retains native focus indication. Mode pressed state and page selection outline remain separate from focus.
+
+Workspaces and Comments pane visibility persists in browser-local origin-wide preferences and synchronizes across Surface documents. Refresh restores each pane. This is a UI preference, not project data or tab/draft persistence; unavailable browser storage must not break navigation.

@@ -122,6 +122,20 @@ try {
     await page.getByRole('button',{name:'Close alpha',exact:true}).click();
     await expect(page.getByRole('tab')).toHaveCount(0);
     await expect(page.getByText('Open a surface from Workspaces.',{exact:true})).toBeVisible();
+    await page.goto(new URL(href,app.origin).href);
+    const paneToggle=page.getByRole('button',{name:'Toggle navigation',exact:true});
+    await expect(paneToggle).toBeVisible();
+    if(await paneToggle.getAttribute('aria-expanded') !== 'true') await paneToggle.click();
+    await page.reload();
+    await expect(page.getByRole('complementary',{name:'Workspace navigation'})).toBeVisible();
+    await page.getByRole('button',{name:'Toggle navigation',exact:true}).click();
+    await page.getByRole('button',{name:/Open comments/}).click();
+    await page.reload();
+    await expect(page.getByRole('complementary',{name:'Workspace navigation'})).toBeHidden();
+    await expect(page.getByRole('complementary',{name:'Comments and conversation'})).toBeVisible();
+    await page.getByRole('button',{name:'Close comments',exact:true}).click();
+    await page.reload();
+    await expect(page.getByRole('complementary',{name:'Comments and conversation'})).toBeHidden();
     assert.deepEqual(errors,[]); await context.close();
   }
   console.log('Editor verified: uniform 14px/400/32px tree, sidebar toggle, tabs, draft and scroll retention, keyboard selection and close on desktop and touch phone.');

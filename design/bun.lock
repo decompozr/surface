@@ -5,13 +5,13 @@
     "": {
       "name": "surface-design",
       "dependencies": {
-        "@decompozr/design-system": "link:@decompozr/design-system",
+        "@decompozr/design-system": "file:vendor/design-system.tgz",
         "svelte": "5.57.1",
       },
     },
   },
   "packages": {
-    "@decompozr/design-system": ["@decompozr/design-system@link:@decompozr/design-system", {}],
+    "@decompozr/design-system": ["@decompozr/design-system@vendor/design-system.tgz", { "peerDependencies": { "svelte": "^5.46.4" } }, "sha512-NlNpUbpO4r/zDUDzcato0RlPtTHFZ0EhSBMwgwe/BepMxAB0OHCJGZjZr/3iyXss8ZsyVSU3+wJb1n2LjKHJ2A=="],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 

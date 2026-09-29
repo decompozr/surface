@@ -12,6 +12,10 @@
   type OpenSurface = { id: string; label: string; href: string; embeddedURL: string; path: string[]; original?: boolean };
   let tabs = $state<OpenSurface[]>([]), activeTab = $state(''), embedded = $state(false), originalClosed = $state(false);
   let navigationOpen = $state(false), currentURL = $state('');
+  let preferencesReady = $state(false);
+  const paneKey = (pane: string) => `surface.ui.panes.${pane}`;
+  $effect(() => { if (preferencesReady && !embedded) { try { localStorage.setItem(paneKey('workspaces'), JSON.stringify(navigationOpen)); } catch {} } });
+  $effect(() => { if (preferencesReady && panelContent) { try { localStorage.setItem(paneKey('comments'), JSON.stringify(panelOpen)); } catch {} } });
   let pageContent = $state<HTMLDivElement>();
   const activeSurface = $derived(tabs.find(tab => tab.id === activeTab));
   const originalVisible = $derived((!activeTab && !originalClosed) || !!activeSurface?.original);
@@ -63,6 +67,17 @@
   onMount(() => {
     currentURL = location.href;
     embedded = window.parent !== window && new URL(location.href).searchParams.get('__surface_embedded') === '1';
+    try {
+      if (!embedded) navigationOpen = localStorage.getItem(paneKey('workspaces')) === 'true';
+      if (panelContent) panelOpen = localStorage.getItem(paneKey('comments')) === 'true';
+    } catch {}
+    preferencesReady = true;
+    const syncPanes = (event: StorageEvent) => {
+      if (event.storageArea !== localStorage) return;
+      if (!embedded && event.key === paneKey('workspaces')) navigationOpen = event.newValue === 'true';
+      if (panelContent && event.key === paneKey('comments')) panelOpen = event.newValue === 'true';
+    };
+    window.addEventListener('storage', syncPanes);
     if (!embedded && currentPath.startsWith('/workspace/')) {
       const id = crypto.randomUUID(); tabs = [{ id, label:findLabel(navigation, currentPath) ?? 'Surface', href:location.href, path:displayPath(location.href, findLabel(navigation, currentPath) ?? 'Surface'), embeddedURL:'', original:true }]; activeTab = id;
     }
@@ -92,7 +107,7 @@
       event.preventDefault(); openSurface(url.href, anchor.textContent?.trim() || 'Surface');
     };
     window.addEventListener('message', receive); document.addEventListener('click', follow);
-    return () => { window.removeEventListener('popstate', restoreSelection); window.removeEventListener('message', receive); document.removeEventListener('click', follow); };
+    return () => { window.removeEventListener('storage', syncPanes); window.removeEventListener('popstate', restoreSelection); window.removeEventListener('message', receive); document.removeEventListener('click', follow); };
   });
 </script>
 <svelte:window onkeydown={(event) => {

@@ -1,1 +1,9 @@
-{"name":"surface-design","private":true,"type":"module","dependencies":{"svelte":"5.57.1","@decompozr/design-system":"link:@decompozr/design-system"}}
+{
+  "name": "surface-design",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "svelte": "5.57.1",
+    "@decompozr/design-system": "file:vendor/design-system.tgz"
+  }
+}
