@@ -311,6 +311,12 @@
     persistQueue = persistQueue.catch(() => {}).then(() => writeState(snapshot, storageKey)).then(() => { storageError = ''; }, () => { storageError = 'Could not save comments. Keep this page open.'; });
   });
   onMount(() => {
+    const reviewTool = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return;
+      if (event.detail === 'comments') void togglePanel();
+      if (event.detail === 'select' && !locked) { mode = !mode; hovered = null; if (!mode) editorOpen = false; updateBox(); }
+    };
+    window.addEventListener('surface:review-tool', reviewTool);
     mode = !mounted; observedRevision = revision;
     const sourceChanged = () => { observedRevision = 'unverified-after-hmr'; selected = null; hovered = null; updateBox(); };
     window.addEventListener('surface:source-changed', sourceChanged);
@@ -394,7 +400,7 @@
       if (mode && (event.key === 'Enter' || event.key === ' ') && targetFrom(event)) { event.preventDefault(); event.stopPropagation(); void select(targetFrom(event)!); }
     };
     window.addEventListener('pointerdown', press, true); window.addEventListener('click', click, true); window.addEventListener('pointermove', move); window.addEventListener('keydown', key, true); window.addEventListener('resize', viewportChange); window.addEventListener('scroll', scroll, true); window.addEventListener('pointerup', release, true); window.addEventListener('pointercancel', cancel, true);
-    return () => { window.removeEventListener('surface:source-changed', sourceChanged); active = false; window.removeEventListener('hashchange', connect); cancelAnimationFrame(positionFrame); cancelAnimationFrame(revealFrame); viewport?.removeEventListener('resize', viewportChange); viewport?.removeEventListener('scroll', viewportChange); window.removeEventListener('focusin', viewportChange); clearTimeout(toastTimer); updates.abort(); window.removeEventListener('offline', offline); workspaceSize.disconnect(); window.removeEventListener('pointerdown', press, true); window.removeEventListener('click', click, true); window.removeEventListener('pointermove', move); window.removeEventListener('keydown', key, true); window.removeEventListener('resize', viewportChange); window.removeEventListener('scroll', scroll, true); window.removeEventListener('pointerup', release, true); window.removeEventListener('pointercancel', cancel, true); };
+    return () => { window.removeEventListener('surface:review-tool', reviewTool); window.removeEventListener('surface:source-changed', sourceChanged); active = false; window.removeEventListener('hashchange', connect); cancelAnimationFrame(positionFrame); cancelAnimationFrame(revealFrame); viewport?.removeEventListener('resize', viewportChange); viewport?.removeEventListener('scroll', viewportChange); window.removeEventListener('focusin', viewportChange); clearTimeout(toastTimer); updates.abort(); window.removeEventListener('offline', offline); workspaceSize.disconnect(); window.removeEventListener('pointerdown', press, true); window.removeEventListener('click', click, true); window.removeEventListener('pointermove', move); window.removeEventListener('keydown', key, true); window.removeEventListener('resize', viewportChange); window.removeEventListener('scroll', scroll, true); window.removeEventListener('pointerup', release, true); window.removeEventListener('pointercancel', cancel, true); };
   });
 </script>
 {#snippet headerTools()}
@@ -445,7 +451,7 @@
 </StatusBar>
 {/snippet}
 {#snippet editorNotice()}<Text size="small" role="status">{notice}</Text>{/snippet}
-<SurfaceShell panelContent={commentPanel} bind:panelOpen={panel} status={connectionStatus} statusHeight="44px" navigation={data.navigation} {currentPath} {headerTools} viewportContent={!mounted} showBreadcrumbs={mounted}>
+<SurfaceShell panelContent={commentPanel} bind:panelOpen={panel} status={connectionStatus} statusHeight="44px" navigation={data.navigation} {currentPath} {headerTools} viewportContent={!mounted}>
   <section id="comment-workspace" class:selecting={mode} class:mounted bind:this={workspace} aria-label="Shared workspace">
     {#if children}{@render children(mode)}{:else}<div id="surface-page"></div>{/if}
   </section>

@@ -23,6 +23,8 @@ For installation or updates, read [agent setup](references/setup.md). Use the ex
 
 ## Select the existing service
 
+Use the single production installation at `~/.decompozr/surface` by default. Other homes are development/test installations and require an explicit task-scoped `--home` or `--state-dir` override. Do not discover and adopt a running preview as the shared service. The former `surface-main-preview` path is retained only for old callback/data references; it is not a selectable installation.
+
 Use the public `surface` CLI. If it is not on PATH, resolve this skill's real directory and run `bun <checkout>/apps/cli/src/index.ts`. `--home` or `SURFACE_HOME` selects the shared installation. Its default is `~/.decompozr/surface` on macOS and Linux; it does not depend on cwd. Explicit client `--state-dir` or `SURFACE_STATE_DIR` selects another existing service. Keep that selection consistent across CLI and MCP.
 
 Read [service and project operations](references/operations.md) when installing, migrating, retiring a workspace or configuring MCP. Existing older services remain usable through their exact recorded entry points. Do not silently migrate them, regenerate IDs, change global configuration or switch a task to another service just to create a preview.

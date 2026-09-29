@@ -4,7 +4,9 @@ Source references: [shell](../../apps/surface/src/lib/components/SurfaceShell.sv
 
 ## D-01: information hierarchy and routes
 
-The current shell orders global brand/navigation, location breadcrumbs, request recipient controls when applicable, then project-owned page content. Projects, workspaces and mounted source folders are grouping nodes. The mount root has a single Home page link; route segments link to declared pages or generated indexes. Workspace labels use the source directory name without appending Git branches or agent metadata. Only the actual page link is current. Identity comes from the ledger/mount, not the label. The tree includes only active registered workspaces with ready route mounts and pages; it does not expose arbitrary directories or legacy component catalogs.
+The sidebar heading is **Workspaces**. Do not label it “Projects & workspaces”.
+
+The current shell orders one header with the Surface icon as its navigation toggle (without an adjacent Surface wordmark or a second Home/breadcrumb bar), request recipient controls when applicable, then project-owned page content. Projects, workspaces and mounted source folders are grouping nodes. The mount root has a single Home page link; route segments link to declared pages or generated indexes. Workspace labels use the source directory name without appending Git branches or agent metadata. Only the actual page link is current. Identity comes from the ledger/mount, not the label. The tree includes only active registered workspaces with ready route mounts and pages; it does not expose arbitrary directories or legacy component catalogs.
 
 | Surface | Entry and content | Primary action / boundary |
 | --- | --- | --- |
@@ -18,19 +20,21 @@ The current shell orders global brand/navigation, location breadcrumbs, request 
 Illustrative structure below describes source composition, not a rendered or approved wireframe:
 
 ```text
-[Navigation toggle] Surface
-[Project > worktree > folder > route] | Home / folder / page
+[Surface icon / navigation toggle]
+[Project > worktree > folder > route] | Project content
                                     | Agent recipient (request URLs only)
                                     |   identity, observed status, delivery choice
                                     |   optional explicit recipient change
                                     | Project page: controls, submit, result
 ```
 
-Navigation and breadcrumbs preserve query/fragment only for the current page. Unrelated page links remain clean; never forward a request capability to another page. Current source uses `data-sveltekit-reload`, so navigation can create a new document. Do not imply that form drafts persist across these links.
+Navigation links preserve query/fragment only for the current page. Unrelated page links remain clean; never forward a request capability to another page. Current source uses `data-sveltekit-reload`, so navigation can create a new document. Do not imply that form drafts persist across these links.
 
 ### Compact navigation and brand
 
-The shell keeps the compact Surface mark on home and mounted pages, using the design-system Logo's `cream` palette: warm neutral background, dark green-gray brackets and sage center. Keep the existing mark geometry and use the public palette API rather than local SVG color overrides.
+The header uses the design-system `panel-left` IconButton on white, followed by `SurfaceTabs`. It contains no logo, adjacent wordmark or breadcrumb row. The sidebar is labeled Workspaces. NavigationLinks uses `typography="uniform"`: every group and link is 14px, weight 400, 20px line-height, with a 32px row and no group margin. Indentation conveys hierarchy; the current page uses background rather than bold type.
+
+Selecting a mounted route opens or selects an editor tab. Each secondary surface stays mounted in its own same-origin frame; switching tabs keeps DOM, drafts and scroll positions. A frame hides its redundant shell header; the parent forwards comment-tool actions only to the active known frame with matching origin. Navigation from a frame opens a parent tab. Closing requires confirmation because page-owned unsaved state is discarded. Tabs are session UI: a full browser reload still reloads content and does not promise draft recovery for arbitrary pages. The original deep link retains its capability; unrelated route opens never inherit it.
 
 The September 28 spacing correction uses the public NavigationLinks `touchDensity="compact"` API for actual 32 CSS px touch rows for the dense navigation list, not a smaller painted label inside a 44px row. Consecutive leaf links have no extra vertical spacer; hierarchy comes from indentation and group labels. Hit regions must not overlap. Toolbar actions retain their separate larger touch targets. Validate real touch activation and visible keyboard focus as well as row geometry. The upstream implementation is tracked in [design-system issue #12](https://github.com/decompozr/design-system/issues/12).
 

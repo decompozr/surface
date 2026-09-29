@@ -2,79 +2,112 @@
   import '@decompozr/design-system/fonts.css';
   import { onMount, tick, type Snippet } from 'svelte';
   import type { NavigationNode } from '../contracts/navigation.ts';
-  import { Logo } from '@decompozr/design-system';
-  import { AppShell, AppHeader, Brand, Button, Text, Breadcrumbs } from '@decompozr/design-system';
+  import { AppShell, AppHeader, IconButton, Text, SurfaceTabs } from '@decompozr/design-system';
   import NavigationTree from './NavigationTree.svelte';
   import RecipientPanel from './RecipientPanel.svelte';
-
-  const skipToContent = async (event: MouseEvent) => {
-    event.preventDefault();
-    navigationOpen = false;
-    await tick();
-    pageContent.focus();
-  };
-
-  const toggle = () => { navigationOpen = !navigationOpen; };
-
-  const trail = (nodes: NavigationNode[], parents: NavigationNode[] = []): NavigationNode[] => {
-    for (const node of nodes) {
-      const nested = trail(node.children, [...parents, node]);
-      if (nested.length) return nested;
-      if (node.href?.replace(/\/$/, '') === currentPath.replace(/\/$/, '')) return [...parents, node];
-    }
-    return [];
-  };
-
-  let { navigation = [], currentPath = '/', children, headerTools, viewportContent = false, showBreadcrumbs = true, panelContent, panelOpen = $bindable(false), status, statusHeight = '0px' }: {
-    navigation?: NavigationNode[]; currentPath?: string; children?: Snippet; headerTools?: Snippet;
-    viewportContent?: boolean; showBreadcrumbs?: boolean;
+  let { navigation = [], currentPath = '/', children, headerTools, viewportContent = false, panelContent, panelOpen = $bindable(false), status, statusHeight = '0px' }: {
+    navigation?: NavigationNode[]; currentPath?: string; children?: Snippet; headerTools?: Snippet; viewportContent?: boolean;
     panelContent?: Snippet; panelOpen?: boolean; status?: Snippet; statusHeight?: string;
   } = $props();
+  type OpenSurface = { id: string; label: string; href: string; embeddedURL: string; original?: boolean };
+  let tabs = $state<OpenSurface[]>([]), activeTab = $state(''), embedded = $state(false), originalClosed = $state(false);
   let navigationOpen = $state(false), currentURL = $state('');
-  let pageContent: HTMLDivElement;
-  const breadcrumbs = $derived(trail(navigation));
+  let pageContent = $state<HTMLDivElement>();
+  const activeSurface = $derived(tabs.find(tab => tab.id === activeTab));
+  const originalVisible = $derived((!activeTab && !originalClosed) || !!activeSurface?.original);
+  const activePath = $derived(activeSurface ? new URL(activeSurface.href).pathname : currentPath);
+  const toggle = () => { navigationOpen = !navigationOpen; };
+  const skipToContent = async (event: MouseEvent) => { event.preventDefault(); navigationOpen = false; await tick(); if (originalVisible) pageContent?.focus(); else document.getElementById(`surface-frame-${activeTab}`)?.focus(); };
+  const findLabel = (nodes: NavigationNode[], path: string): string | undefined => {
+    for (const node of nodes) { if (node.href?.replace(/\/$/, '') === path.replace(/\/$/, '')) return node.label; const nested = findLabel(node.children, path); if (nested) return nested; }
+  };
+  const selectTab = (id: string) => { activeTab = id; navigationOpen = false; };
+  const openSurface = (href: string, label: string) => {
+    const url = new URL(href, location.origin);
+    if (url.origin !== location.origin || !url.pathname.startsWith('/workspace/')) return;
+    url.searchParams.delete('__surface_embedded'); const cleanURL = url.href;
+    if (embedded) { parent.postMessage({ type:'surface:open-tab', href:cleanURL, label }, location.origin); return; }
+    const existing = tabs.find(tab => tab.href === cleanURL);
+    if (existing) { selectTab(existing.id); return; }
+    url.searchParams.set('__surface_embedded', '1'); const id = crypto.randomUUID();
+    tabs = [...tabs, { id, label, href:cleanURL, embeddedURL:url.href }]; selectTab(id);
+  };
+  const closeTab = (id: string) => {
+    const index = tabs.findIndex(tab => tab.id === id);
+    if (!confirm('Close this surface? Unsaved page changes will be discarded.')) return;
+    if (tabs.find(tab => tab.id === id)?.original) originalClosed = true;
+    tabs = tabs.filter(tab => tab.id !== id);
+    if (activeTab === id) activeTab = tabs[Math.min(index, tabs.length - 1)]?.id ?? '';
+  };
+  const tool = (action: 'select' | 'comments') => {
+    const frame = document.getElementById(`surface-frame-${activeTab}`);
+    if (frame instanceof HTMLIFrameElement) frame.contentWindow?.postMessage({ type:'surface:review-tool', action }, location.origin);
+  };
   onMount(() => {
     currentURL = location.href;
-
+    embedded = window.parent !== window && new URL(location.href).searchParams.get('__surface_embedded') === '1';
+    if (!embedded && currentPath.startsWith('/workspace/')) {
+      const id = crypto.randomUUID(); tabs = [{ id, label:findLabel(navigation, currentPath) ?? 'Surface', href:location.href, embeddedURL:'', original:true }]; activeTab = id;
+    }
+    const receive = (event: MessageEvent<unknown>) => {
+      if (event.origin !== location.origin || typeof event.data !== 'object' || !event.data) return;
+      const data = event.data;
+      if (embedded && event.source === parent && 'type' in data && data.type === 'surface:review-tool' && 'action' in data && (data.action === 'select' || data.action === 'comments')) window.dispatchEvent(new CustomEvent('surface:review-tool', { detail:data.action }));
+      if (!embedded && tabs.some(tab => { const frame = document.getElementById(`surface-frame-${tab.id}`); return frame instanceof HTMLIFrameElement && frame.contentWindow === event.source; }) && 'type' in data && data.type === 'surface:open-tab' && 'href' in data && typeof data.href === 'string' && 'label' in data && typeof data.label === 'string') openSurface(data.href, data.label);
+    };
+    const follow = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+      const anchor = event.target instanceof Element ? event.target.closest('a') : null;
+      if (!anchor || anchor.target || anchor.hasAttribute('download')) return;
+      const url = new URL(anchor.href); if (url.origin !== location.origin || !url.pathname.startsWith('/workspace/') || url.pathname === location.pathname && url.search === location.search) return;
+      event.preventDefault(); openSurface(url.href, anchor.textContent?.trim() || 'Surface');
+    };
+    window.addEventListener('message', receive); document.addEventListener('click', follow);
+    return () => { window.removeEventListener('message', receive); document.removeEventListener('click', follow); };
   });
 </script>
 <svelte:window onkeydown={(event) => {
   const target = event.target;
   const typing = target instanceof HTMLElement && (target.isContentEditable || !!target.closest('input, textarea, select, [role="textbox"]'));
-  if (viewportContent && !typing && !event.isComposing && !event.repeat && !event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === 'm') { event.preventDefault(); toggle(); }
+  if (!embedded && !typing && !event.isComposing && !event.repeat && !event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === 'm') { event.preventDefault(); toggle(); }
 }} />
+{#snippet actions()}
+  {#if activeTab && !originalVisible}
+    <IconButton icon="mouse-pointer-2" size="compact" touchAppearance="compact" label="Select and comment" onclick={() => tool('select')} />
+    <IconButton icon="message-square" size="compact" touchAppearance="compact" label="Open comments" onclick={() => tool('comments')} />
+  {:else}{@render headerTools?.()}{/if}
+{/snippet}
 {#snippet header()}
-  <AppHeader actions={headerTools}>
+  {#if !embedded}<AppHeader actions={actions} height="44px">
     <a class="skip-link" href="#surface-page-content" onclick={skipToContent}>Skip to content</a>
-    <Button appearance="quiet" size="compact" touchAppearance="compact" onclick={toggle} aria-label="Toggle navigation" title={viewportContent ? 'Toggle navigation (M)' : 'Toggle navigation'} aria-keyshortcuts={viewportContent ? 'M' : undefined} aria-controls="surface-navigation" aria-expanded={navigationOpen}>
-      <Logo variant="compact" palette="cream" centerSymbol="S" label="Surface" size={38} />
-    </Button>
-    <Brand href="/" data-sveltekit-reload>Surface</Brand>
-  </AppHeader>
+    <IconButton icon="panel-left" size="compact" touchAppearance="compact" onclick={toggle} label="Toggle navigation" title="Workspaces" aria-controls="surface-navigation" aria-expanded={navigationOpen} />
+    <div class="tab-strip"><SurfaceTabs items={tabs} active={activeTab} select={selectTab} close={closeTab} /></div>
+  </AppHeader>{/if}
 {/snippet}
 {#snippet navigationContent()}
-  <Text size="eyebrow" tone="muted">Projects &amp; workspaces</Text>
-  {#if navigation.length}<NavigationTree nodes={navigation} {currentPath} {currentURL} />{:else}<Text size="small" tone="muted">No route pages are mounted yet.</Text>{/if}
+  <Text size="body">Workspaces</Text>
+  {#if navigation.length}<NavigationTree nodes={navigation} currentPath={activePath} currentURL={activeSurface?.href ?? currentURL} open={openSurface} />{:else}<Text size="small" tone="muted">No route pages are mounted yet.</Text>{/if}
 {/snippet}
-<AppShell navigationMode="push" edgeSwipes {header} navigation={navigationContent} bind:navigationOpen navigationId="surface-navigation" navigationLabel="Workspace navigation" panel={panelContent} bind:panelOpen panelId="surface-comments" panelLabel="Comments and conversation" {status} {statusHeight}>
-  <div class="content" class:viewport={viewportContent}>
-    {#if showBreadcrumbs}<Breadcrumbs items={[
-      { label: 'Home', href: '/', current: currentPath === '/', attributes: { 'data-sveltekit-reload': true } },
-      ...breadcrumbs.map(node => ({ label: node.label,
-        href: node.href?.replace(/\/$/, '') === currentPath.replace(/\/$/, '') && currentURL ? currentURL : node.href,
-        current: node.href?.replace(/\/$/, '') === currentPath.replace(/\/$/, ''),
-        attributes: { 'data-sveltekit-reload': true } })),
-    ]} />{/if}
+<AppShell navigationMode="push" edgeSwipes {header} headerHeight={embedded ? '0px' : '44px'} navigation={embedded ? undefined : navigationContent} bind:navigationOpen navigationId="surface-navigation" navigationLabel="Workspace navigation" panel={originalVisible ? panelContent : undefined} bind:panelOpen panelId="surface-comments" panelLabel="Comments and conversation" status={originalVisible ? status : undefined} statusHeight={originalVisible ? statusHeight : '0px'}>
+  {#if !originalClosed}<div class="content" class:viewport={viewportContent || tabs.length > 0} hidden={!originalVisible}>
     <RecipientPanel />
     <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this horizontal scroll region.) -->
     <div id="surface-page-content" bind:this={pageContent} class="page-content" role="region" aria-label="Page content" tabindex="0">{#if children}{@render children()}{:else}<div id="surface-page"></div>{/if}</div>
-  </div>
+  </div>{/if}
+  {#if originalClosed && !tabs.length}<div class="empty"><Text>Open a surface from Workspaces.</Text></div>{/if}
+  {#each tabs.filter(tab => !tab.original) as tab (tab.id)}
+    <iframe id={`surface-frame-${tab.id}`} class="surface-frame" title={tab.label} src={tab.embeddedURL} hidden={activeTab !== tab.id}></iframe>
+  {/each}
 </AppShell>
 <style>
   :global(body) { margin:0; }
   .skip-link { position:fixed; top:8px; left:8px; z-index:60; transform:translateY(calc(-100% - 16px)); background:#fff; color:#1e293b; padding:8px 14px; border:2px solid #334155; border-radius:4px; }
   .skip-link:focus { transform:translateY(0); outline:3px solid #2563eb; outline-offset:2px; }
   .page-content:focus-visible { outline:3px solid #2563eb; outline-offset:-3px; }
+  .tab-strip { flex:1; min-width:0; height:44px; display:flex; }
+  .surface-frame { display:block; width:100%; height:100%; border:0; background:white; }
+  [hidden] { display:none !important; }
+  .empty { padding:1rem; }
   .content { min-width:0; }
   .viewport { height:100%; display:flex; flex-direction:column; }
   .page-content { min-width:0; overflow-x:auto; }

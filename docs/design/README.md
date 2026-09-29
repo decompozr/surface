@@ -18,7 +18,7 @@ Surface consumes `@decompozr/design-system` for component appearance, control st
 
 Development uses a linked package. Release verification uses the exact package bytes pinned by `apps/surface/design-system.lock.json`; follow the [source workflow](../source-workflow.md) and [release distribution](../architecture/release-distribution.md) instead of relying on a developer's symlink. Updating or preparing Surface requires checking the provider's latest committed main. Provider changes and Surface browser acceptance remain separate evidence.
 
-`SurfaceShell` composes AppShell, AppHeader, Brand, navigation and Breadcrumbs. Mounted pages use width-preserving push navigation and retain page identity. Comments use the package's Switch for Queue/Steer, selection outline, floating composer and side panel. Surface retains delivery semantics and automatic result monitoring.
+`SurfaceShell` composes AppShell, AppHeader, a panel-left navigation toggle, SurfaceTabs and uniform workspace navigation. Mounted pages use width-preserving push navigation and retain page identity. Comments use the package's Switch for Queue/Steer, selection outline, floating composer and side panel. Surface retains delivery semantics and automatic result monitoring.
 
 ## Mounted contextual comments
 

@@ -1,0 +1,7 @@
+# Surface editor shell and production consolidation
+
+The user requested an editor-style shell: remove the logo, wordmark and Home breadcrumb bar; use a panel-left toggle, Workspaces heading, identical sidebar typography/spacing, and tabs for switching surfaces. The design-system provider adds uniform navigation and SurfaceTabs. Surface owns the tab content lifetime, same-origin frame routing and comment-tool forwarding. Tabs keep mounted DOM during switching; full-reload persistence is not promised. Closing a tab confirms possible loss of page-owned unsaved changes.
+
+Validation: provider and consumer type checks/builds; isolated real-browser navigation fixture at desktop and touch-phone dimensions. It measures every group/page row as 14px/400/32px, opens two actual mounted surfaces, switches and verifies drafts and scroll, exercises keyboard selection and close, and opens the comment pane without sending messages. Rendered navigation and tab captures were inspected. Initial captures taken during transitions were rejected and recaptured after settled geometry.
+
+Production uses the standard ~/.decompozr/surface installation. The currently used live state is preserved; the previously stopped default installation is retained separately. The former preview path is retained only as a callback/data alias, not an independent service home. Development homes require explicit overrides. Installation and final live checks are recorded after deployment.
