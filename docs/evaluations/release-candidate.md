@@ -12,7 +12,7 @@ Build a committed Surface revision with the verified provider package:
 
 ```sh
 bun scripts/release/build.ts --version 0.1.0-rc.YYYYMMDD.N --ref COMMIT \
-  --design-system-package /absolute/frozen-provider --out /absolute/artifacts
+  --design-system-package /absolute/frozen-provider --out /absolute/surfaces
 ```
 
 The source revision, provider pin, bundled runtime, file inventory and archive checksum identify the candidate. The provider override must match the selected Surface commit's pin and never replaces a development link. The release is a native macOS arm64 archive; signing/notarization and other platforms remain separate work.
@@ -26,7 +26,7 @@ bun tests/e2e/release/candidate.ts \
   --output /absolute/new-evidence-directory
 ```
 
-This creates an owned isolated installation with a short path, preserves its artifacts/state, and stops only its own test service. It verifies checksums and installation without a development toolchain on PATH; project registration/mounting through the public CLI; real installed MCP listing; persisted browser drafts, project source, identity and durable comment/domain results through upgrade, rollback and candidate restoration. Chromium/WebKit comment flows use an explicit fake provider socket and the installed reply executable. No fixture is sent to a real conversation, and no existing preview recipient is changed.
+This creates an owned isolated installation with a short path, preserves its surfaces/state, and stops only its own test service. It verifies checksums and installation without a development toolchain on PATH; project registration/mounting through the public CLI; real installed MCP listing; persisted browser drafts, project source, identity and durable comment/domain results through upgrade, rollback and candidate restoration. Chromium/WebKit comment flows use an explicit fake provider socket and the installed reply executable. No fixture is sent to a real conversation, and no existing preview recipient is changed.
 
 Run the standard delivery and UI regression matrix against the exact package without rebuilding it:
 

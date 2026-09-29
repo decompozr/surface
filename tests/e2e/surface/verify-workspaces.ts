@@ -13,7 +13,7 @@ try {
     const { token } = JSON.parse(readFileSync(join(f.stateDir, 'connection.json'), 'utf8'));
     const response = await fetch(app!.origin + '/api/v1/projects/operations', {
       method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ projectRoot, operation, ...(['mount', 'unmount'].includes(operation) ? { artifactId: f.artifactId } : {}) }),
+      body: JSON.stringify({ projectRoot, operation, ...(['mount', 'unmount'].includes(operation) ? { surfaceId: f.surfaceId } : {}) }),
     });
     return response.json();
   };
@@ -45,7 +45,7 @@ try {
   assert.equal(existsSync(f.dataRoot), false);
   assert.equal(existsSync(join(f.stateDir, 'project-bindings.json')), false);
   assert.equal((await project(f.linked, 'unmount')).ok, true);
-  const name = `a-${f.artifactId}`;
+  const name = `a-${f.surfaceId}`;
   assert.equal((await fetch(`${app.origin}/n/${b.namespace}/${name}/`)).status, 404);
   assert.equal((await fetch(`${app.origin}/n/${a.namespace}/${name}/`)).status, 200);
   await app.stop();

@@ -24,7 +24,7 @@ delete process.env.SURFACE_RUNNER_NONCE;
 const socketPath = join(home, 'run/control.sock');
 const ownerPath = join(home, 'run/owner.json');
 const releasePath = join(home, 'releases', release);
-const manifest = JSON.parse(readFileSync(join(releasePath, '.artifact-release.json'), 'utf8'));
+const manifest = JSON.parse(readFileSync(join(releasePath, '.surface-release.json'), 'utf8'));
 if (manifest.release !== release || manifest.host !== host) throw new Error('Release identity mismatch.');
 const { startSurface } = await import(pathToFileURL(join(releasePath, 'apps/surface/src/lib/server/http/surface.ts')).href);
 const setupPath = join(home, 'agent-setup.json');

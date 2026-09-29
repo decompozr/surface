@@ -19,6 +19,6 @@ coverage/
 # Local Surface sessions and browser verification
 .decompozr/
 # Keep private state from earlier checkouts ignored.
-.artifact/
+.surface/
 playwright-report/
 test-results/

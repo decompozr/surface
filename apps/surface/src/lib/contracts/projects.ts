@@ -5,7 +5,7 @@ export type ProjectOperationInput = {
   operation: ProjectOperation;
   /** Absolute path; the service canonicalizes aliases before binding identity. */
   projectRoot: string;
-  artifactId?: string;
+  surfaceId?: string;
   /** Project-relative existing source folder, used only by add. */
   source?: string;
   name?: string;
@@ -32,8 +32,8 @@ export type ProjectOutcome = {
   data?: unknown;
   error?: { code: string; message: string };
 };
-export type ProjectArtifact = { id: string; name: string; source: string; archived: boolean };
-export type ProjectManifest = { version: 1; projectId: string; name: string; artifacts: ProjectArtifact[] };
+export type ProjectSurface = { id: string; name: string; source: string; archived: boolean };
+export type ProjectManifest = { version: 1; projectId: string; name: string; surfaces: ProjectSurface[] };
 
 /** Host-owned identity integration. Resolve/validate workspace identity before any manifest mutation. */
 export type ProjectIdentityResolver = (root: string, manifest: ProjectManifest, operation: ProjectOperation) => Promise<{ namespace: string; workspaceId: string }>;

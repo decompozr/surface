@@ -41,7 +41,7 @@ test('project HTTP authorizes before filesystem access and maps validation error
     const host = await start(join(directory, 'state')); app = host.app;
     const denied = await host.api(endpoint, { operation: 'init', projectRoot }, false);
     expect(denied.status).toBe(401); expect(denied.data).toMatchObject({ version: 1, ok: false, status: 'rejected', error: { code: 'unauthorized' } });
-    expect(existsSync(join(projectRoot, 'artifact.project.json'))).toBe(false);
+    expect(existsSync(join(projectRoot, 'surface.project.json'))).toBe(false);
     const malformedUnauthorized = await fetch(app.origin + endpoint, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: 'not JSON' });
     expect(malformedUnauthorized.status).toBe(401);
     expect((await host.api(endpoint)).status).toBe(405);
@@ -53,7 +53,7 @@ test('project HTTP authorizes before filesystem access and maps validation error
     expect(invalid.status).toBe(400); expect(invalid.data).toMatchObject({ version: 1, ok: false, status: 'rejected' });
     const initialized = await host.operation({ operation: 'init', projectRoot, name: 'HTTP project' });
     expect(initialized.status).toBe(200); expect(initialized.data).toMatchObject({ version: 1, ok: true, status: 'ok' });
-    expect(existsSync(join(projectRoot, 'artifact.project.json'))).toBe(true);
+    expect(existsSync(join(projectRoot, 'surface.project.json'))).toBe(true);
     const extra = await host.operation({ operation: 'list', projectRoot, unexpected: true });
     expect(extra.status).toBe(400); expect(extra.data.status).toBe('rejected');
   } finally { await app?.stop(); rmSync(directory, { recursive: true, force: true }); }
@@ -73,9 +73,9 @@ test('project API and direct mounts share records and preserve sources through a
     await host.operation({ operation: 'init', projectRoot, name: 'HTTP project' });
     const added = await host.operation({ operation: 'add', projectRoot, source: 'panel', name: 'Controls' });
     expect(added.status).toBe(200);
-    const manifest = JSON.parse(readFileSync(join(projectRoot, 'artifact.project.json'), 'utf8'));
-    const artifactId = manifest.artifacts[0].id;
-    const mounted = await host.operation({ operation: 'mount', projectRoot, artifactId });
+    const manifest = JSON.parse(readFileSync(join(projectRoot, 'surface.project.json'), 'utf8'));
+    const surfaceId = manifest.surfaces[0].id;
+    const mounted = await host.operation({ operation: 'mount', projectRoot, surfaceId });
     expect(mounted.status).toBe(200); expect(mounted.data.ok).toBe(true);
     const records = (await host.api('/api/mounts')).data;
     const current = records.find((record: any) => record.source === panel);
@@ -83,18 +83,18 @@ test('project API and direct mounts share records and preserve sources through a
     expect((await fetch(`${current.previewUrl}?component=src%2FPanel.svelte`)).status).toBe(200);
     await host.api('/api/unmount', { namespace: current.namespace, name: current.name });
     const list = await host.operation({ operation: 'list', projectRoot });
-    expect(list.data.data.artifacts[0].runtime.status).toBe('unmounted');
-    expect((await host.operation({ operation: 'mount', projectRoot, artifactId })).status).toBe(200);
-    expect((await host.operation({ operation: 'archive', projectRoot, artifactId })).status).toBe(200);
-    expect(JSON.parse(readFileSync(join(projectRoot, 'artifact.project.json'), 'utf8')).artifacts[0].archived).toBe(true);
+    expect(list.data.data.surfaces[0].runtime.status).toBe('unmounted');
+    expect((await host.operation({ operation: 'mount', projectRoot, surfaceId })).status).toBe(200);
+    expect((await host.operation({ operation: 'archive', projectRoot, surfaceId })).status).toBe(200);
+    expect(JSON.parse(readFileSync(join(projectRoot, 'surface.project.json'), 'utf8')).surfaces[0].archived).toBe(true);
     expect((await fetch(current.previewUrl)).status).toBe(404);
     expect(readFileSync(join(panel, 'src/Panel.svelte'), 'utf8')).toBe(original);
     expect(existsSync(join(panel, 'node_modules'))).toBe(true);
-    expect((await host.operation({ operation: 'restore', projectRoot, artifactId })).status).toBe(200);
+    expect((await host.operation({ operation: 'restore', projectRoot, surfaceId })).status).toBe(200);
     expect((await fetch(current.previewUrl)).status).toBe(404);
     await host.operation({ operation: 'add', projectRoot, source: 'broken', name: 'Failed preparation' });
-    const brokenId = JSON.parse(readFileSync(join(projectRoot, 'artifact.project.json'), 'utf8')).artifacts.find((item: any) => item.source === 'broken').id;
-    const failed = await host.operation({ operation: 'mount', projectRoot, artifactId: brokenId });
+    const brokenId = JSON.parse(readFileSync(join(projectRoot, 'surface.project.json'), 'utf8')).surfaces.find((item: any) => item.source === 'broken').id;
+    const failed = await host.operation({ operation: 'mount', projectRoot, surfaceId: brokenId });
     expect(failed.status).toBe(500); expect(failed.data).toMatchObject({ version: 1, ok: false, status: 'failed' });
     expect(existsSync(join(broken, 'src/Panel.svelte'))).toBe(true);
     expect((await fetch(`${sibling.data.previewUrl}?component=src%2FPanel.svelte`)).status).toBe(200);
@@ -112,10 +112,10 @@ test('project operations share host mutation queue and shutdown excludes late re
     const host = await start(join(directory, 'state')); app = host.app;
     await host.operation({ operation: 'init', projectRoot, name: 'Queued project' });
     await host.operation({ operation: 'add', projectRoot, source: 'panel', name: 'Controls' });
-    const artifactId = JSON.parse(readFileSync(join(projectRoot, 'artifact.project.json'), 'utf8')).artifacts[0].id;
+    const surfaceId = JSON.parse(readFileSync(join(projectRoot, 'surface.project.json'), 'utf8')).surfaces[0].id;
     const transform = app.vite.transformRequest.bind(app.vite);
     app.vite.transformRequest = async (...args) => { if (args[0].startsWith('/mounts/p-')) { entered.resolve(); await gate.promise; } return transform(...args); };
-    const mounting = host.operation({ operation: 'mount', projectRoot, artifactId });
+    const mounting = host.operation({ operation: 'mount', projectRoot, surfaceId });
     await entered.promise;
     let directComplete = false;
     const direct = host.api('/api/namespaces', { name: 'queued-direct' }).then(result => { directComplete = true; return result; });
@@ -135,7 +135,7 @@ test('project operations share host mutation queue and shutdown excludes late re
     slow!.end(JSON.stringify({ operation: 'init', projectRoot: lateRoot }).slice(1));
     const late = await lateResponse;
     expect(late.status).toBe(409); expect(late.data).toMatchObject({ version: 1, ok: false, status: 'rejected', error: { code: 'server_closing' } });
-    expect(existsSync(join(lateRoot, 'artifact.project.json'))).toBe(false);
+    expect(existsSync(join(lateRoot, 'surface.project.json'))).toBe(false);
     gate.resolve();
     expect((await mounting).status).toBe(200); expect((await direct).status).toBe(201);
     await stopping; expect(existsSync(join(directory, 'state/server.lock'))).toBe(false);

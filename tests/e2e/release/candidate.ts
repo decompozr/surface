@@ -42,7 +42,7 @@ const previous = await extract(values.previous), candidate = await extract(value
 writeFileSync(join(output, 'intake.json'), JSON.stringify({ home, project, port, previous, candidate }, null, 2));
 mkdirSync(join(project, 'ui/routes'), { recursive: true });
 writeFileSync(join(project, 'ui/package.json'), JSON.stringify({ private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
-writeFileSync(join(project, 'ui/artifact.json'), JSON.stringify({ framework: 'svelte', components: 'routes', routes: 'routes' }));
+writeFileSync(join(project, 'ui/surface.json'), JSON.stringify({ framework: 'svelte', components: 'routes', routes: 'routes' }));
 writeFileSync(join(project, 'ui/routes/+page.svelte'), '<main style="padding:24px"><h1 id="release-title">Surface release candidate</h1><p>Project source and comments survive a version change.</p></main>');
 await command(['git', 'init', '-q', '-b', 'main'], project);
 // Installation owns an empty home. Project source stays beside it, not inside it.
@@ -92,8 +92,8 @@ try {
   await installed('project', 'init', '--name', 'Surface release acceptance');
   const registered = await installed('project', 'register'); expect(registered.ok).toBe(true);
   const added = await installed('project', 'add', '--source', 'ui', '--name', 'Release review'); expect(added.ok).toBe(true);
-  const artifact = JSON.parse(readFileSync(join(project, 'artifact.project.json'), 'utf8')).artifacts[0].id;
-  const mounted = await installed('project', 'mount', '--artifact', artifact); expect(mounted.ok).toBe(true);
+  const surface = JSON.parse(readFileSync(join(project, 'surface.project.json'), 'utf8')).surfaces[0].id;
+  const mounted = await installed('project', 'mount', '--surface', surface); expect(mounted.ok).toBe(true);
   const preview = mounted.data.previewUrl;
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
@@ -120,8 +120,8 @@ try {
   await installed('rollback', '--release', next.release); await start(); await retained('restored-candidate');
   const generated = await installed('project', 'add', '--source', 'generated', '--name', 'Generated page');
   expect(generated.ok).toBe(true);
-  const generatedId = JSON.parse(readFileSync(join(project, 'artifact.project.json'), 'utf8')).artifacts.find((item: { source: string }) => item.source === 'generated').id;
-  const generatedMount = await installed('project', 'mount', '--artifact', generatedId);
+  const generatedId = JSON.parse(readFileSync(join(project, 'surface.project.json'), 'utf8')).surfaces.find((item: { source: string }) => item.source === 'generated').id;
+  const generatedMount = await installed('project', 'mount', '--surface', generatedId);
   expect(generatedMount.ok).toBe(true);
   await page.goto(generatedMount.data.previewUrl, { waitUntil: 'networkidle' });
   await expect(page.getByRole('heading', { name: 'A page for your next idea.' })).toBeVisible();

@@ -3,7 +3,7 @@
 This document describes component collaboration; [package boundaries](package-boundaries.md) owns the module layout. The earlier process topology and unadopted cross-framework hypotheses remain in [architecture exploration](../experiments/architecture-exploration.md).
 
 ```text
-Project source + artifact manifest + dependency lockfiles
+Project source + surface manifest + dependency lockfiles
                 |
 CLI / MCP -> authenticated project operations -> workspace identity + runtime
 Browser   -> shared shell + mounted CSR page -> request-scoped interaction

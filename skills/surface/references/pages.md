@@ -9,7 +9,7 @@ Create a source folder such as `surfaces/review` containing:
 ```text
 surfaces/review/
   package.json
-  artifact.json
+  surface.json
   routes/
     +page.svelte
     history/
@@ -22,7 +22,7 @@ Declare the shared compiler version in `package.json`:
 {"private":true,"type":"module","dependencies":{"svelte":"5.57.1"}}
 ```
 
-Use this `artifact.json`:
+Use this `surface.json`:
 
 ```json
 {"framework":"svelte","components":"routes","routes":"routes"}
@@ -33,14 +33,14 @@ Each `+page.svelte` is an ordinary Svelte component. A page may import existing 
 From the project worktree, using the selected installed CLI:
 
 ```sh
-surface project init --name "Project name"  # only if artifact.project.json is absent
+surface project init --name "Project name"  # only if surface.project.json is absent
 surface project register
 surface project add --source surfaces/review --name "Review"
 surface project list
-surface project mount --artifact ARTIFACT_ID
+surface project mount --surface SURFACE_ID
 ```
 
-Read the artifact ID from the command result, not from this example. `add` registers existing source; it does not scaffold files. Use `project list` to inspect `runtime.publicPath`, `runtime.pages` and `runtime.previewUrl` after mounting.
+Read the surface ID from the command result, not from this example. `add` registers existing source; it does not scaffold files. Use `project list` to inspect `runtime.publicPath`, `runtime.pages` and `runtime.previewUrl` after mounting.
 
 The installed workspace host produces:
 
@@ -49,9 +49,9 @@ The installed workspace host produces:
 /workspace/<project-name>/<worktree-name>/<source-folder>/history
 ```
 
-Project names and folder names are normalized to lowercase slugs. The canonical Git checkout is called `main` regardless of its current branch; linked worktrees use their directory basename. The last segment comes from the mounted source folder basename, not the artifact display name. Names are captured when the readable alias is assigned; UUIDs remain authoritative. Do not fabricate URLs or rename identities to resolve collisions: use the returned mount metadata.
+Project names and folder names are normalized to lowercase slugs. The canonical Git checkout is called `main` regardless of its current branch; linked worktrees use their directory basename. The last segment comes from the mounted source folder basename, not the surface display name. Names are captured when the readable alias is assigned; UUIDs remain authoritative. Do not fabricate URLs or rename identities to resolve collisions: use the returned mount metadata.
 
-`routes/+page.svelte` supplies the mount index; `routes/history/+page.svelte` supplies `/history`. Use only these clean URLs for browsing. Mounted project sources must declare routes. Add route wrappers and remount only within an authorized project task, retaining its artifact ID. Verify the returned readable URL and rendering.
+`routes/+page.svelte` supplies the mount index; `routes/history/+page.svelte` supplies `/history`. Use only these clean URLs for browsing. Mounted project sources must declare routes. Add route wrappers and remount only within an authorized project task, retaining its surface ID. Verify the returned readable URL and rendering.
 
 ## Interaction requests
 
@@ -80,4 +80,4 @@ Reply to the typed `surface.comments` event using its exact `requestId` and `rep
 
 ## Local scaffold
 
-`surface init --directory /absolute/project/ui` creates the current Svelte route template locally, without a service. It includes `artifact.json`, `routes/+page.svelte`, `src/interactions.ts` and the response schema. Install its dependencies explicitly, then register/add/mount it using the project workflow. Nonempty directories are preserved. There is no framework selector or standalone per-runtime server scaffold.
+`surface init --directory /absolute/project/ui` creates the current Svelte route template locally, without a service. It includes `surface.json`, `routes/+page.svelte`, `src/interactions.ts` and the response schema. Install its dependencies explicitly, then register/add/mount it using the project workflow. Nonempty directories are preserved. There is no framework selector or standalone per-runtime server scaffold.

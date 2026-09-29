@@ -4,9 +4,9 @@ The Surface-owned project service provides one operation contract to CLI, HTTP a
 
 ## Ownership and authority
 
-- The project owns its versioned `artifact.project.json`, artifact source, dependency declarations, lockfiles, and installed dependencies. The manifest is authoritative for artifact identity, labels, relative source definitions, and archive flags.
+- The project owns its versioned `surface.project.json`, surface source, dependency declarations, lockfiles, and installed dependencies. The manifest is authoritative for surface identity, labels, relative source definitions, and archive flags.
 - The service owns its private project binding ledger and runtime registry. The low-level service pins project IDs to canonical roots; the public workspace host uses a shared project/workspace ledger through the optional identity resolver. The runtime registry describes observed mount lifecycle; it does not overwrite project definitions.
-- Project and artifact UUIDs are stable. Labels do not determine route identity. An absolute project-root alias is canonicalized before identity checks; copying the same UUID to a different canonical root remains a conflict. The public workspace host additionally recognizes proven linked Git worktrees under the same project ID, using distinct workspace scopes. Relocation requires explicit reconciliation.
+- Project and surface UUIDs are stable. Labels do not determine route identity. An absolute project-root alias is canonicalized before identity checks; copying the same UUID to a different canonical root remains a conflict. The public workspace host additionally recognizes proven linked Git worktrees under the same project ID, using distinct workspace scopes. Relocation requires explicit reconciliation.
 - All implemented project operations enter the authenticated singleton and its existing mutation queue. Core writer locks retain the project-then-ledger acquisition order. The CLI and MCP adapter never write project manifests or the ledger themselves.
 
 The project manifest keeps its tested version 1 format. The new operation envelope is separately versioned. This increment does not introduce a silent schema migration or claim downgrade compatibility for future formats.
@@ -18,13 +18,13 @@ The shared core accepts `operation`, an absolute `projectRoot`, and only the fie
 | Operation | Additional input | Meaning |
 | --- | --- | --- |
 | `init` | Optional `name` | Create a manifest in an existing project; refuse overwrite. |
-| `add` | Project-relative `source`, `name` | Record an existing project-contained artifact source. No source scaffolding or deletion. |
+| `add` | Project-relative `source`, `name` | Record an existing project-contained surface source. No source scaffolding or deletion. |
 | `list` | None | Read definitions and source availability; report observed runtime separately. |
 | `register` | None | Bind the project ID to its canonical local root. |
-| `mount` | `artifactId` | Mount the non-archived definition through the existing singleton compiler. |
-| `unmount` | `artifactId` | Revoke runtime access while preserving the definition, files, and interactions. |
-| `archive` | `artifactId` | Unmount first, then mark the definition archived. Preserve source/dependencies. |
-| `restore` | `artifactId` | Clear an archived flag after validating the source. Do not mount implicitly. |
+| `mount` | `surfaceId` | Mount the non-archived definition through the existing singleton compiler. |
+| `unmount` | `surfaceId` | Revoke runtime access while preserving the definition, files, and interactions. |
+| `archive` | `surfaceId` | Unmount first, then mark the definition archived. Preserve source/dependencies. |
+| `restore` | `surfaceId` | Clear an archived flag after validating the source. Do not mount implicitly. |
 
 The core's runtime port supplies namespace creation, mount, mount listing, and unmount without knowing HTTP, MCP, Vite, or connection files. The singleton adapter calls its existing inner runtime operations directly. It must not make an HTTP request to itself or enter the same mutation queue recursively.
 

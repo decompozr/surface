@@ -30,7 +30,7 @@ if (import.meta.hot) {
   import.meta.hot.accept();
 }
 
-const metadata = document.getElementById('artifact-preview-context');
+const metadata = document.getElementById('surface-preview-context');
 const context = metadata ? JSON.parse(metadata.textContent) : null;
 const hostProps = writable(context?.props ?? {});
 if (context && import.meta.hot) {
@@ -39,7 +39,7 @@ if (context && import.meta.hot) {
     revision++;
     clear();
     const panel = document.createElement('aside');
-    panel.id = 'artifact-compiler-error';
+    panel.id = 'surface-compiler-error';
     panel.setAttribute('role', 'alert');
     panel.style.cssText = 'position:fixed;inset:16px 16px auto;max-height:45vh;overflow:auto;background:#fff0ed;color:#712219;border:1px solid #cd796c;padding:20px;z-index:99999;font:14px system-ui;box-shadow:0 8px 32px #0002';
     const title = document.createElement('strong');
@@ -55,9 +55,9 @@ if (context && import.meta.hot) {
   let pendingRevision;
   const own = (file = '') => {
     const clean = file.replace(/^\/@fs/, '').replace(/\\/g, '/');
-    return clean.startsWith(context.source + '/') || clean.includes('/mounts/' + context.namespace + '/' + context.name + '/') || clean.includes('virtual:artifact-component/' + context.namespace + '/' + context.name + '/');
+    return clean.startsWith(context.source + '/') || clean.includes('/mounts/' + context.namespace + '/' + context.name + '/') || clean.includes('virtual:surface-component/' + context.namespace + '/' + context.name + '/');
   };
-  const clear = () => document.getElementById('artifact-compiler-error')?.remove();
+  const clear = () => document.getElementById('surface-compiler-error')?.remove();
   import.meta.hot.on('vite:error', ({ err }) => {
     if (own(err.id ?? err.loc?.file ?? '')) show(err);
   });
@@ -69,17 +69,17 @@ if (context && import.meta.hot) {
     if (pendingRevision !== undefined && pendingRevision === revision) clear();
     pendingRevision = undefined;
   });
-  import.meta.hot.on('artifact:unmounted', event => {
+  import.meta.hot.on('surface:unmounted', event => {
     if (event.namespace === context.namespace && event.name === context.name) location.reload();
   });
-  import.meta.hot.on('artifact:discovery', event => {
+  import.meta.hot.on('surface:discovery', event => {
     if (event.namespace !== context.namespace || event.name !== context.name) return;
     if (context.component) {
       if (!event.components.includes(context.component)) location.reload();
       else if (event.changedProps.includes(context.component)) hostProps.set(event.props[context.component] ?? {});
       return;
     }
-    const list = document.querySelector('[data-artifact-catalog]');
+    const list = document.querySelector('[data-surface-catalog]');
     if (!list) return;
     const route = context.publicPath ? location.pathname.slice(context.publicPath.length).replace(/^\/|\/$/g, '') : '';
     const entries = context.publicPath ? Object.keys(event.pages ?? {}).filter(page => !route || page.startsWith(route + '/')) : event.components;

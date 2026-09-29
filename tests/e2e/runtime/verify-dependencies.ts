@@ -18,7 +18,7 @@ const project = (name: string, version: string) => {
   return source;
 };
 
-const manifest = (source: string, prebundle: string[]) => { writeFileSync(join(source, 'artifact.json'), JSON.stringify({ framework: 'svelte', components: 'src', prebundle })); };
+const manifest = (source: string, prebundle: string[]) => { writeFileSync(join(source, 'surface.json'), JSON.stringify({ framework: 'svelte', components: 'src', prebundle })); };
 
 const cli = async (...args: string[]) => {
   const child = Bun.spawn([process.execPath, join(process.cwd(), 'tests/e2e/runtime/control.ts'), ...args, '--state-dir', stateDir], { stdout: 'pipe', stderr: 'pipe' });

@@ -33,7 +33,7 @@ try {
   mkdirSync(join(project,'ui/routes'),{recursive:true});
   writeFileSync(join(project,'.gitignore'),'node_modules/\n');
   writeFileSync(join(project,'ui/package.json'),JSON.stringify({private:true,type:'module',dependencies:{svelte:'5.57.1'}}));
-  writeFileSync(join(project,'ui/artifact.json'),JSON.stringify({framework:'svelte',components:'routes',routes:'routes'}));
+  writeFileSync(join(project,'ui/surface.json'),JSON.stringify({framework:'svelte',components:'routes',routes:'routes'}));
   copyFileSync(join(payload,'examples/routes/counter/+page.svelte'),join(project,'ui/routes/+page.svelte'));
   await command(['git','init','-q','-b','main'],project);
   const started=await cli('start','--port','0');running=true;
@@ -43,8 +43,8 @@ try {
   await cli('project','init','--name','Release user');
   const registration=await cli('project','register');assert(registration.ok);
   const added=await cli('project','add','--source','ui','--name','Controls');assert(added.ok);
-  const manifest=JSON.parse(readFileSync(join(project,'artifact.project.json'),'utf8'));
-  const mounted=await cli('project','mount','--artifact',manifest.artifacts[0].id);assert(mounted.ok);
+  const manifest=JSON.parse(readFileSync(join(project,'surface.project.json'),'utf8'));
+  const mounted=await cli('project','mount','--surface',manifest.surfaces[0].id);assert(mounted.ok);
   assert.equal((await fetch(mounted.data.previewUrl)).status,200);
   assert(mounted.data.previewUrl.includes('/workspace/release-user/main/ui/'));
   assert(!existsSync(join(home,'project-data')));

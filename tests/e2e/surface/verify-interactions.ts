@@ -47,7 +47,7 @@ try {
 
   const project = async (projectRoot: string, operation: string) => {
     const value = await api('/api/v1/projects/operations', {
-      projectRoot, operation, ...(operation === 'register' ? {} : { artifactId: f.artifactId }),
+      projectRoot, operation, ...(operation === 'register' ? {} : { surfaceId: f.surfaceId }),
     });
     assert.ok(value.ok, JSON.stringify(value)); return value.data;
   };

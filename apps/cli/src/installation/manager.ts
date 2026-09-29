@@ -66,7 +66,7 @@ export class Installation {
   private selected() {
     const active = read<Release>(join(this.home, 'active.json'));
     if (!/^[a-f0-9]{40}-surface$/.test(active.release)) throw new Error('Invalid selected release identity.');
-    const manifest = read<Release>(join(this.home, 'releases', active.release, '.artifact-release.json'));
+    const manifest = read<Release>(join(this.home, 'releases', active.release, '.surface-release.json'));
     if (JSON.stringify(active) !== JSON.stringify(manifest)) throw new Error('Selected release manifest mismatch.');
     return active;
   }
@@ -100,7 +100,7 @@ export class Installation {
       const release = `${commit}-${host}`;
       const directory = join(this.home, 'releases', release);
       if (existsSync(directory)) {
-        const manifest = read<Release>(join(directory, '.artifact-release.json'));
+        const manifest = read<Release>(join(directory, '.surface-release.json'));
         if (manifest.commit !== commit || manifest.host !== host || manifest.release !== release) throw new Error('Existing release identity mismatch.');
         requireBun(directory, manifest);
         await this.validateRelease?.(directory, join(this.home, 'state'));
@@ -120,7 +120,7 @@ export class Installation {
         await command([process.execPath, 'run', 'build'], join(staging, 'apps/surface'));
         await this.validateRelease?.(staging, join(this.home, 'state'));
         const manifest: Release = { version: 1, release, commit, host, bun: Bun.version, installedAt: new Date().toISOString() };
-        atomic(join(staging, '.artifact-release.json'), manifest);
+        atomic(join(staging, '.surface-release.json'), manifest);
         renameSync(staging, directory);
         await prepareEntry?.(directory, release);
         // Activation is last: failed dependency preparation/build cannot displace the active release.
@@ -135,7 +135,7 @@ export class Installation {
       source=realpathSync(source);
       const bundle=verifyBundle(source);
       const release=`${bundle.commit}-surface`, directory=join(this.home,'releases',release);
-      const manifest=read<Release>(join(source,'.artifact-release.json'));
+      const manifest=read<Release>(join(source,'.surface-release.json'));
       if(manifest.commit!==bundle.commit||manifest.release!==release||manifest.host!=='surface')throw new Error('Bundle release identity mismatch.');
       requireBun(source,manifest);
       await this.validateRelease?.(source,join(this.home,'state'));
@@ -159,7 +159,7 @@ export class Installation {
     return this.locked(async () => {
       this.ensureStopped();
       if (!/^[a-f0-9]{40}-surface$/.test(release)) throw new Error('Invalid release identity.');
-      const manifest = read<Release>(join(this.home, 'releases', release, '.artifact-release.json'));
+      const manifest = read<Release>(join(this.home, 'releases', release, '.surface-release.json'));
       if (manifest.release !== release) throw new Error('Release manifest mismatch.');
       requireBun(join(this.home, 'releases', release), manifest);
       await this.validateRelease?.(join(this.home, 'releases', release), join(this.home, 'state'));

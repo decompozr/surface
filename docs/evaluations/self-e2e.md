@@ -9,7 +9,7 @@ This procedure was requested on September 23, 2026 after the comments experiment
 3. Add a regression that fails for the observed behavior, fix it and run the relevant integrated browser matrix. Unit tests, type checks, build success and HTTP 200 are separate checks, not substitutes for a user clicking through the flow.
 4. Inspect screenshots when layout matters. Assert user-visible outcomes, error/recovery states, durable state and provider call counts; do not merely assert that internal functions ran.
 5. Within existing preview-update authorization, publish a new immutable snapshot only after tests pass, preserving the selected endpoint and recipient. Test the exact snapshot or record its identity with the tested build. Keep fixtures away from real conversations and do not reset user drafts.
-6. Record commands, revision plus WIP, snapshot, browsers, scenarios, results, artifacts and limitations. Update the relevant source/evaluation and dated experiment. Report what was observed and what remains unverified. Ask the user only for information or physical-device evidence that the available environment cannot establish.
+6. Record commands, revision plus WIP, snapshot, browsers, scenarios, results, surfaces and limitations. Update the relevant source/evaluation and dated experiment. Report what was observed and what remains unverified. Ask the user only for information or physical-device evidence that the available environment cannot establish.
 
 ## Comments verification: one command
 

@@ -14,7 +14,7 @@ const browser = await chromium.launch({ channel:'chrome', headless:true });
 const output = process.env.SURFACE_EDITOR_OUTPUT ?? '/tmp/surface-editor-review'; mkdirSync(output, { recursive:true });
 try {
   for (const projectRoot of [f.main, f.linked]) for (const operation of ['register','mount'] as const) {
-    const result = await app.projectOperation({ operation, projectRoot, ...(operation === 'mount' ? {artifactId:f.artifactId} : {}) }); assert.ok(result.ok);
+    const result = await app.projectOperation({ operation, projectRoot, ...(operation === 'mount' ? {surfaceId:f.surfaceId} : {}) }); assert.ok(result.ok);
   }
   for (const mobile of [false,true]) {
     const context = await browser.newContext({ viewport:mobile ? {width:390,height:844} : {width:1440,height:1000}, isMobile:mobile, hasTouch:mobile });

@@ -19,7 +19,7 @@ const tool = async (operation: string, args: Record<string, unknown>, expectErro
 const observed = (message: string) => { observations.push(message); console.log(message); };
 
 const project = (name: string) => {
-  const projectRoot = join(temporary, name), source = join(projectRoot, 'artifacts/panel');
+  const projectRoot = join(temporary, name), source = join(projectRoot, 'surfaces/panel');
   mkdirSync(join(source, 'src'), { recursive: true });
   writeFileSync(join(projectRoot, 'README.md'), 'User-owned project.\n');
   writeFileSync(join(source, 'package.json'), JSON.stringify({ name, private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
@@ -62,23 +62,23 @@ try {
   const projectTools = tools.filter(tool => tool.name.startsWith('surface_project_'));
   assert.equal(projectTools.length, 8);
   assert.deepEqual(projectTools.filter(tool => tool.annotations?.readOnlyHint).map(tool => tool.name), ['surface_project_list']);
-  await tool('add', { projectRoot: alpha.projectRoot, source: 'artifacts/panel' }, true);
+  await tool('add', { projectRoot: alpha.projectRoot, source: 'surfaces/panel' }, true);
   await tool('init', { projectRoot: alpha.projectRoot, unexpected: true }, true);
   await tool('init', { projectRoot: 'relative/root' }, true);
   const aProject = (await tool('init', { projectRoot: alpha.projectRoot, name: 'Alpha' })).data;
   assert.equal((await cli(alpha.projectRoot, 'list')).projectId, aProject.projectId);
-  const a = await cli(alpha.projectRoot, 'add', '--source', 'artifacts/panel', '--name', 'Controls');
+  const a = await cli(alpha.projectRoot, 'add', '--source', 'surfaces/panel', '--name', 'Controls');
   const viaMcp = await tool('list', { projectRoot: alpha.projectRoot });
-  assert.equal(viaMcp.data.artifacts[0].id, a.id);
+  assert.equal(viaMcp.data.surfaces[0].id, a.id);
   assert.ok(!JSON.stringify(viaMcp.result).includes(managementToken));
   await tool('register', { projectRoot: alpha.projectRoot });
-  const mountA = (await tool('mount', { projectRoot: alpha.projectRoot, artifactId: a.id })).data;
+  const mountA = (await tool('mount', { projectRoot: alpha.projectRoot, surfaceId: a.id })).data;
   const mountedList = await cli(alpha.projectRoot, 'list');
-  assert.equal(mountedList.artifacts[0].runtime.status, 'ready');
+  assert.equal(mountedList.surfaces[0].runtime.status, 'ready');
   await cli(beta.projectRoot, 'init', '--name', 'Beta');
-  const b = (await tool('add', { projectRoot: beta.projectRoot, source: 'artifacts/panel', name: 'Controls' })).data;
+  const b = (await tool('add', { projectRoot: beta.projectRoot, source: 'surfaces/panel', name: 'Controls' })).data;
   await cli(beta.projectRoot, 'register');
-  const mountB = await cli(beta.projectRoot, 'mount', '--artifact', b.id);
+  const mountB = await cli(beta.projectRoot, 'mount', '--surface', b.id);
   assert.notEqual(mountA.namespace, mountB.namespace);
   observed('Real stdio MCP and the root CLI share server-owned project identity, registration and mounting; all 8 project tools have strict schemas and only list is read-only.');
 
@@ -102,23 +102,23 @@ try {
   observed('Actual Chrome rendering, clicks and source HMR preserve the opted-in counter, unsent draft and original document after mounting through the shared API.');
 
   const lock = readFileSync(join(alpha.source, 'bun.lock'), 'utf8');
-  await tool('archive', { projectRoot: alpha.projectRoot, artifactId: a.id });
+  await tool('archive', { projectRoot: alpha.projectRoot, surfaceId: a.id });
   assert.equal((await fetch(mountA.previewUrl)).status, 404);
-  assert.equal((await cli(alpha.projectRoot, 'list')).artifacts[0].archived, true);
-  await tool('mount', { projectRoot: alpha.projectRoot, artifactId: a.id }, true);
+  assert.equal((await cli(alpha.projectRoot, 'list')).surfaces[0].archived, true);
+  await tool('mount', { projectRoot: alpha.projectRoot, surfaceId: a.id }, true);
   assert.equal(await neighbor.evaluate(() => (window as any).documentMarker), 'beta');
   await neighbor.getByRole('button', { name: 'Count 1' }).click();
   await neighbor.getByRole('button', { name: 'Count 2' }).waitFor();
-  await cli(alpha.projectRoot, 'restore', '--artifact', a.id);
+  await cli(alpha.projectRoot, 'restore', '--surface', a.id);
   assert.equal((await fetch(mountA.previewUrl)).status, 404, 'Restore must not mount implicitly.');
-  const remounted = await cli(alpha.projectRoot, 'mount', '--artifact', a.id);
+  const remounted = await cli(alpha.projectRoot, 'mount', '--surface', a.id);
   assert.equal(remounted.previewUrl, mountA.previewUrl);
   await page.goto(remounted.previewUrl + '?component=src%2FPanel.svelte'); await page.reload();
   await page.getByRole('heading', { name: 'Shared project core updated' }).waitFor();
-  await tool('unmount', { projectRoot: alpha.projectRoot, artifactId: a.id });
+  await tool('unmount', { projectRoot: alpha.projectRoot, surfaceId: a.id });
   assert.equal((await fetch(mountA.previewUrl)).status, 404);
-  assert.equal((await cli(alpha.projectRoot, 'list')).artifacts[0].runtime.status, 'unmounted');
-  await tool('restore', { projectRoot: alpha.projectRoot, artifactId: a.id }, true);
+  assert.equal((await cli(alpha.projectRoot, 'list')).surfaces[0].runtime.status, 'unmounted');
+  await tool('restore', { projectRoot: alpha.projectRoot, surfaceId: a.id }, true);
   assert.equal(readFileSync(join(alpha.source, 'bun.lock'), 'utf8'), lock);
   assert.equal(readFileSync(join(alpha.projectRoot, 'README.md'), 'utf8'), 'User-owned project.\n');
   assert.ok(existsSync(join(alpha.source, 'node_modules/svelte')));
@@ -128,8 +128,8 @@ try {
 
   await app.stop(); app = await startSingleton({ stateDir, port: 0 });
   assert.equal((await tool('list', { projectRoot: alpha.projectRoot })).data.projectId, aProject.projectId);
-  await tool('mount', { projectRoot: alpha.projectRoot, artifactId: a.id });
-  assert.equal((await cli(alpha.projectRoot, 'list')).artifacts[0].runtime.status, 'ready');
+  await tool('mount', { projectRoot: alpha.projectRoot, surfaceId: a.id });
+  assert.equal((await cli(alpha.projectRoot, 'list')).surfaces[0].runtime.status, 'ready');
   observed('The running MCP adapter refreshes the connection after server restart and continues sharing the same durable identities with CLI.');
   writeFileSync(join(evidenceDir, 'result.json'), JSON.stringify({ at: new Date().toISOString(), observations, liveAgent: false }, null, 2));
   console.log('PASS: shared project CLI/MCP/browser access.');

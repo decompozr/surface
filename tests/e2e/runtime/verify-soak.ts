@@ -9,7 +9,7 @@ const assert: (value: unknown, message: string) => asserts value = (value: unkno
 const source = (name: string) => {
   const root = join(directory, name); mkdirSync(join(root, 'src'), { recursive: true });
   writeFileSync(join(root, 'package.json'), JSON.stringify({ name, private: true, type: 'module', dependencies: { svelte: '5.57.1', lodash: '4.17.21' } }));
-  writeFileSync(join(root, 'artifact.json'), JSON.stringify({ framework: 'svelte', components: 'src', prebundle: ['lodash'] }));
+  writeFileSync(join(root, 'surface.json'), JSON.stringify({ framework: 'svelte', components: 'src', prebundle: ['lodash'] }));
   writeFileSync(join(root, 'src/Panel.svelte'), component(name)); return root;
 };
 
@@ -40,7 +40,7 @@ const sample = (stage: string, cycle = -1) => {
   const value = { stage, cycle, elapsedSeconds: (performance.now() - started) / 1000, rss: process.memoryUsage().rss, heapUsed: process.memoryUsage().heapUsed,
     modules: graph.idToModuleMap.size, urls: graph.urlToModuleMap.size, fileKeys: graph.fileToModulesMap.size,
     sourceModules: modules.filter(item => item.id?.startsWith(directory + '/')).length,
-    dependencyModules: modules.filter(item => item.id?.includes('virtual:artifact-dependency/')).length,
+    dependencyModules: modules.filter(item => item.id?.includes('virtual:surface-dependency/')).length,
     transformBytes: modules.reduce((sum, item) => sum + (item.transformResult?.code.length ?? 0), 0),
     watchedDirectories: Object.keys(watched).length, watchedEntries: Object.values(watched).reduce((sum, entries) => sum + entries.length, 0),
     temporaryWatchedPaths: Object.keys(watched).filter(path => path.startsWith(directory)),
@@ -97,8 +97,8 @@ try {
       await page.getByRole('heading', { name: name + ' edited', exact: true }).waitFor(); await page.getByRole('button', { name: 'Count 1' }).waitFor();
       assert(await page.evaluate(() => (window as any).proofMarker) === 'edited-page', 'Cycle HMR refreshed document.');
       if (cycle === 0) {
-        writeFileSync(join(root, 'src/Panel.svelte'), '<script>'); await page.locator('#artifact-compiler-error').waitFor();
-        assert(await neighbor.locator('#artifact-compiler-error').count() === 0, 'Live compiler error reached neighbor.');
+        writeFileSync(join(root, 'src/Panel.svelte'), '<script>'); await page.locator('#surface-compiler-error').waitFor();
+        assert(await neighbor.locator('#surface-compiler-error').count() === 0, 'Live compiler error reached neighbor.');
         writeFileSync(join(root, 'src/Panel.svelte'), component(name + ' recovered')); await page.getByRole('heading', { name: name + ' recovered' }).waitFor(); await page.getByRole('button', { name: 'Count 1' }).waitFor();
       }
       sample('mounted', cycle);

@@ -20,7 +20,7 @@ try {
   for (const operation of ['register', 'mount']) {
     const response: Response = await fetch(app.origin + '/api/v1/projects/operations', {
       method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ projectRoot: fixture.main, operation, ...(operation === 'mount' ? { artifactId: fixture.artifactId } : {}) }),
+      body: JSON.stringify({ projectRoot: fixture.main, operation, ...(operation === 'mount' ? { surfaceId: fixture.surfaceId } : {}) }),
     });
     assert.ok(response.ok); assert.ok((await response.json()).ok);
   }

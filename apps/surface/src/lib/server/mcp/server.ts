@@ -84,17 +84,17 @@ export const createMcpServer = (stateDir: string) => {
     init: { projectRoot: absolutePath, name: z.string().min(1).optional() },
     add: { projectRoot: absolutePath, source: z.string().min(1), name: z.string().min(1) },
     list: { projectRoot: absolutePath }, register: { projectRoot: absolutePath },
-    mount: { projectRoot: absolutePath, artifactId: id }, unmount: { projectRoot: absolutePath, artifactId: id },
-    archive: { projectRoot: absolutePath, artifactId: id }, restore: { projectRoot: absolutePath, artifactId: id },
+    mount: { projectRoot: absolutePath, surfaceId: id }, unmount: { projectRoot: absolutePath, surfaceId: id },
+    archive: { projectRoot: absolutePath, surfaceId: id }, restore: { projectRoot: absolutePath, surfaceId: id },
   };
   const projectDescriptions = {
     init: 'Create a project-owned manifest with a stable identity. Refuses to overwrite an existing manifest.',
-    add: 'Register an existing project-relative source folder under a display name and a stable artifact ID.',
+    add: 'Register an existing project-relative source folder under a display name and a stable surface ID.',
     list: 'Read project definitions, source availability and observed runtime state separately.',
     register: 'Register the project using the selected server identity policy, including Git workspaces on the shared Surface host.',
-    mount: 'Mount the selected active artifact and prepare its declared dependencies.',
+    mount: 'Mount the selected active surface and prepare its declared dependencies.',
     unmount: 'Make the selected preview unavailable while retaining source, definitions and interactions.',
-    archive: 'Unmount the selected artifact and mark its definition archived; retain source and dependencies.',
+    archive: 'Unmount the selected surface and mark its definition archived; retain source and dependencies.',
     restore: 'Unarchive a definition. Leaves runtime state unchanged; mount explicitly when needed.',
   };
   for (const operation of Object.keys(projectShapes) as (keyof typeof projectShapes)[]) {

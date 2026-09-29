@@ -9,7 +9,7 @@ const assert: (condition: unknown, message: string) => asserts condition = (cond
 const makeProject = (name: string, version: string) => {
   const source = join(directory, name); mkdirSync(join(source, 'src'), { recursive: true });
   writeFileSync(join(source, 'package.json'), JSON.stringify({ name, private: true, type: 'module', dependencies: { svelte: '5.57.1', nanoid: version } }, null, 2));
-  writeFileSync(join(source, 'artifact.json'), JSON.stringify({ framework: 'svelte', components: 'src', props: { 'src/Counter.svelte': { label: name } } }));
+  writeFileSync(join(source, 'surface.json'), JSON.stringify({ framework: 'svelte', components: 'src', props: { 'src/Counter.svelte': { label: name } } }));
   writeFileSync(join(source, 'src/Counter.svelte'), `<script lang="ts">
 import { nanoid } from 'nanoid';
 import { previewState } from 'virtual:surface-preview';
@@ -121,8 +121,8 @@ try {
   await pageB.getByRole('button', {name:'Count 1',exact:true}).waitFor();
   observed('Discovery updated the live catalog without refreshing existing component pages or another namespace.');
   writeFileSync(join(alpha, 'src/Counter.svelte'), source + '\n<script>');
-  await pageA.locator('#artifact-compiler-error').waitFor();
-  assert(await pageB.locator('#artifact-compiler-error, vite-error-overlay').count() === 0, 'Compiler error leaked into beta UI.');
+  await pageA.locator('#surface-compiler-error').waitFor();
+  assert(await pageB.locator('#surface-compiler-error, vite-error-overlay').count() === 0, 'Compiler error leaked into beta UI.');
   await pageB.getByRole('button', {name:'Count 1',exact:true}).click();
   await pageB.getByRole('button', {name:'Count 2',exact:true}).waitFor();
   await pageA.screenshot({path:join(evidenceDir,'error-alpha.png'),fullPage:true});
@@ -130,7 +130,7 @@ try {
   assert(await pageB.getByRole('heading').textContent() === 'beta', 'Beta content disappeared during alpha compile error.');
   writeFileSync(join(alpha, 'src/Counter.svelte'), source.replace('<h1>{label}</h1>', '<h1>{label} recovered</h1>'));
   await pageA.getByRole('heading', {name:'alpha recovered'}).waitFor();
-  await pageA.locator('#artifact-compiler-error').waitFor({state:'detached'});
+  await pageA.locator('#surface-compiler-error').waitFor({state:'detached'});
   await pageA.getByRole('button', {name:'Count 1',exact:true}).waitFor();
   assert(await pageA.getByRole('textbox', {name:'Draft'}).inputValue() === 'Keep this draft', 'Compile recovery lost the draft.');
   assert(await pageB.evaluate(() => (window as unknown as { proofMarker: string }).proofMarker) === 'beta-document', 'Error recovery refreshed beta.');
@@ -143,7 +143,7 @@ try {
   assert(await pageA.evaluate(() => (window as unknown as { proofMarker: string }).proofMarker) === 'same-document', 'State version reset reloaded the document.');
   observed('Bumping a state version reset only that key; other state and the document survived.');
   await pageA.getByRole('button', {name:'Count 0',exact:true}).click();
-  writeFileSync(join(alpha, 'artifact.json'), JSON.stringify({framework:'svelte',components:'src',props:{'src/Counter.svelte':{label:'alpha host changed'}}}));
+  writeFileSync(join(alpha, 'surface.json'), JSON.stringify({framework:'svelte',components:'src',props:{'src/Counter.svelte':{label:'alpha host changed'}}}));
   await pageA.getByRole('heading', {name:'alpha host changed version two'}).waitFor();
   await pageA.getByRole('button', {name:'Count 1',exact:true}).waitFor();
   assert(await pageA.getByRole('textbox', {name:'Draft'}).inputValue() === 'Keep this draft', 'Host prop update reset preview state.');

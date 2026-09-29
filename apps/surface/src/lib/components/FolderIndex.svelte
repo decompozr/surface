@@ -13,7 +13,7 @@
 <section class="folder">
   <Text size="eyebrow" tone="muted">Pages in this folder</Text>
   <Text as="h1" size="title">{title}</Text>
-  <div data-artifact-catalog><NavigationLinks label="Pages in this folder" items={entries} /></div>
+  <div data-surface-catalog><NavigationLinks label="Pages in this folder" items={entries} /></div>
 </section>
 <style>
   .folder { padding:32px; max-width:780px; display:grid; gap:24px; }

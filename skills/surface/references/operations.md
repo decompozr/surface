@@ -23,11 +23,11 @@ For readable page routes and private Tailscale URLs, follow [project pages](page
 
 ## Project and workspace identities
 
-From a Git worktree, use `surface project init` if the manifest is absent, then `register`, `add --source RELATIVE_PATH --name LABEL`, `list`, and `mount --artifact ID`. Explicit `--project ROOT` selects another root. All project operations require the selected host. Init never overwrites an existing manifest.
+From a Git worktree, use `surface project init` if the manifest is absent, then `register`, `add --source RELATIVE_PATH --name LABEL`, `list`, and `mount --surface ID`. Explicit `--project ROOT` selects another root. All project operations require the selected host. Init never overwrites an existing manifest.
 
-`artifact.project.json` and artifact IDs are shared through Git. Git-linked worktrees get distinct workspace IDs and namespaces under one project. Branch names are labels; aliases are canonicalized. An independent clone with a copied project UUID remains a conflict. A tiny marker in Git administrative metadata detects missing/recreated identity; relocation/reused paths require explicit reconciliation. Do not regenerate IDs or delete the shared ledger to bypass errors.
+`surface.project.json` and surface IDs are shared through Git. Git-linked worktrees get distinct workspace IDs and namespaces under one project. Branch names are labels; aliases are canonicalized. An independent clone with a copied project UUID remains a conflict. A tiny marker in Git administrative metadata detects missing/recreated identity; relocation/reused paths require explicit reconciliation. Do not regenerate IDs or delete the shared ledger to bypass errors.
 
-`surface workspace current` identifies the cwd workspace; `workspace list` shows retained workspaces. `project list` separately reports source availability, archive status, route and observed runtime. `project archive` unmounts and saves the artifact flag; `project restore` clears that flag without an implicit mount. Both preserve source/data.
+`surface workspace current` identifies the cwd workspace; `workspace list` shows retained workspaces. `project list` separately reports source availability, archive status, route and observed runtime. `project archive` unmounts and saves the surface flag; `project restore` clears that flag without an implicit mount. Both preserve source/data.
 
 After authorized workspace cleanup, `surface workspace retire` (or `--workspace ID`) blocks new resource admission and unmounts that workspace while neighbors remain available. Unresolved delivered work prevents final retirement; inspect and reconcile its original request/session, then retry. Retirement preserves data/history and does not delete source or merge Git branches. Establish Git cleanliness/ancestry separately before removing a worktree. Never stop the shared service merely to clean up one preview.
 

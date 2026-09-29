@@ -44,7 +44,7 @@ export const main = async (args=process.argv.slice(2)) => {
   serve [--data-root PATH]           Foreground workspace service
   init --directory PATH              Generate a mounted Svelte page locally
   project init|register|list|add|mount|unmount|archive|restore
-    [--project ROOT] [--artifact ID --source PATH --name LABEL]
+    [--project ROOT] [--surface ID --source PATH --name LABEL]
   workspace list | current | retire [--workspace ID]
   access                             Private backend mount capabilities
   bind [--project ROOT] --thread ID --socket PATH
@@ -65,7 +65,7 @@ Existing data is never automatically migrated.`);return;
   if(command==='project') {
     const operation=positionals[1];if(!operation||positionals.length!==2)throw new Error('Expected one project operation.');
     const forwarded=[operation,'--project',await currentProject(values.project),'--state-dir',stateDir];
-    for(const field of ['artifact','source','name'] as const)if(values[field]!==undefined)forwarded.push('--'+field,values[field]);
+    for(const field of ['surface','source','name'] as const)if(values[field]!==undefined)forwarded.push('--'+field,values[field]);
     return projectMain(forwarded,stateDir);
   }
   if(command==='workspace') {

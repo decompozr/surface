@@ -29,7 +29,7 @@ Surface owns the built shell, live compiler, identity, backend dispatch and serv
 
 The [page authoring guide](../../skills/surface/references/pages.md) owns project creation and mount commands.
 
-Create the ordinary Svelte source folder first; `add` records it. Read UUIDs and actual namespaces from the results. Project/artifact identity is versioned in Git; each proven linked worktree has a stable workspace identity and separate namespace. Registration precedes add/list/mount on this host. Existing manifests are not reinitialized. The current contract supports Git-root projects; arbitrary clones with copied identities, nested projects, relocations and reused retired paths are not silently adopted.
+Create the ordinary Svelte source folder first; `add` records it. Read UUIDs and actual namespaces from the results. Project/surface identity is versioned in Git; each proven linked worktree has a stable workspace identity and separate namespace. Registration precedes add/list/mount on this host. Existing manifests are not reinitialized. The current contract supports Git-root projects; arbitrary clones with copied identities, nested projects, relocations and reused retired paths are not silently adopted.
 
 No worktree receives its own service `.decompozr/surface`. A small marker in each Git administrative directory identifies its incarnation; the shared ledger holds runtime metadata. Project-owned source/dependencies remain in their respective worktrees. Backend declarations remain optional. A factory receives the inert workspace data context; domain code must honor it. Only a validated data operation creates/opens storage. Trusted project code is not sandboxed or forcibly prevented from performing side effects.
 

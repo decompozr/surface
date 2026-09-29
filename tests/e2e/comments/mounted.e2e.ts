@@ -45,7 +45,7 @@ ws.on('connection', client => client.on('message', raw => {
 await new Promise<void>(r => http.listen(socket, r));
 mkdirSync(join(project, 'ui/routes/second'), { recursive: true });
 writeFileSync(join(project, 'ui/package.json'), JSON.stringify({ private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
-writeFileSync(join(project, 'ui/artifact.json'), JSON.stringify({ framework: 'svelte', components: 'routes', routes: 'routes' }));
+writeFileSync(join(project, 'ui/surface.json'), JSON.stringify({ framework: 'svelte', components: 'routes', routes: 'routes' }));
 writeFileSync(join(project, 'ui/routes/+page.svelte'), `<script>
 import { ${interactionFactory} as createInteractionClient } from '${interactionModule}';
 let count = $state(0), domainMessage = $state(''), domainReply = $state('');
@@ -64,8 +64,8 @@ const sendDomain = async () => {
 <div style="height:1200px">Scroll content</div>
 </main>`);
 writeFileSync(join(project, 'ui/routes/second/+page.svelte'), '<h1 id="headline">Second page</h1>');
-const artifactId = crypto.randomUUID();
-writeFileSync(join(project, 'artifact.project.json'), JSON.stringify({ version: 1, projectId: crypto.randomUUID(), name: `Mounted comments ${project.slice(-6)}`, artifacts: [{ id: artifactId, name: 'Review', source: 'ui', archived: false }] }));
+const surfaceId = crypto.randomUUID();
+writeFileSync(join(project, 'surface.project.json'), JSON.stringify({ version: 1, projectId: crypto.randomUUID(), name: `Mounted comments ${project.slice(-6)}`, surfaces: [{ id: surfaceId, name: 'Review', source: 'ui', archived: false }] }));
 const git = Bun.spawn(['git', 'init', '-q', project]); if (await git.exited) throw new Error('Fixture Git init failed');
 const release = resolve(process.env.COMMENTS_E2E_APP_DIR!);
 let app: { origin: string; stop(): Promise<unknown> } | undefined;
@@ -90,7 +90,7 @@ const origin = app.origin;
 const management = JSON.parse(readFileSync(join(state, 'connection.json'), 'utf8')).token;
 if (installedHome) await installedCLI('project', 'register');
 else await api('/api/v1/projects/operations', { operation: 'register', projectRoot: project });
-const mount = (installedHome ? await installedCLI('project', 'mount', '--artifact', artifactId) : await api('/api/v1/projects/operations', { operation: 'mount', projectRoot: project, artifactId })).data;
+const mount = (installedHome ? await installedCLI('project', 'mount', '--surface', surfaceId) : await api('/api/v1/projects/operations', { operation: 'mount', projectRoot: project, surfaceId })).data;
 const binding = installedHome ? await installedCLI('bind', '--project', project, '--thread', 'e2e-fixture', '--socket', socket) : await api('/api/bindings', { projectRoot: project, threadId: 'e2e-fixture', socketPath: socket });
 const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.name, component: 'routes/+page.svelte', title: 'Mounted page comments', schema: { type: 'object', required: ['domainChoice'], properties: { domainChoice: { type: 'string' } }, additionalProperties: false } };
   for (const mobile of [false, true]) {
@@ -375,7 +375,7 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       if (process.env.COMMENTS_E2E_BASELINE !== '1') {
       // A future stored format must never be silently replaced by an empty draft.
       const unsupportedKey = await page.evaluate(async () => {
-        const key = JSON.parse(document.getElementById('artifact-preview-context')!.textContent!).commentsStorageKey;
+        const key = JSON.parse(document.getElementById('surface-preview-context')!.textContent!).commentsStorageKey;
         await new Promise<void>((resolve, reject) => {
           const open = indexedDB.open('surface-comment-experiment-v1', 1);
           open.onerror = () => reject(open.error);

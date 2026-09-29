@@ -62,7 +62,7 @@ export const scopedDependencies = (isActive: (source: string) => boolean) => {
     async prepare(source: string) {
       // Invalidate source-local aliases on remount, never another source's modules.
       release(source);
-      const manifestPath = join(source, 'artifact.json');
+      const manifestPath = join(source, 'surface.json');
       const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : {};
       const selected = manifest.prebundle ?? [];
       if (!Array.isArray(selected) || selected.some(value => typeof value !== 'string' || value.startsWith('.') || value.split('/').some(segment => segment === '.' || segment === '..') || !/^(?:@[a-z\d._-]+\/)?[a-z\d._-]+(?:\/[a-z\d._-]+)*$/i.test(value) || value === 'svelte' || value.startsWith('svelte/'))) throw new InputError('prebundle must list package entry specifiers other than the shared Svelte runtime.');
@@ -70,7 +70,7 @@ export const scopedDependencies = (isActive: (source: string) => boolean) => {
       sources.set(source, { selected: new Set(selected), bundles: new Map(), lock });
       try {
         for (const specifier of selected) {
-          await server.environments.client.pluginContainer.resolveId(specifier, join(source, '__artifact_dependency_entry__.js'));
+          await server.environments.client.pluginContainer.resolveId(specifier, join(source, '__surface_dependency_entry__.js'));
           if (!sources.get(source)?.bundles.has(specifier)) throw new InputError(`Selected package ${specifier} did not produce a scoped dependency bundle.`);
         }
       } catch (error) { release(source); throw error; }
@@ -82,7 +82,7 @@ export const scopedDependencies = (isActive: (source: string) => boolean) => {
 };
 
 
-const prefix = 'virtual:artifact-dependency/';
+const prefix = 'virtual:surface-dependency/';
 const builtins = new Set(builtinModules.map(name => name.replace(/^node:/, '')));
 const hash = (value: string) => createHash('sha256').update(value).digest('hex').slice(0, 24);
 type Bundle = { source: string; code: string; entry: string; specifier: string; id: string };

@@ -11,14 +11,14 @@ export const workspaceFixture = async () => {
   cpSync(join(import.meta.dir, '../../../examples'), join(main, 'ui'), {
     recursive: true, filter: path => !path.split('/').includes('node_modules'),
   });
-  const projectId = crypto.randomUUID(), artifactId = crypto.randomUUID();
-  writeFileSync(join(main, 'artifact.project.json'), JSON.stringify({ version: 1, projectId, name: 'App fixture', artifacts: [{ id: artifactId, name: 'Counter', source: 'ui', archived: false }] }));
+  const projectId = crypto.randomUUID(), surfaceId = crypto.randomUUID();
+  writeFileSync(join(main, 'surface.project.json'), JSON.stringify({ version: 1, projectId, name: 'App fixture', surfaces: [{ id: surfaceId, name: 'Counter', source: 'ui', archived: false }] }));
   writeFileSync(join(main, '.gitignore'), 'node_modules/\n');
   await git(main, 'init', '-q', '-b', 'main');
   await git(main, 'config', 'commit.gpgsign', 'false');
   await git(main, 'add', '.'); await git(main, 'commit', '-qm', 'Fixture');
   await git(main, 'worktree', 'add', '-qb', 'fixture-linked', linked);
-  return { directory, main, linked, projectId, artifactId, stateDir: join(directory, 'state'), dataRoot: join(directory, 'data') };
+  return { directory, main, linked, projectId, surfaceId, stateDir: join(directory, 'state'), dataRoot: join(directory, 'data') };
 };
 
 

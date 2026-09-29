@@ -2,7 +2,7 @@
   "version": 1,
   "projectId": "25b941b0-f8e2-49e0-a546-f73090bf5208",
   "name": "Surface",
-  "artifacts": [
+  "surfaces": [
     {
       "id": "147af7d5-8f1f-4e30-ab87-56abdedf230f",
       "name": "Examples",

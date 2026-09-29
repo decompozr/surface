@@ -61,7 +61,7 @@ try {
   const registrations=await Promise.all([project(f.main,'register'),project(f.a,'register'),project(f.b,'register')]);
   const [main,a,b]=registrations;assert(new Set(registrations.map(r=>r.workspaceId)).size===3,'Workspace identities collided.');
   assert((await project(join(f.a,'ui'),'list')).workspaceId===a.workspaceId,'Nested cwd resolved to wrong worktree.');
-  const mounts=await Promise.all([f.main,f.a,f.b].map(cwd=>project(cwd,'mount','--artifact',f.manifest.artifacts[0]!.id)));
+  const mounts=await Promise.all([f.main,f.a,f.b].map(cwd=>project(cwd,'mount','--surface',f.manifest.surfaces[0]!.id)));
   const workspaces=await cli(base,'workspace','list');assert(workspaces.projects.length===1&&workspaces.projects[0].workspaces.length===3,'Duplicated project in installed host.');
   for(const cwd of [f.main,f.a,f.b])assert(!existsSync(join(cwd,'.decompozr')),'Created per-worktree service state.');
   assert(!existsSync(join(home,'project-data')),'Mount eagerly allocated data.');

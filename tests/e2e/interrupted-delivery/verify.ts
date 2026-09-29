@@ -56,7 +56,7 @@ for (const scenario of cases) {
   mkdirSync(join(projectRoot, 'routes'), { recursive: true });
   writeFileSync(join(root, 'fixture.json'), JSON.stringify({ kind: 'surface-interrupted-delivery' }));
   writeFileSync(join(projectRoot, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
-  writeFileSync(join(projectRoot, 'artifact.json'), JSON.stringify({ framework: 'svelte', components: 'routes', routes: 'routes' }));
+  writeFileSync(join(projectRoot, 'surface.json'), JSON.stringify({ framework: 'svelte', components: 'routes', routes: 'routes' }));
   writeFileSync(join(projectRoot, 'routes/+page.svelte'), '<h1>Disposable interruption fixture</h1>');
   const threadId = 'fixture-thread-' + crypto.randomUUID(), turnId = 'fixture-active-turn';
   const socket = join(root, 'provider.sock');

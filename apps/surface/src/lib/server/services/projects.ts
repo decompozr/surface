@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, renameSync, realpathSync, lstatSync, mkdirSync, openSync, closeSync, unlinkSync } from 'node:fs';
 import { join, resolve, relative, sep, isAbsolute, basename, normalize } from 'node:path';
-import type { ProjectArtifact, ProjectManifest, ProjectMount, ProjectOperation, ProjectOperationInput, ProjectOutcome, ProjectRuntime, ProjectScope, ProjectIdentityResolver } from '../../contracts/projects.ts';
+import type { ProjectSurface, ProjectManifest, ProjectMount, ProjectOperation, ProjectOperationInput, ProjectOutcome, ProjectRuntime, ProjectScope, ProjectIdentityResolver } from '../../contracts/projects.ts';
 
 const reject: (code: string, message: string) => never = (code: string, message: string): never => { throw new ProjectError(code, message); };
 
@@ -21,7 +21,7 @@ const parseInput = (input: unknown): ProjectOperationInput => {
   if (typeof input.projectRoot !== 'string' || !isAbsolute(input.projectRoot) || input.projectRoot.includes('\0')) reject('INVALID_PROJECT_ROOT', 'projectRoot must be an absolute directory path.');
   if (Object.hasOwn(input, 'name') && !validName(input.name)) reject('INVALID_INPUT', 'name must be nonempty text up to 80 characters.');
   if (operation === 'add' && (!validName(input.name) || !validSource(input.source))) reject('INVALID_INPUT', 'add requires name and a project-relative source without parent traversal.');
-  if (fields[operation].includes('artifactId') && (typeof input.artifactId !== 'string' || !uuid.test(input.artifactId))) reject('INVALID_INPUT', 'This operation requires a valid artifactId.');
+  if (fields[operation].includes('surfaceId') && (typeof input.surfaceId !== 'string' || !uuid.test(input.surfaceId))) reject('INVALID_INPUT', 'This operation requires a valid surfaceId.');
   return input as ProjectOperationInput;
 };
 
@@ -30,7 +30,7 @@ const canonicalRoot = (path: string) => {
   catch (error) { if (error instanceof ProjectError) throw error; reject('INVALID_PROJECT_ROOT', 'projectRoot must identify an accessible existing directory.'); }
 };
 
-export const projectArtifactScope = (projectId: string, artifactId: string): ProjectScope => { return { namespace: `p-${projectId}`, name: `a-${artifactId}` }; };
+export const projectSurfaceScope = (projectId: string, surfaceId: string): ProjectScope => { return { namespace: `p-${projectId}`, name: `a-${surfaceId}` }; };
 
 const readManifest = (root: string): ProjectManifest => {
   const file = join(root, projectManifestName), stat = lstatSync(file, { throwIfNoEntry: false });
@@ -38,13 +38,13 @@ const readManifest = (root: string): ProjectManifest => {
   if (!stat.isFile()) reject('INVALID_MANIFEST', 'Project manifest must be a regular project-owned file, not a symlink.');
   let value: unknown;
   try { value = JSON.parse(readFileSync(file, 'utf8')); } catch (error) { if (error instanceof SyntaxError) reject('INVALID_MANIFEST', 'Project manifest contains invalid JSON.'); throw error; }
-  if (!object(value) || !exactKeys(value, ['version', 'projectId', 'name', 'artifacts']) || value.version !== 1 || typeof value.projectId !== 'string' || !uuid.test(value.projectId) || !validName(value.name) || !Array.isArray(value.artifacts)) reject('INVALID_MANIFEST', 'Unsupported or invalid project manifest.');
+  if (!object(value) || !exactKeys(value, ['version', 'projectId', 'name', 'surfaces']) || value.version !== 1 || typeof value.projectId !== 'string' || !uuid.test(value.projectId) || !validName(value.name) || !Array.isArray(value.surfaces)) reject('INVALID_MANIFEST', 'Unsupported or invalid project manifest.');
   const ids = new Set<string>(), names = new Set<string>(), sources: string[] = [];
-  for (const artifact of value.artifacts) {
-    if (!object(artifact) || !exactKeys(artifact, ['id', 'name', 'source', 'archived']) || typeof artifact.id !== 'string' || !uuid.test(artifact.id) || !validName(artifact.name) || !validSource(artifact.source) || typeof artifact.archived !== 'boolean') reject('INVALID_MANIFEST', 'Invalid artifact definition in project manifest.');
-    const source = normalize(artifact.source).split(sep).join('/');
-    if (source !== artifact.source || ids.has(artifact.id) || names.has(artifact.name) || sources.some(prior => inside(resolve(root, prior), resolve(root, source)) || inside(resolve(root, source), resolve(root, prior)))) reject('INVALID_MANIFEST', 'Duplicate identities, names, overlapping sources, or non-normalized source paths in manifest.');
-    ids.add(artifact.id); names.add(artifact.name); sources.push(source);
+  for (const surface of value.surfaces) {
+    if (!object(surface) || !exactKeys(surface, ['id', 'name', 'source', 'archived']) || typeof surface.id !== 'string' || !uuid.test(surface.id) || !validName(surface.name) || !validSource(surface.source) || typeof surface.archived !== 'boolean') reject('INVALID_MANIFEST', 'Invalid surface definition in project manifest.');
+    const source = normalize(surface.source).split(sep).join('/');
+    if (source !== surface.source || ids.has(surface.id) || names.has(surface.name) || sources.some(prior => inside(resolve(root, prior), resolve(root, source)) || inside(resolve(root, source), resolve(root, prior)))) reject('INVALID_MANIFEST', 'Duplicate identities, names, overlapping sources, or non-normalized source paths in manifest.');
+    ids.add(surface.id); names.add(surface.name); sources.push(source);
   }
   return value as ProjectManifest;
 };
@@ -69,20 +69,20 @@ const resolveSource = (root: string, source: string) => {
   if (!validSource(source)) reject('INVALID_SOURCE', 'Source must be project-relative without parent traversal.');
   let canonical: string;
   try { canonical = realpathSync(resolve(root, source)); }
-  catch { reject('SOURCE_UNAVAILABLE', 'Artifact source is missing or inaccessible.'); }
+  catch { reject('SOURCE_UNAVAILABLE', 'Surface source is missing or inaccessible.'); }
   if (!inside(root, canonical)) reject('INVALID_SOURCE', 'Source resolves outside the canonical project root.');
-  if (!lstatSync(canonical).isDirectory()) reject('INVALID_SOURCE', 'Artifact source must be a directory.');
+  if (!lstatSync(canonical).isDirectory()) reject('INVALID_SOURCE', 'Surface source must be a directory.');
   const pkg = lstatSync(join(canonical, 'package.json'), { throwIfNoEntry: false });
-  if (!pkg?.isFile()) reject('INVALID_SOURCE', 'Artifact source needs a regular project-owned package.json.');
+  if (!pkg?.isFile()) reject('INVALID_SOURCE', 'Surface source needs a regular project-owned package.json.');
   return canonical;
 };
 
-const sourceStatus = (root: string, artifact: ProjectArtifact) => {
-  try { return { sourceStatus: 'available', canonicalSource: resolveSource(root, artifact.source) }; }
+const sourceStatus = (root: string, surface: ProjectSurface) => {
+  try { return { sourceStatus: 'available', canonicalSource: resolveSource(root, surface.source) }; }
   catch (error) { if (!(error instanceof ProjectError)) throw error; return { sourceStatus: 'unavailable', sourceError: { code: error.code, message: error.message } }; }
 };
 
-const selected = (manifest: ProjectManifest, id: string) => { const artifact = manifest.artifacts.find(item => item.id === id); if (!artifact) reject('ARTIFACT_NOT_FOUND', 'Unknown artifactId. List the project to obtain its stable IDs.'); return artifact; };
+const selected = (manifest: ProjectManifest, id: string) => { const surface = manifest.surfaces.find(item => item.id === id); if (!surface) reject('SURFACE_NOT_FOUND', 'Unknown surfaceId. List the project to obtain its stable IDs.'); return surface; };
 
 const outcome = (error: unknown): ProjectOutcome => {
   if (error instanceof ProjectError) return { version: 1, ok: false, status: error.status, error: { code: error.code, message: error.message }, ...(error.data === undefined ? {} : { data: error.data }) };
@@ -132,96 +132,97 @@ export const createProjectService = (options: { stateDir: string; runtime: Proje
     if (mount && (mount.projectRoot !== root || mount.source !== source)) reject('RUNTIME_IDENTITY_CONFLICT', 'Runtime mount identity differs from the project manifest. Reconcile it explicitly.');
   };
 
-  const observedRuntime = async (root: string, manifest: ProjectManifest, artifact: ProjectArtifact, scope: ProjectScope, source = resolve(root, artifact.source)) => {
+  const observedRuntime = async (root: string, manifest: ProjectManifest, surface: ProjectSurface, scope: ProjectScope, source = resolve(root, surface.source)) => {
     const found = findRuntime(await runtime(() => options.runtime.listMounts()), scope);
     checkRuntime(found, root, source); return found;
   };
 
-  const stop = async (root: string, manifest: ProjectManifest, artifact: ProjectArtifact, scope: ProjectScope) => {
+  const stop = async (root: string, manifest: ProjectManifest, surface: ProjectSurface, scope: ProjectScope) => {
     await bind(root, manifest);
-    const prior = await observedRuntime(root, manifest, artifact, scope);
+    const prior = await observedRuntime(root, manifest, surface, scope);
     if (!prior || prior.status === 'unmounted') return prior;
     const stopped = await runtime(() => options.runtime.unmount(scope));
     if (stopped.namespace !== scope.namespace || stopped.name !== scope.name) throw new ProjectError('INVALID_RUNTIME_STATE', 'Runtime confirmed a different unmount scope.', 'failed');
-    checkRuntime(stopped, root, resolve(root, artifact.source));
+    checkRuntime(stopped, root, resolve(root, surface.source));
     if (stopped.status !== 'unmounted') throw new ProjectError('RUNTIME_UNMOUNT_FAILED', stopped.error ?? 'Runtime did not confirm unmount.', 'failed', { runtime: stopped });
     return stopped;
   };
 
   const perform = async (root: string, input: ProjectOperationInput): Promise<unknown> => {
     const file = join(root, projectManifestName);
+    if (lstatSync(join(root, 'artifact.project.json'), { throwIfNoEntry: false })) reject('MANIFEST_MIGRATION_REQUIRED', 'Rename artifact.project.json to surface.project.json and its artifacts field to surfaces, preserving IDs, before using this project.');
     if (input.operation === 'init') {
       if (lstatSync(file, { throwIfNoEntry: false })) reject('MANIFEST_EXISTS', 'Project manifest already exists; refusing to overwrite it.');
       const name = input.name ?? basename(root);
       if (!validName(name)) reject('INVALID_INPUT', 'Supply a project name for this root.');
-      const manifest: ProjectManifest = { version: 1, projectId: crypto.randomUUID(), name, artifacts: [] };
+      const manifest: ProjectManifest = { version: 1, projectId: crypto.randomUUID(), name, surfaces: [] };
       atomic(file, manifest); return { ...manifest, projectRoot: root };
     }
     const manifest = readManifest(root);
     const identity = await options.identity?.(root, manifest, input.operation);
-    const scopeFor = (id: string): ProjectScope => ({ ...projectArtifactScope(manifest.projectId, id), ...(identity ? { namespace: identity.namespace } : {}) });
+    const scopeFor = (id: string): ProjectScope => ({ ...projectSurfaceScope(manifest.projectId, id), ...(identity ? { namespace: identity.namespace } : {}) });
     if (input.operation === 'list') {
       const mounts = await runtime(() => options.runtime.listMounts());
-      return { ...manifest, ...identity, projectRoot: root, artifacts: manifest.artifacts.map(artifact => {
-        const route = scopeFor(artifact.id), observed = findRuntime(mounts, route);
-        return { ...artifact, route, ...sourceStatus(root, artifact), runtime: observed, runtimeIdentityMatches: observed === null ? null : observed.projectRoot === root && observed.source === resolve(root, artifact.source) };
+      return { ...manifest, ...identity, projectRoot: root, surfaces: manifest.surfaces.map(surface => {
+        const route = scopeFor(surface.id), observed = findRuntime(mounts, route);
+        return { ...surface, route, ...sourceStatus(root, surface), runtime: observed, runtimeIdentityMatches: observed === null ? null : observed.projectRoot === root && observed.source === resolve(root, surface.source) };
       }) };
     }
     if (input.operation === 'add') {
       const canonical = resolveSource(root, input.source!);
-      if (manifest.artifacts.some(item => item.name === input.name)) reject('NAME_CONFLICT', 'Artifact name already exists in this project.');
-      if (manifest.artifacts.some(item => inside(resolve(root, item.source), canonical) || inside(canonical, resolve(root, item.source)))) reject('SOURCE_CONFLICT', 'Artifact source duplicates or overlaps an existing definition.');
-      const artifact: ProjectArtifact = { id: crypto.randomUUID(), name: input.name!, source: relative(root, canonical).split(sep).join('/') || '.', archived: false };
-      manifest.artifacts.push(artifact); atomic(file, manifest); return { ...artifact, route: scopeFor(artifact.id), projectRoot: root };
+      if (manifest.surfaces.some(item => item.name === input.name)) reject('NAME_CONFLICT', 'Surface name already exists in this project.');
+      if (manifest.surfaces.some(item => inside(resolve(root, item.source), canonical) || inside(canonical, resolve(root, item.source)))) reject('SOURCE_CONFLICT', 'Surface source duplicates or overlaps an existing definition.');
+      const surface: ProjectSurface = { id: crypto.randomUUID(), name: input.name!, source: relative(root, canonical).split(sep).join('/') || '.', archived: false };
+      manifest.surfaces.push(surface); atomic(file, manifest); return { ...surface, route: scopeFor(surface.id), projectRoot: root };
     }
     if (input.operation === 'register') { await bind(root, manifest); return { projectId: manifest.projectId, ...identity, projectRoot: root, registered: true }; }
-    const artifact = selected(manifest, input.artifactId!);
+    const surface = selected(manifest, input.surfaceId!);
     if (input.operation === 'mount') {
-      if (artifact.archived) reject('ARTIFACT_ARCHIVED', 'Artifact is archived. Restore it explicitly before mounting.');
-      const source = resolveSource(root, artifact.source);
+      if (surface.archived) reject('SURFACE_ARCHIVED', 'Surface is archived. Restore it explicitly before mounting.');
+      const source = resolveSource(root, surface.source);
       // A replaced source symlink must not silently move a manifest's previously canonical path.
-      if (source !== resolve(root, artifact.source)) reject('SOURCE_IDENTITY_CONFLICT', 'Stored artifact source now resolves to another path. Reconcile it explicitly.');
-      await bind(root, manifest); await observedRuntime(root, manifest, artifact, scopeFor(artifact.id), source);
-      const scope = scopeFor(artifact.id);
+      if (source !== resolve(root, surface.source)) reject('SOURCE_IDENTITY_CONFLICT', 'Stored surface source now resolves to another path. Reconcile it explicitly.');
+      await bind(root, manifest); await observedRuntime(root, manifest, surface, scopeFor(surface.id), source);
+      const scope = scopeFor(surface.id);
       await runtime(() => options.runtime.namespace(scope.namespace));
       const mounted = await runtime(() => options.runtime.mount({ ...scope, source, projectRoot: root }));
       checkRuntime(mounted, root, source);
       if (mounted.namespace !== scope.namespace || mounted.name !== scope.name) throw new ProjectError('INVALID_RUNTIME_STATE', 'Runtime returned a different mount scope.', 'failed');
-      if (mounted.status !== 'ready') throw new ProjectError('RUNTIME_MOUNT_FAILED', mounted.error ?? 'Mount did not become ready.', 'failed', { artifactId: artifact.id, runtime: mounted });
-      return { artifactId: artifact.id, label: artifact.name, ...mounted };
+      if (mounted.status !== 'ready') throw new ProjectError('RUNTIME_MOUNT_FAILED', mounted.error ?? 'Mount did not become ready.', 'failed', { surfaceId: surface.id, runtime: mounted });
+      return { surfaceId: surface.id, label: surface.name, ...mounted };
     }
-    if (input.operation === 'unmount') return { artifactId: artifact.id, runtime: await stop(root, manifest, artifact, scopeFor(artifact.id)) };
+    if (input.operation === 'unmount') return { surfaceId: surface.id, runtime: await stop(root, manifest, surface, scopeFor(surface.id)) };
     if (input.operation === 'archive') {
-      const stopped = await stop(root, manifest, artifact, scopeFor(artifact.id));
-      artifact.archived = true;
+      const stopped = await stop(root, manifest, surface, scopeFor(surface.id));
+      surface.archived = true;
       try { atomic(file, manifest); }
-      catch (error) { throw new ProjectError('ARCHIVE_SAVE_FAILED', error instanceof Error ? error.message : 'Archive flag could not be saved.', 'failed', { artifactId: artifact.id, runtime: stopped, reconciliationRequired: true }); }
-      return { ...artifact, runtime: stopped, sourceDeleted: false };
+      catch (error) { throw new ProjectError('ARCHIVE_SAVE_FAILED', error instanceof Error ? error.message : 'Archive flag could not be saved.', 'failed', { surfaceId: surface.id, runtime: stopped, reconciliationRequired: true }); }
+      return { ...surface, runtime: stopped, sourceDeleted: false };
     }
-    if (!artifact.archived) reject('ARTIFACT_NOT_ARCHIVED', 'Artifact is not archived. Its runtime state is unchanged.');
-    const source = resolveSource(root, artifact.source);
-    if (source !== resolve(root, artifact.source)) reject('SOURCE_IDENTITY_CONFLICT', 'Stored artifact source now resolves to another path. Reconcile it explicitly.');
-    const observed = await observedRuntime(root, manifest, artifact, scopeFor(artifact.id), source);
-    artifact.archived = false; atomic(file, manifest);
-    return { ...artifact, runtime: observed, runtimeChanged: false, next: observed?.status === 'ready' ? 'The existing runtime remains ready.' : 'Mount explicitly when ready.' };
+    if (!surface.archived) reject('SURFACE_NOT_ARCHIVED', 'Surface is not archived. Its runtime state is unchanged.');
+    const source = resolveSource(root, surface.source);
+    if (source !== resolve(root, surface.source)) reject('SOURCE_IDENTITY_CONFLICT', 'Stored surface source now resolves to another path. Reconcile it explicitly.');
+    const observed = await observedRuntime(root, manifest, surface, scopeFor(surface.id), source);
+    surface.archived = false; atomic(file, manifest);
+    return { ...surface, runtime: observed, runtimeChanged: false, next: observed?.status === 'ready' ? 'The existing runtime remains ready.' : 'Mount explicitly when ready.' };
   };
 
   return { async execute(input: ProjectOperationInput): Promise<ProjectOutcome> {
     try {
       const parsed = parseInput(input), root = canonicalRoot(parsed.projectRoot);
-      const data = parsed.operation === 'list' ? await perform(root, parsed) : await withLock(join(root, '.artifact-project.lock'), () => perform(root, parsed));
+      const data = parsed.operation === 'list' ? await perform(root, parsed) : await withLock(join(root, '.surface-project.lock'), () => perform(root, parsed));
       return { version: 1, ok: true, status: 'ok', data };
     } catch (error) { return outcome(error); }
   } };
 };
 
 
-export const projectManifestName = 'artifact.project.json';
+export const projectManifestName = 'surface.project.json';
 type Ledger = { version: 1; projects: { projectId: string; root: string }[] };
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const fields: Record<ProjectOperation, readonly string[]> = {
   init: ['name'], add: ['name', 'source'], list: [], register: [],
-  mount: ['artifactId'], unmount: ['artifactId'], archive: ['artifactId'], restore: ['artifactId'],
+  mount: ['surfaceId'], unmount: ['surfaceId'], archive: ['surfaceId'], restore: ['surfaceId'],
 };
 class ProjectError extends Error {
   constructor(readonly code: string, message: string, readonly status: 'rejected' | 'failed' = 'rejected', readonly data?: unknown) { super(message); }

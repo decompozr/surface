@@ -8,9 +8,9 @@ const f = await workspaceFixture();
 let app: Awaited<ReturnType<typeof startProjectApp>> | undefined;
 try {
   renameSync(join(f.main, 'ui'), join(f.main, 'examples'));
-  const file = join(f.main, 'artifact.project.json');
+  const file = join(f.main, 'surface.project.json');
   const manifest = JSON.parse(readFileSync(file, 'utf8'));
-  manifest.artifacts[0].source = 'examples';
+  manifest.surfaces[0].source = 'examples';
   writeFileSync(file, JSON.stringify(manifest));
   app = await startProjectApp({ ...f, projectRoot: f.main, port: 0 });
   assert.equal((await fetch(app.previewUrl)).status, 200);
@@ -31,7 +31,7 @@ try {
   cpSync(join(f.main, 'examples'), join(f.main, 'other/examples'), { recursive: true, filter: path => !path.split('/').includes('node_modules') });
   const added = await projectOperation(f.stateDir, { operation: 'add', projectRoot: f.main, source: 'other/examples', name: 'Collision' });
   assert.equal(added.ok, true);
-  const collision = await projectOperation(f.stateDir, { operation: 'mount', projectRoot: f.main, artifactId: (added.data as { id: string }).id });
+  const collision = await projectOperation(f.stateDir, { operation: 'mount', projectRoot: f.main, surfaceId: (added.data as { id: string }).id });
   assert.equal(collision.ok, false);
   assert.match(collision.error!.message, /already belongs/);
   assert.equal((await fetch(app.previewUrl + 'counter')).status, 200);

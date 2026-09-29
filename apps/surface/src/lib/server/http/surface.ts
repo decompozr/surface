@@ -9,7 +9,7 @@ import { parseArgs } from 'node:util';
 export const startSurface = async (options: Parameters<typeof startSurfaceApp>[0] & { dataRoot?: string }) => {
 
   const context = async (mount: { projectRoot: string; namespace: string }) => {
-    const manifest = JSON.parse(readFileSync(join(mount.projectRoot, 'artifact.project.json'), 'utf8'));
+    const manifest = JSON.parse(readFileSync(join(mount.projectRoot, 'surface.project.json'), 'utf8'));
     const workspace = await directory.locate(mount.projectRoot, manifest);
     if (workspace.namespace !== mount.namespace) throw new Error('Mount namespace does not belong to the registered workspace.');
     return { dataDirectory: workspace.dataDirectory, workspaceId: workspace.id, projectId: manifest.projectId };

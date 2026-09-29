@@ -53,7 +53,7 @@ This separation guides implementation. It does not introduce a public plugin API
 
 Projects retain their source files, definitions, dependency declarations, and authoritative domain data. A capability or project decides what a parameter means, which operations are valid, and how domain results are computed. Surface Core should not acquire CAD geometry rules, physics models, financial formulas, or DecompozR orchestration logic.
 
-An experience can use a browser page without making “page” the universal product abstraction. Existing artifact IDs, manifests, and commands remain valid implementation contracts; this conceptual model does not rename or migrate them.
+An experience can use a browser page without making “page” the universal product abstraction. Existing surface IDs, manifests, and commands remain valid implementation contracts; this conceptual model does not rename or migrate them.
 
 ### State and actions have explicit owners
 

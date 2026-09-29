@@ -6,12 +6,12 @@ export const fixture = async () => {
   const directory = realpathSync(mkdtempSync('/tmp/surface-workspaces-')), main = join(directory, 'main'), a = join(directory, 'branch-a'), b = join(directory, 'branch-b');
   try {
   mkdirSync(join(main, 'ui/routes'), { recursive: true });
-  const projectId = crypto.randomUUID(), artifactId = crypto.randomUUID();
-  const manifest = { version: 1 as const, projectId, name: 'Workspace experiment', artifacts: [{ id: artifactId, name: 'Scenarios', source: 'ui', archived: false }] };
-  writeFileSync(join(main, 'artifact.project.json'), JSON.stringify(manifest, null, 2) + '\n');
-  writeFileSync(join(main, '.gitignore'), 'node_modules/\nui/bun.lock\n.artifact-project.lock\n');
+  const projectId = crypto.randomUUID(), surfaceId = crypto.randomUUID();
+  const manifest = { version: 1 as const, projectId, name: 'Workspace experiment', surfaces: [{ id: surfaceId, name: 'Scenarios', source: 'ui', archived: false }] };
+  writeFileSync(join(main, 'surface.project.json'), JSON.stringify(manifest, null, 2) + '\n');
+  writeFileSync(join(main, '.gitignore'), 'node_modules/\nui/bun.lock\n.surface-project.lock\n');
   writeFileSync(join(main, 'ui/package.json'), JSON.stringify({ name: 'workspace-scenarios', private: true, type: 'module', dependencies: { svelte: '5.57.1' } }));
-  writeFileSync(join(main, 'ui/artifact.json'), JSON.stringify({ framework: 'svelte', components: 'routes', routes: 'routes', props: { 'routes/+page.svelte': { label: 'Workspace' } } }));
+  writeFileSync(join(main, 'ui/surface.json'), JSON.stringify({ framework: 'svelte', components: 'routes', routes: 'routes', props: { 'routes/+page.svelte': { label: 'Workspace' } } }));
   copyFileSync(join(import.meta.dir, '../project-database/Scenarios.svelte'), join(main, 'ui/routes/+page.svelte'));
   copyFileSync(join(import.meta.dir, '../../e2e/runtime/fixtures/InteractionForm.svelte'), join(main, 'ui/routes/Form.svelte'));
   writeFileSync(join(main, 'backend.ts'), readFileSync(join(import.meta.dir, '../project-database/backend.ts'), 'utf8') + '\nexport const apiVersion = 1;\n');

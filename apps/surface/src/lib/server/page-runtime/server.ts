@@ -95,7 +95,8 @@ export const startPageRuntime = async (options: { integration: RuntimeIntegratio
       }
     };
 
-    const manifestPath = join(mount.source, 'artifact.json');
+    const manifestPath = join(mount.source, 'surface.json');
+    if (existsSync(join(mount.source, 'artifact.json'))) throw new InputError('Rename artifact.json to surface.json before mounting. Preserve its contents.');
     const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : { framework: 'svelte', components: 'src' };
     if (manifest.framework !== 'svelte') throw new InputError('Surface currently supports Svelte components only.');
     const directory = realpathSync(resolve(mount.source, manifest.components ?? 'src'));
@@ -149,7 +150,7 @@ export const startPageRuntime = async (options: { integration: RuntimeIntegratio
       if (code !== 0) throw new Error(`Dependency installation failed (${code}). Inspect mount logs. Existing lockfiles are frozen.`);
       if (closing) throw new Error('Server is closing.');
       phase(mount, 'preparing');
-      if (options.resolveMountPath && existsSync(join(mount.projectRoot, 'artifact.project.json'))) {
+      if (options.resolveMountPath && existsSync(join(mount.projectRoot, 'surface.project.json'))) {
         const publicPath = mount.publicPath ?? await options.resolveMountPath(mount);
         if (publicPath !== undefined) {
         if (!/^\/workspace\/[a-z0-9-]+\/[a-z0-9-]+\/[a-z0-9-]+$/.test(publicPath)) throw new InputError('Invalid readable mount path.');
@@ -201,7 +202,7 @@ export const startPageRuntime = async (options: { integration: RuntimeIntegratio
 
   const invalidateMount = (record: Mount) => {
     for (const module of vite.environments.client.moduleGraph.idToModuleMap.values()) {
-      if (module.id?.startsWith(record.source + '/') || module.id?.includes(`virtual:artifact-component/${record.namespace}/${record.name}/`)) vite.environments.client.moduleGraph.invalidateModule(module);
+      if (module.id?.startsWith(record.source + '/') || module.id?.includes(`virtual:surface-component/${record.namespace}/${record.name}/`)) vite.environments.client.moduleGraph.invalidateModule(module);
     }
   };
 
@@ -236,7 +237,7 @@ export const startPageRuntime = async (options: { integration: RuntimeIntegratio
       phase(record, 'failed', error instanceof Error ? error.message : String(error));
       throw error;
     }
-    vite.ws.send({ type: 'custom', event: 'artifact:unmounted', data: { namespace, name } });
+    vite.ws.send({ type: 'custom', event: 'surface:unmounted', data: { namespace, name } });
     return view(record);
   };
 
@@ -293,10 +294,10 @@ export const startPageRuntime = async (options: { integration: RuntimeIntegratio
       const commentsStorageKey = JSON.stringify([record.namespace, record.name, component, requestId]);
       const revision = component ? createHash('sha256').update(readFileSync(join(record.source, component))).digest('hex') : '';
       const context = JSON.stringify({ comments, commentsEndpoint, commentsStorageKey, revision, navigation, publicPath: record.publicPath, interactionBase: `/api/n/${record.namespace}/${record.name}/requests/`, namespace: record.namespace, name: record.name, source: record.source, component, props: component ? record.props[component] ?? {} : {} }).replaceAll('<', '\\u003c');
-      const client = `<script id="artifact-preview-context" type="application/json">${context}</script><script type="module" src="/@id/__x00__virtual:surface-preview"></script>`;
+      const client = `<script id="surface-preview-context" type="application/json">${context}</script><script type="module" src="/@id/__x00__virtual:surface-preview"></script>`;
       const html = component
         ? `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHTML(readable ? route || 'Home' : component)}</title></head><body>${client}<div id="surface-shell"></div><div id="surface-recipient"></div><div id="app"></div><script type="module" src="/@id/__x00__${virtualPrefix}${record.namespace}/${record.name}/${component.split('/').map(encodeURIComponent).join('/')}.entry.js"></script></body></html>`
-        : `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHTML(route || basename(record.source))}</title></head><body>${client}<div id="surface-shell"></div><div id="app"><section class="surface-folder"><p>Pages in this folder</p><h1>${escapeHTML(route || basename(record.source))}</h1><ul data-artifact-catalog>${pageRouting ? Object.keys(record.pages ?? {}).filter(page => !route || page.startsWith(route + '/')).map(route => `<li><a href="${record.publicPath}/${route}">${escapeHTML(route || 'Home')}</a></li>`).join('') : record.components.map(path => `<li><a href="?component=${encodeURIComponent(path)}">${escapeHTML(path)}</a></li>`).join('')}</ul></section></div><script type="module" src="/@id/__x00__virtual:surface-shell"></script><script type="module" src="/@vite/client"></script></body></html>`;
+        : `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHTML(route || basename(record.source))}</title></head><body>${client}<div id="surface-shell"></div><div id="app"><section class="surface-folder"><p>Pages in this folder</p><h1>${escapeHTML(route || basename(record.source))}</h1><ul data-surface-catalog>${pageRouting ? Object.keys(record.pages ?? {}).filter(page => !route || page.startsWith(route + '/')).map(route => `<li><a href="${record.publicPath}/${route}">${escapeHTML(route || 'Home')}</a></li>`).join('') : record.components.map(path => `<li><a href="?component=${encodeURIComponent(path)}">${escapeHTML(path)}</a></li>`).join('')}</ul></section></div><script type="module" src="/@id/__x00__virtual:surface-shell"></script><script type="module" src="/@vite/client"></script></body></html>`;
       res.writeHead(200, { 'content-type': 'text/html', 'cache-control': 'no-store' });
       res.end(await vite.transformIndexHtml(url.pathname, html)); return;
     }
@@ -359,7 +360,7 @@ export const startPageRuntime = async (options: { integration: RuntimeIntegratio
   } });
   const installers = new Set<ReturnType<typeof Bun.spawn>>();
   const retiredWatchPaths = new Map<string, string[]>();
-  const virtualPrefix = 'virtual:artifact-component/';
+  const virtualPrefix = 'virtual:surface-component/';
   const plugin: Plugin = {
     name: 'surface-singleton-components',
     resolveId(id) {
@@ -395,7 +396,7 @@ export const startPageRuntime = async (options: { integration: RuntimeIntegratio
       logLevel: 'error',
     });
     vite.watcher.on('all', (event, file) => {
-      if (closing || !(event === 'add' || event === 'unlink' || file.endsWith('/artifact.json'))) return;
+      if (closing || !(event === 'add' || event === 'unlink' || file.endsWith('/surface.json'))) return;
       const affected = registry.mounts.filter(record => record.status === 'ready' && inside(record.source, file));
       if (!affected.length) return;
       for (const record of affected) rescans.add(record);
@@ -408,7 +409,7 @@ export const startPageRuntime = async (options: { integration: RuntimeIntegratio
               const previous = record.props;
               scan(record);
               const changedProps = [...new Set([...Object.keys(previous), ...Object.keys(record.props)])].filter(key => JSON.stringify(previous[key]) !== JSON.stringify(record.props[key]));
-              vite.ws.send({ type: 'custom', event: 'artifact:discovery', data: { namespace: record.namespace, name: record.name, components: record.components, pages: record.pages, publicPath: record.publicPath, changedProps, props: record.props } });
+              vite.ws.send({ type: 'custom', event: 'surface:discovery', data: { namespace: record.namespace, name: record.name, components: record.components, pages: record.pages, publicPath: record.publicPath, changedProps, props: record.props } });
             } catch (error) { phase(record, 'failed', String(error)); }
           }
           rescans.clear();

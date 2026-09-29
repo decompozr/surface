@@ -28,7 +28,7 @@ try {
   await new Promise<void>(resolve => socket.listen(socketPath, resolve));
   app = await startSurfaceApp({ ...f, port: 0, adapter });
   const { token } = JSON.parse(readFileSync(join(f.stateDir, 'connection.json'), 'utf8'));
-  for (const operation of ['register', 'mount']) await api('/api/v1/projects/operations', { projectRoot: f.main, operation, ...(operation === 'mount' ? { artifactId: f.artifactId } : {}) });
+  for (const operation of ['register', 'mount']) await api('/api/v1/projects/operations', { projectRoot: f.main, operation, ...(operation === 'mount' ? { surfaceId: f.surfaceId } : {}) });
   const mount = (await api('/api/mounts'))[0];
   const bindings = [];
   for (const threadId of ['fixture-a', 'fixture-b']) bindings.push(await api('/api/bindings', { projectRoot: f.main, threadId, socketPath }));

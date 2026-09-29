@@ -94,7 +94,7 @@ test('retired mount cannot release a later mount of the same source', async () =
   const directory = temporary(), stateDir = join(directory, 'state'), source = join(directory, 'source');
   mkdirSync(join(source, 'src'), { recursive: true });
   writeFileSync(join(source, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies: { svelte: '5.57.1', lodash: '4.17.21' } }));
-  writeFileSync(join(source, 'artifact.json'), JSON.stringify({ framework: 'svelte', components: 'src', prebundle: ['lodash'] }));
+  writeFileSync(join(source, 'surface.json'), JSON.stringify({ framework: 'svelte', components: 'src', prebundle: ['lodash'] }));
   writeFileSync(join(source, 'src/Panel.svelte'), '<script>import lodash from "lodash";</script><h1>{lodash.VERSION}</h1>');
   let app: Awaited<ReturnType<typeof startSingleton>> | undefined;
   try {
@@ -110,7 +110,7 @@ test('retired mount cannot release a later mount of the same source', async () =
     expect((await api('/api/unmount', a)).data.status).toBe('unmounted');
     expect((await api('/api/mounts', { ...b, source })).data.status).toBe('ready');
     const transformed = await (await fetch(app.origin + '/mounts/second/panel/src/Panel.svelte')).text();
-    const dependency = transformed.match(/"([^"]*virtual:artifact-dependency[^"]*)"/)?.[1];
+    const dependency = transformed.match(/"([^"]*virtual:surface-dependency[^"]*)"/)?.[1];
     expect(dependency).toBeDefined();
     expect((await fetch(app.origin + dependency)).status).toBe(200);
     expect((await api('/api/unmount', a)).data.status).toBe('unmounted');

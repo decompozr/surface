@@ -73,7 +73,7 @@ describe('project management transport', () => {
     expect((await projectOperation(state, command)).status).toBe('unavailable');
     expect(calls).toBe(2); expect(targetCalls).toBe(0);
     const invalid = fixture(() => Response.json({ version: 1, ok: true, status: 'failed' })); connect(state, invalid.url.origin);
-    expect((await projectOperation(state, { ...command, operation: 'archive', artifactId: crypto.randomUUID() })).status).toBe('unknown');
+    expect((await projectOperation(state, { ...command, operation: 'archive', surfaceId: crypto.randomUUID() })).status).toBe('unknown');
   });
 
   test('CLI exits nonzero for failed and ambiguous mutation outcomes', async () => {
@@ -85,7 +85,7 @@ describe('project management transport', () => {
         : new Response('lost structured response');
     }); connect(state, server.url.origin);
     for (const status of ['failed', 'unknown']) {
-      const child = Bun.spawn([process.execPath, resolve(process.cwd(), 'apps/cli/src/index.ts'), 'project', 'mount', '--artifact', crypto.randomUUID(), '--project', '/fixture/project', '--state-dir', state], { stdout: 'pipe', stderr: 'pipe' });
+      const child = Bun.spawn([process.execPath, resolve(process.cwd(), 'apps/cli/src/index.ts'), 'project', 'mount', '--surface', crypto.randomUUID(), '--project', '/fixture/project', '--state-dir', state], { stdout: 'pipe', stderr: 'pipe' });
       const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
       expect(code).toBe(1); expect(stderr).toBe(''); expect(JSON.parse(stdout).status).toBe(status);
     }
@@ -113,9 +113,9 @@ describe('project management transport', () => {
     const beforeCommand = Bun.spawn([process.execPath, resolve(process.cwd(), 'apps/cli/src/index.ts'), '--state-dir', state, 'project', 'list', '--project', projectRoot], { stdout: 'pipe', stderr: 'pipe' });
     const [beforeCode, beforeOutput, beforeError] = await Promise.all([beforeCommand.exited, new Response(beforeCommand.stdout).text(), new Response(beforeCommand.stderr).text()]);
     expect(beforeCode).toBe(0); expect(beforeError).toBe(''); expect(JSON.parse(beforeOutput).ok).toBe(true);
-    const rejected = await cli('add', '--source', 'artifacts/panel', '--name', 'Panel');
+    const rejected = await cli('add', '--source', 'surfaces/panel', '--name', 'Panel');
     expect(rejected.code).toBe(1); expect(rejected.outcome.error.code).toBe('invalid_input');
-    expect(received).toEqual([{ operation: 'list', projectRoot }, { operation: 'list', projectRoot }, { operation: 'add', projectRoot, source: 'artifacts/panel', name: 'Panel' }]);
+    expect(received).toEqual([{ operation: 'list', projectRoot }, { operation: 'list', projectRoot }, { operation: 'add', projectRoot, source: 'surfaces/panel', name: 'Panel' }]);
     expect(readFileSync(marker, 'utf8')).toBe('user source');
   });
 });

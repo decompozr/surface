@@ -4,11 +4,11 @@ The public host mounts trusted project-owned Svelte route source under one share
 
 ## Source and dependencies
 
-A source directory owns `package.json`, a Bun lockfile and `artifact.json`. The manifest declares Svelte, a contained component directory and a routes directory. Static lowercase route segments ending in `+page.svelte` become readable pages. Optional `props` maps source-relative component paths to JSON props. Hidden folders, `node_modules`, `dist` and symbolic-link entries are excluded from component discovery. Mounted SvelteKit layouts, load functions, actions, SSR and dynamic route parameters are unsupported.
+A source directory owns `package.json`, a Bun lockfile and `surface.json`. The manifest declares Svelte, a contained component directory and a routes directory. Static lowercase route segments ending in `+page.svelte` become readable pages. Optional `props` maps source-relative component paths to JSON props. Hidden folders, `node_modules`, `dist` and symbolic-link entries are excluded from component discovery. Mounted SvelteKit layouts, load functions, actions, SSR and dynamic route parameters are unsupported.
 
 The compiler/runtime is shared. Mounted sources must declare the exact Svelte version used by `apps/surface/package.json` (currently 5.57.1). Other dependencies resolve from their source directory. Mount preparation runs Bun with lifecycle scripts disabled; existing Bun locks are frozen. npm, pnpm and Yarn lockfiles are rejected rather than replaced. A dependency-install failure remains a mount diagnostic and must not silently rewrite an existing lock.
 
-Browser-ready ESM works directly. Explicit `prebundle` package entries in `artifact.json` enable source-scoped JavaScript CommonJS/mixed bundles. Entries must resolve inside the source dependency tree and emit one JavaScript bundle. Node builtins, native modules, emitted assets and general dynamic require are outside this contract. Bundles are prepared on mount/remount, not automatically after dependency edits.
+Browser-ready ESM works directly. Explicit `prebundle` package entries in `surface.json` enable source-scoped JavaScript CommonJS/mixed bundles. Entries must resolve inside the source dependency tree and emit one JavaScript bundle. Node builtins, native modules, emitted assets and general dynamic require are outside this contract. Bundles are prepared on mount/remount, not automatically after dependency edits.
 
 ## Compilation and browser state
 

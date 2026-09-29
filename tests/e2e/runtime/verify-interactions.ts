@@ -111,13 +111,13 @@ try {
   observed('Canonical interaction imports render scoped forms; ordinary HMR preserves the unsent draft without submitting.');
 
   writeFileSync(alpha.component, form + '\n<script>');
-  await pageA.locator('#artifact-compiler-error').waitFor();
-  assert(await pageB.locator('#artifact-compiler-error, vite-error-overlay').count() === 0, 'Compile diagnostic leaked to another namespace.');
+  await pageA.locator('#surface-compiler-error').waitFor();
+  assert(await pageB.locator('#surface-compiler-error, vite-error-overlay').count() === 0, 'Compile diagnostic leaked to another namespace.');
   await pageB.getByRole('textbox').fill('Other namespace remains usable');
   await pageB.getByRole('button', { name: 'Send feedback', exact: true }).click(); await status(pageB, 'accepted');
   writeFileSync(alpha.component, form.replace('Singleton feedback', 'Singleton feedback recovered'));
   await pageA.getByRole('heading', { name: 'Singleton feedback recovered' }).waitFor();
-  await pageA.locator('#artifact-compiler-error').waitFor({ state: 'detached' });
+  await pageA.locator('#surface-compiler-error').waitFor({ state: 'detached' });
   assert(await pageA.getByRole('textbox').inputValue() === 'Preserved custom response', 'Compile recovery lost unsent input.');
   await pageA.getByRole('button', { name: 'Send feedback', exact: true }).click(); await status(pageA, 'accepted');
   let inspected = await cli('inspect', '--request', a.id);

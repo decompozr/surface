@@ -33,21 +33,21 @@ Check `surface status` and `surface doctor` for the selected installation. Start
 
 ## Create, mount and bind
 
-1. Route-based pages are the only supported authoring workflow for new or updated previews: read [project pages and readable URLs](references/pages.md), create `routes/+page.svelte` and optional nested pages, and declare `routes` in the source `artifact.json`. Read the [source/dependency contract](../../docs/architecture/page-runtime.md) for pinned Svelte, discovery, props and optional source-scoped prebundling. Preserve existing framework/package-manager choices and report unsupported cases rather than converting a project implicitly.
+1. Route-based pages are the only supported authoring workflow for new or updated previews: read [project pages and readable URLs](references/pages.md), create `routes/+page.svelte` and optional nested pages, and declare `routes` in the source `surface.json`. Read the [source/dependency contract](../../docs/architecture/page-runtime.md) for pinned Svelte, discovery, props and optional source-scoped prebundling. Preserve existing framework/package-manager choices and report unsupported cases rather than converting a project implicitly.
 2. Use the project commands from the worktree. They also infer the containing Git root from a subdirectory. Initialize only when the versioned manifest is absent; registration gives a linked worktree its own namespace without copying service state:
    ```sh
    surface project init --name "Project name"
    surface project register
-   surface project add --source artifacts/panel --name "Controls"
+   surface project add --source surfaces/panel --name "Controls"
    surface project list
-   surface project mount --artifact ARTIFACT_UUID
+   surface project mount --surface SURFACE_UUID
    ```
    `add` records existing source; it does not scaffold it. Read IDs from the versioned result's `data`. Use the namespace/name returned by `mount` or `list` for interactions; do not derive them from branch names. A preview without an interaction request has no interaction credentials. Verify browser rendering separately from compilation.
 3. Obtain the exact existing conversation identity and control socket from the host/environment. For Codex, the existing local App Server tooling can report its socket. Never select the latest conversation, create a replacement, or change session permissions to bypass a mismatch. Bind the exact canonical session/project root; nested session roots may be outside the supported workspace contract.
    ```sh
    surface bind --project /absolute/project --thread EXACT_THREAD_ID --socket /absolute/control.sock
    surface request --binding BINDING_ID --namespace RETURNED_NAMESPACE --name RETURNED_MOUNT \
-     --component routes/+page.svelte --schema-file /absolute/project/artifacts/panel/interaction.schema.json \
+     --component routes/+page.svelte --schema-file /absolute/project/surfaces/panel/interaction.schema.json \
      --title "Choose a direction"
    ```
    Add `--allow-recipient-selection` only when the task authorizes choosing another conversation in this exact worktree. It enables the shared recipient picker and explicit takeover; the default remains bound to the original conversation. The picker creates a new scoped request/token and closes the old request without sending or replaying input. Other worktrees are listed for context only.
@@ -80,6 +80,6 @@ Include fields expected by the page and verify rendered source changes when appl
 
 If the session cannot contact the service, report that boundary without changing its permissions. On `failed` or `unknown`, inspect the existing request and exact session before deciding what to do; do not blindly resend. `close --request ID` prevents a new submission but does not cancel running work. It preserves records and allows administrative publication for an already submitted request.
 
-Use `surface project unmount --artifact ARTIFACT_ID` for previews you own when done. It blocks page reads/new submissions and preserves source, dependencies, interaction records, and in-flight delivery. Administrative `inspect`, `result`, and `close` still work; remounting the original source/project/component restores page access. Reload the unavailable preview after remount: revisiting an identical capability-fragment URL can be only a same-document navigation. Do not stop a shared singleton to clean up one mount. Leave requested review previews mounted and provide their URL and observed status. Loopback links work only on the host. Installed setup supports private Tailscale browser access; use the returned HTTPS preview URL and follow [remote access verification](references/pages.md#remote-browser-access).
+Use `surface project unmount --surface SURFACE_ID` for previews you own when done. It blocks page reads/new submissions and preserves source, dependencies, interaction records, and in-flight delivery. Administrative `inspect`, `result`, and `close` still work; remounting the original source/project/component restores page access. Reload the unavailable preview after remount: revisiting an identical capability-fragment URL can be only a same-document navigation. Do not stop a shared singleton to clean up one mount. Leave requested review previews mounted and provide their URL and observed status. Loopback links work only on the host. Installed setup supports private Tailscale browser access; use the returned HTTPS preview URL and follow [remote access verification](references/pages.md#remote-browser-access).
 
 This skill ships as a link to its Surface checkout so its CLI and references remain together. `surface mcp` exposes the same core operations, but neither the CLI workflow nor this skill requires an MCP connection. MCP does not itself wake a session; the existing runtime adapter performs delivery.
