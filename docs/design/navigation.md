@@ -59,3 +59,5 @@ Tabs size to their full path and close control without expanding into spare spac
 Desktop and touch-phone verification checks 36px header height, fully contained controls, generous initial tab width, shrinkage under crowding, page-name suffix visibility, full-path titles, and fixed header controls. Draft, scroll, keyboard and close regressions remain covered.
 
 Hover shortcuts: with the mouse over page content, C selects that element and opens the comment editor; S selects and captures it, then opens the editor for review. V toggles selection mode. Ignore shortcuts in editable fields, during composition/repeats, and with command/control/alt modifiers. Capturing never sends a comment.
+
+Workspace hierarchy rows show a workspace icon, mounted folders a folder icon, and routes a page icon. Icons are decorative, aligned at 16px, and do not change the uniform label typography.
