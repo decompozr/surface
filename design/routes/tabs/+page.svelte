@@ -1,0 +1,5 @@
+<script lang="ts">
+ import {SurfaceTabs,Button} from '@decompozr/design-system';import Review from '../../lib/Review.svelte';
+ let items=$state([{id:'home',label:'Home',path:['surface','main','design','Home']},{id:'controls',label:'Controls',path:['surface','main','design','Controls']}]);let active=$state('home');let count=0;
+</script>
+<Review title="Tabs" description="Review natural width, crowded paths, selection and close behavior."><section><div style="height:36px;display:flex;border-bottom:1px solid #ddd"><SurfaceTabs {items} {active} select={id=>active=id} close={id=>{items=items.filter(x=>x.id!==id);if(active===id)active=items[0]?.id??'';}}/></div><p class="note">Selected: {items.find(x=>x.id===active)?.label??'None'}</p><Button size="compact" onclick={()=>{const id=String(++count);items=[...items,{id,label:'Page '+id,path:['surface','main','design','long-parent-folder','Page '+id]}];active=id;}}>Add tab</Button></section><section><h2>Review criteria</h2><p>Width fits the complete path without spare fill. Crowded tabs truncate ancestors first. The final page name remains readable. Closing is immediate.</p></section></Review>

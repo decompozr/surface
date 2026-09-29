@@ -45,3 +45,7 @@ Primary-source research informs this refinement; it is not a claim of hands-on a
 - [Cursor Design Mode](https://cursor.com/docs/agent/design-mode) combines element identity and screenshots for spatial instructions. Preserve rich target records and frozen captures while keeping the visible selection label short.
 
 These references do not justify adding session orchestration, model pickers, code-diff review or more permanent chrome to Surface. The immediate acceptance target is a readable project/workspace/folder/page hierarchy, contextual drafts, compact controls and clear transient feedback on desktop and phone.
+
+## Live design review surface
+
+The project-owned `design/` source is mounted separately from `examples/`. Start with controls and focus, then review tabs, navigation, comment tools and the complete shell one element at a time. Specimens import shared design-system components. Experiments are not automatically adopted changes: record accepted behavior here and implement reusable visuals in the design-system provider.

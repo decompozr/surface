@@ -61,3 +61,5 @@ Desktop and touch-phone verification checks 36px header height, fully contained 
 Hover shortcuts: with the mouse over page content, C selects that element and opens the comment editor; S selects and captures it, then opens the editor for review. V toggles selection mode. Ignore shortcuts in editable fields, during composition/repeats, and with command/control/alt modifiers. Capturing never sends a comment.
 
 Project/workspace roots show a workspace icon, Git worktree rows a branch icon, mounted folders a folder icon, and routes an HTML/code-page icon. Icons are decorative, aligned at 16px, and do not change the uniform label typography.
+
+Selection-mode pointer activation releases button focus so a later global shortcut cannot turn a stale pointer focus into a keyboard ring. Keyboard traversal still retains native focus indication. Mode pressed state and page selection outline remain separate from focus.

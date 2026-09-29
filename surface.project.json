@@ -8,6 +8,12 @@
       "name": "Examples",
       "source": "examples",
       "archived": false
+    },
+    {
+      "id": "40c7120e-2146-4500-be27-998e750c5ee7",
+      "name": "Design",
+      "source": "design",
+      "archived": false
     }
   ]
 }

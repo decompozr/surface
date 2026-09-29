@@ -110,6 +110,15 @@ try {
     const href = await nav.getByRole('link',{name:'alpha',exact:true}).getAttribute('href'); assert.ok(href);
     await page.goto(new URL(href,app.origin).href);
     await expect(page.getByRole('tab',{name:'alpha',exact:true})).toBeVisible();
+    const selectionToggle=page.getByRole('button',{name:'Select and comment',exact:true});
+    await selectionToggle.click();
+    await expect(page.getByRole('button',{name:'Leave comment mode',exact:true})).not.toBeFocused();
+    await page.keyboard.press('v');
+    await expect(selectionToggle).toHaveAttribute('aria-pressed','false');
+    assert.equal(await selectionToggle.evaluate(el=>el.matches(':focus-visible')),false);
+    await expect(page.locator('.selection-outline')).toHaveCount(0);
+    await selectionToggle.focus();
+    await expect(selectionToggle).toBeFocused();
     await page.getByRole('button',{name:'Close alpha',exact:true}).click();
     await expect(page.getByRole('tab')).toHaveCount(0);
     await expect(page.getByText('Open a surface from Workspaces.',{exact:true})).toBeVisible();

@@ -418,7 +418,7 @@
 {#snippet headerTools()}
     <Toolbar label="Review tools">
 
-      <ToggleButton size="compact" touchAppearance="compact" icon="mouse-pointer-2" label={mode ? 'Leave comment mode' : 'Select and comment'} aria-keyshortcuts="V" title={mode ? 'Leave comment mode (V / Esc)' : 'Select and comment (V); hover + C to comment, S to capture'} pressed={mode} disabled={locked} onPressedChange={(value) => { mode = value; hovered = null; if (!mode) editorOpen = false; updateBox(); }} />
+      <ToggleButton size="compact" touchAppearance="compact" icon="mouse-pointer-2" label={mode ? 'Leave comment mode' : 'Select and comment'} aria-keyshortcuts="V" title={mode ? 'Leave comment mode (V / Esc)' : 'Select and comment (V); hover + C to comment, S to capture'} pressed={mode} disabled={locked} onclick={(event) => { if (event.detail > 0) event.currentTarget.blur(); }} onPressedChange={(value) => { mode = value; hovered = null; if (!mode) editorOpen = false; updateBox(); }} />
       <IconButton size="compact" touchAppearance="compact" icon="message-square" label={`Open comments (${review.comments.length} drafts)`} title="Comments (I)" aria-keyshortcuts="I" aria-expanded={panel} aria-controls="surface-comments" onclick={togglePanel}>{#snippet badge()}{#if review.comments.length}<Badge tone="sage">{review.comments.length}</Badge>{/if}{/snippet}</IconButton>
     </Toolbar>
 {/snippet}
