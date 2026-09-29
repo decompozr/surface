@@ -73,3 +73,7 @@ The global I shortcut toggles Comments without leaving focus on the header trigg
 Workspace/project, worktree, mounted folder and nested route groups expand and collapse independently using the disclosure or non-link group label. A group that is also a page retains separate disclosure and navigation actions. Page links remain links; collapsing a group never closes an open tab or clears its draft. Each disclosure exposes `aria-expanded` and an Expand/Collapse label. Keyboard activation uses native buttons with visible focus.
 
 All groups begin expanded. Collapsed group IDs persist in origin-local browser storage and synchronize across Surface documents; node identity, rather than display labels, preserves distinct worktrees with matching names. Unknown or invalid persisted formats are not overwritten. Storage failure leaves navigation usable for the current document. Review these states on the Navigation design page, then verify real mounted workspace/worktree/folder collapse, refresh restoration, reopening and leaf activation at phone and desktop sizes.
+
+### Delivery settings placement
+
+Recipient and delivery configuration must not appear above mounted page content. Keep it collapsed under Delivery settings in the Comments pane; the existing recipient controller remains mounted for form delivery. Verify normal mounted pages on desktop and phone without submitting fixture messages to real conversations.
