@@ -9,7 +9,7 @@
     navigation?: NavigationNode[]; currentPath?: string; children?: Snippet; headerTools?: Snippet; viewportContent?: boolean;
     panelContent?: Snippet; panelOpen?: boolean; status?: Snippet; statusHeight?: string;
   } = $props();
-  type OpenSurface = { id: string; label: string; href: string; embeddedURL: string; original?: boolean };
+  type OpenSurface = { id: string; label: string; href: string; embeddedURL: string; path: string[]; original?: boolean };
   let tabs = $state<OpenSurface[]>([]), activeTab = $state(''), embedded = $state(false), originalClosed = $state(false);
   let navigationOpen = $state(false), currentURL = $state('');
   let pageContent = $state<HTMLDivElement>();
@@ -21,6 +21,12 @@
   const findLabel = (nodes: NavigationNode[], path: string): string | undefined => {
     for (const node of nodes) { if (node.href?.replace(/\/$/, '') === path.replace(/\/$/, '')) return node.label; const nested = findLabel(node.children, path); if (nested) return nested; }
   };
+  const displayPath = (href: string, label: string) => {
+    const parts = new URL(href, location.origin).pathname.split('/').filter(Boolean).slice(1).map(part => { try { return decodeURIComponent(part); } catch { return part; } });
+    if (label === 'Home') parts.push(label);
+    else if (parts.length) parts[parts.length - 1] = label;
+    return parts;
+  };
   const selectTab = (id: string) => { activeTab = id; navigationOpen = false; };
   const openSurface = (href: string, label: string) => {
     const url = new URL(href, location.origin);
@@ -30,7 +36,7 @@
     const existing = tabs.find(tab => tab.href === cleanURL);
     if (existing) { selectTab(existing.id); return; }
     url.searchParams.set('__surface_embedded', '1'); const id = crypto.randomUUID();
-    tabs = [...tabs, { id, label, href:cleanURL, embeddedURL:url.href }]; selectTab(id);
+    tabs = [...tabs, { id, label, href:cleanURL, path:displayPath(cleanURL, label), embeddedURL:url.href }]; selectTab(id);
   };
   const closeTab = (id: string) => {
     const index = tabs.findIndex(tab => tab.id === id);
@@ -47,7 +53,7 @@
     currentURL = location.href;
     embedded = window.parent !== window && new URL(location.href).searchParams.get('__surface_embedded') === '1';
     if (!embedded && currentPath.startsWith('/workspace/')) {
-      const id = crypto.randomUUID(); tabs = [{ id, label:findLabel(navigation, currentPath) ?? 'Surface', href:location.href, embeddedURL:'', original:true }]; activeTab = id;
+      const id = crypto.randomUUID(); tabs = [{ id, label:findLabel(navigation, currentPath) ?? 'Surface', href:location.href, path:displayPath(location.href, findLabel(navigation, currentPath) ?? 'Surface'), embeddedURL:'', original:true }]; activeTab = id;
     }
     const receive = (event: MessageEvent<unknown>) => {
       if (event.origin !== location.origin || typeof event.data !== 'object' || !event.data) return;
@@ -78,7 +84,7 @@
   {:else}{@render headerTools?.()}{/if}
 {/snippet}
 {#snippet header()}
-  {#if !embedded}<AppHeader actions={actions} height="44px">
+  {#if !embedded}<AppHeader actions={actions} density="compact" height="36px">
     <a class="skip-link" href="#surface-page-content" onclick={skipToContent}>Skip to content</a>
     <IconButton icon="panel-left" size="compact" touchAppearance="compact" onclick={toggle} label="Toggle navigation" title="Workspaces" aria-controls="surface-navigation" aria-expanded={navigationOpen} />
     <div class="tab-strip"><SurfaceTabs items={tabs} active={activeTab} select={selectTab} close={closeTab} /></div>
@@ -88,7 +94,7 @@
   <Text size="body">Workspaces</Text>
   {#if navigation.length}<NavigationTree nodes={navigation} currentPath={activePath} currentURL={activeSurface?.href ?? currentURL} open={openSurface} />{:else}<Text size="small" tone="muted">No route pages are mounted yet.</Text>{/if}
 {/snippet}
-<AppShell navigationMode="push" edgeSwipes {header} headerHeight={embedded ? '0px' : '44px'} navigation={embedded ? undefined : navigationContent} bind:navigationOpen navigationId="surface-navigation" navigationLabel="Workspace navigation" panel={originalVisible ? panelContent : undefined} bind:panelOpen panelId="surface-comments" panelLabel="Comments and conversation" status={originalVisible ? status : undefined} statusHeight={originalVisible ? statusHeight : '0px'}>
+<AppShell navigationMode="push" edgeSwipes {header} headerHeight={embedded ? '0px' : '36px'} navigation={embedded ? undefined : navigationContent} bind:navigationOpen navigationId="surface-navigation" navigationLabel="Workspace navigation" panel={originalVisible ? panelContent : undefined} bind:panelOpen panelId="surface-comments" panelLabel="Comments and conversation" status={originalVisible ? status : undefined} statusHeight={originalVisible ? statusHeight : '0px'}>
   {#if !originalClosed}<div class="content" class:viewport={viewportContent || tabs.length > 0} hidden={!originalVisible}>
     <RecipientPanel />
     <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this horizontal scroll region.) -->
@@ -104,7 +110,7 @@
   .skip-link { position:fixed; top:8px; left:8px; z-index:60; transform:translateY(calc(-100% - 16px)); background:#fff; color:#1e293b; padding:8px 14px; border:2px solid #334155; border-radius:4px; }
   .skip-link:focus { transform:translateY(0); outline:3px solid #2563eb; outline-offset:2px; }
   .page-content:focus-visible { outline:3px solid #2563eb; outline-offset:-3px; }
-  .tab-strip { flex:1; min-width:0; height:44px; display:flex; }
+  .tab-strip { flex:1; min-width:0; height:36px; display:flex; }
   .surface-frame { display:block; width:100%; height:100%; border:0; background:white; }
   [hidden] { display:none !important; }
   .empty { padding:1rem; }

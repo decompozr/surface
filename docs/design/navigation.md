@@ -32,7 +32,7 @@ Navigation links preserve query/fragment only for the current page. Unrelated pa
 
 ### Compact navigation and brand
 
-The header uses the design-system `panel-left` IconButton on white, followed by `SurfaceTabs`. It contains no logo, adjacent wordmark or breadcrumb row. The sidebar is labeled Workspaces. NavigationLinks uses `typography="uniform"`: every group and link is 14px, weight 400, 20px line-height, with a 32px row and no group margin. Indentation conveys hierarchy; the current page uses background rather than bold type.
+The header uses the design-system `AppHeader density="compact"` at 36px, with 32px touch action targets, the `panel-left` IconButton on white, and `SurfaceTabs`. It contains no logo, adjacent wordmark or breadcrumb row. The sidebar is labeled Workspaces. NavigationLinks uses `typography="uniform"`: every group and link is 14px, weight 400, 20px line-height, with a 32px row and no group margin. Indentation conveys hierarchy; the current page uses background rather than bold type.
 
 Selecting a mounted route opens or selects an editor tab. Each secondary surface stays mounted in its own same-origin frame; switching tabs keeps DOM, drafts and scroll positions. A frame hides its redundant shell header; the parent forwards comment-tool actions only to the active known frame with matching origin. Navigation from a frame opens a parent tab. Closing requires confirmation because page-owned unsaved state is discarded. Tabs are session UI: a full browser reload still reloads content and does not promise draft recovery for arbitrary pages. The original deep link retains its capability; unrelated route opens never inherit it.
 
@@ -51,3 +51,9 @@ The September 28 spacing correction uses the public NavigationLinks `touchDensit
 | Desktop collapsed / mobile closed | Navigation is hidden and inert; it starts closed consistently through hydration | See [mobile/accessibility](accessibility.md); no global persisted account preference. |
 
 Pass/fail and evidence boundaries are [E-07](../evaluations/ui-eval.md#e-07-navigation-and-location) and [E-10](../evaluations/ui-eval.md#e-10-failure-and-freshness-presentation).
+
+## Compact path tabs
+
+Tabs have a 320px preferred basis, grow to 384px, and shrink evenly to 120px before the strip scrolls. The complete readable route path is ordered ancestor-to-page and truncated from the left so the final page name remains visible. The title exposes the complete path. Revealing the selected tab scrolls only the tab strip, never the header or document.
+
+Desktop and touch-phone verification checks 36px header height, fully contained controls, generous initial tab width, uniform shrinkage under crowding, page-name suffix visibility, full-path titles, and fixed header controls. Draft, scroll, keyboard and close regressions remain covered.
