@@ -27,7 +27,18 @@
     else if (parts.length) parts[parts.length - 1] = label;
     return parts;
   };
-  const selectTab = (id: string) => { activeTab = id; navigationOpen = false; };
+  // Keep the document URL stable: embedded surfaces own their route/capability URLs.
+  // History records selection, while the mounted tab collection retains page state.
+  let historySession = '';
+  const recordSelection = (replace = false) => {
+    if (!historySession || embedded) return;
+    const state = { ...history.state, surfaceTab: { session:historySession, id:activeTab } };
+    if (replace) history.replaceState(state, ''); else history.pushState(state, '');
+  };
+  const selectTab = (id: string) => {
+    if (activeTab !== id) { activeTab = id; recordSelection(); }
+    navigationOpen = false;
+  };
   const openSurface = (href: string, label: string) => {
     const url = new URL(href, location.origin);
     if (url.origin !== location.origin || !url.pathname.startsWith('/workspace/')) return;
@@ -40,10 +51,10 @@
   };
   const closeTab = (id: string) => {
     const index = tabs.findIndex(tab => tab.id === id);
-    if (!confirm('Close this surface? Unsaved page changes will be discarded.')) return;
+    if (index < 0) return;
     if (tabs.find(tab => tab.id === id)?.original) originalClosed = true;
     tabs = tabs.filter(tab => tab.id !== id);
-    if (activeTab === id) activeTab = tabs[Math.min(index, tabs.length - 1)]?.id ?? '';
+    if (activeTab === id) { activeTab = tabs[Math.min(index, tabs.length - 1)]?.id ?? ''; recordSelection(true); }
   };
   const tool = (action: 'select' | 'comments') => {
     const frame = document.getElementById(`surface-frame-${activeTab}`);
@@ -55,6 +66,18 @@
     if (!embedded && currentPath.startsWith('/workspace/')) {
       const id = crypto.randomUUID(); tabs = [{ id, label:findLabel(navigation, currentPath) ?? 'Surface', href:location.href, path:displayPath(location.href, findLabel(navigation, currentPath) ?? 'Surface'), embeddedURL:'', original:true }]; activeTab = id;
     }
+    if (!embedded) { historySession = crypto.randomUUID(); recordSelection(true); }
+    const restoreSelection = (event: PopStateEvent) => {
+      const selection = event.state?.surfaceTab;
+      if (!selection || selection.session !== historySession) return;
+      if (!selection.id || tabs.some(tab => tab.id === selection.id)) {
+        activeTab = selection.id; navigationOpen = false;
+      } else {
+        // Closing is explicit: history must not resurrect a discarded page.
+        recordSelection(true);
+      }
+    };
+    window.addEventListener('popstate', restoreSelection);
     const receive = (event: MessageEvent<unknown>) => {
       if (event.origin !== location.origin || typeof event.data !== 'object' || !event.data) return;
       const data = event.data;
@@ -69,7 +92,7 @@
       event.preventDefault(); openSurface(url.href, anchor.textContent?.trim() || 'Surface');
     };
     window.addEventListener('message', receive); document.addEventListener('click', follow);
-    return () => { window.removeEventListener('message', receive); document.removeEventListener('click', follow); };
+    return () => { window.removeEventListener('popstate', restoreSelection); window.removeEventListener('message', receive); document.removeEventListener('click', follow); };
   });
 </script>
 <svelte:window onkeydown={(event) => {

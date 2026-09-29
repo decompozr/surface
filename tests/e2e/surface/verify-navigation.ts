@@ -35,6 +35,13 @@ try {
     await expect(alpha.locator('header')).toHaveCount(0);
     await page.getByRole('button',{name:'Toggle navigation',exact:true}).click(); await nav.getByRole('link',{name:'beta',exact:true}).click();
     await page.frameLocator('iframe[title="beta"]').getByRole('textbox',{name:'Draft'}).fill('Second draft');
+    await page.goBack();
+    await expect(page.getByRole('tab',{name:'alpha',exact:true})).toHaveAttribute('aria-selected','true');
+    await expect(page.getByRole('tab',{name:'beta',exact:true})).toHaveCount(1);
+    await expect(alpha.getByRole('textbox',{name:'Draft'})).toHaveValue('Keep this draft');
+    await page.goForward();
+    await expect(page.getByRole('tab',{name:'beta',exact:true})).toHaveAttribute('aria-selected','true');
+    await expect(page.frameLocator('iframe[title="beta"]').getByRole('textbox',{name:'Draft'})).toHaveValue('Second draft');
     await page.getByRole('tab',{name:'alpha',exact:true}).click(); await expect(alpha.getByRole('textbox',{name:'Draft'})).toHaveValue('Keep this draft');
     const frame=page.frames().find(frame=>frame.url().includes('/alpha')); assert.ok(frame);
     const scroll=await frame.evaluate(()=>{const el=document.querySelector('main'); if(!el) throw Error('Missing scroll container'); el.scrollTop=300; return el.scrollTop;}); assert.ok(scroll>0);
@@ -54,7 +61,7 @@ try {
     const tab = page.getByRole('tab',{name:'beta',exact:true}); await expect(tab).toHaveAttribute('title', /.* \/ .* \/ .* \/ beta/);
     const label = tab.locator('.label'); await expect(label).toHaveCSS('direction','rtl'); await expect(label).toHaveCSS('text-overflow','ellipsis');
     await page.screenshot({path:join(output,mobile?'phone-tabs.png':'desktop-tabs.png')});
-    page.once('dialog',dialog=>dialog.accept()); await page.getByRole('button',{name:'Close beta',exact:true}).click(); await expect(page.getByRole('tab',{name:'beta',exact:true})).toHaveCount(0);
+    page.on('dialog',dialog=>{ errors.push('Unexpected close prompt'); void dialog.dismiss(); }); await page.getByRole('button',{name:'Close beta',exact:true}).click(); await expect(page.getByRole('tab',{name:'beta',exact:true})).toHaveCount(0);
     await expect(alpha.getByRole('textbox',{name:'Draft'})).toHaveValue('Keep this draft');
     for (const name of ['gamma','delta','epsilon','zeta','eta','theta']) {
       await page.getByRole('button',{name:'Toggle navigation',exact:true}).click(); await nav.getByRole('link',{name,exact:true}).click();
@@ -67,6 +74,17 @@ try {
     assert.equal(await page.evaluate(()=>window.scrollX),0);
     await expect(page.getByRole('button',{name:'Toggle navigation',exact:true})).toBeInViewport();
     await page.screenshot({path:join(output,mobile?'phone-crowded-tabs.png':'desktop-crowded-tabs.png')});
+    for (const name of ['alpha','gamma','delta','epsilon','zeta','eta','theta']) await page.getByRole('button',{name:`Close ${name}`,exact:true}).click();
+    await expect(page.getByRole('tab')).toHaveCount(0);
+    await page.screenshot({path:join(output,mobile?'phone-empty.png':'desktop-empty.png')});
+    // A directly loaded original page closes immediately and stays closed.
+    await page.getByRole('button',{name:'Toggle navigation',exact:true}).click();
+    const href = await nav.getByRole('link',{name:'alpha',exact:true}).getAttribute('href'); assert.ok(href);
+    await page.goto(new URL(href,app.origin).href);
+    await expect(page.getByRole('tab',{name:'alpha',exact:true})).toBeVisible();
+    await page.getByRole('button',{name:'Close alpha',exact:true}).click();
+    await expect(page.getByRole('tab')).toHaveCount(0);
+    await expect(page.getByText('Open a surface from Workspaces.',{exact:true})).toBeVisible();
     assert.deepEqual(errors,[]); await context.close();
   }
   console.log('Editor verified: uniform 14px/400/32px tree, sidebar toggle, tabs, draft and scroll retention, keyboard selection and close on desktop and touch phone.');
