@@ -185,7 +185,8 @@
   const flush = async () => { await persistQueue; await writeState($state.snapshot(review), storageKey); };
 
   const send = async () => {
-    if (locked || (data.live && (!agentAvailable || !recipientObservation || inspecting)) || pending || review.draft.text.trim() || review.draft.capture || !review.comments.length) return;
+    if (locked || inspecting || (data.live && !connectionKey) || review.draft.text.trim() || review.draft.capture || !review.comments.length) return;
+    if (data.live) { await refreshRecipient(); if (!agentAvailable || !recipientObservation) { notice = 'Recipient unavailable. Comments remain unsent; try sending again.'; return; } }
     const batch: Batch = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), page: location.pathname, revision: observedRevision || revision, recipient: data.recipient as Batch['recipient'], comments: $state.snapshot(review.comments), ...(data.live && recipientObservation ? { delivery: { mode: recipientObservation.status === 'active' ? (steer ? 'steer' as const : 'queue' as const) : 'start' as const, expectedStatus: recipientObservation.status, expectedTurnId: recipientObservation.turnId } } : {}), status: 'pending' };
     if (JSON.stringify(batch).length > 7_500_000) { notice = 'This batch is too large. Remove a screenshot before sending.'; return; }
     review.batches.push(batch); review.comments = []; review.draft = { target: null, text: '' }; selected = null; updateBox(); await deliver(batch.id);
@@ -203,7 +204,8 @@
           review.batches = review.batches.filter(item => item.id !== id);
           review.comments = [...batch.comments, ...review.comments];
           ++inspection; recipientObservation = undefined; agentAvailable = false; inspecting = false;
-          notice = `${result.message} Comments remain unsent. Refresh the agent, review the choice, then send again.`;
+          await refreshRecipient();
+          notice = 'The conversation changed during delivery. Comments remain unsent; send again.';
           await flush(); return;
         }
         throw new Error(result.message ?? `Submission could not be confirmed (${response.status}).`);
@@ -294,7 +296,6 @@
   let workspace = $state<HTMLElement>(null!);
   let composer = $state<HTMLTextAreaElement>();
   let persistQueue: Promise<void> = Promise.resolve();
-  const pending = $derived(review.batches.some(b => b.status === 'pending' || b.status === 'unknown'));
   const locked = $derived(busy || sending || !ready);
   let editorOpen = $state(false);
   $effect(() => {
@@ -439,9 +440,9 @@
       {#if review.draft.text.trim() || review.draft.capture}<Text size="small" class="hint">Add this comment to the draft before sending the batch.</Text>{/if}
       <div class="delivery-actions">
       {#if data.live && review.comments.length}
-        <Switch label={steer ? 'Steer' : 'Queue'} aria-label="Steer delivery" bind:checked={steer} disabled={locked || pending} />
+        <Switch label={steer ? 'Steer' : 'Queue'} aria-label="Steer delivery" bind:checked={steer} disabled={locked} />
       {/if}
-      {#if review.comments.length}<div class="send-action"><IconButton size="compact" touchAppearance="compact" icon="arrow-up" appearance="quiet" label={`Send ${review.comments.length} comments together`} title={`Send ${review.comments.length} comments together`} disabled={locked || (data.live && (!agentAvailable || !recipientObservation || inspecting)) || pending || !!review.draft.text.trim() || !!review.draft.capture} onclick={send} /></div>{/if}
+      {#if review.comments.length}<div class="send-action"><IconButton size="compact" touchAppearance="compact" icon="arrow-up" appearance="quiet" label={`Send ${review.comments.length} comments together`} title={`Send ${review.comments.length} comments together`} disabled={locked || inspecting || (data.live && !connectionKey) || !!review.draft.text.trim() || !!review.draft.capture} onclick={send} /></div>{/if}
       </div>
       {#if storageError}<span role="alert">{storageError}</span>{/if}
     </div>
