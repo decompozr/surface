@@ -16,7 +16,7 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]] as con
   const tools=page.getByRole('toolbar',{name:'Comment tools'});
   const root=page.getByRole('group',{name:'Comment tools position'});
   await expect(tools).toBeVisible();
-  await expect(tools.getByRole('button')).toHaveCount(2);
+  await expect(tools.getByRole('button')).toHaveCount(3);
   const before=await root.boundingBox();
   if (!before) throw new Error('Missing floating toolbar bounds');
   await root.evaluate(el=>el.setAttribute('data-observed-node','retained'));

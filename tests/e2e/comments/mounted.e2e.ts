@@ -139,7 +139,7 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       await expect(page.getByRole('button', { name: 'Project counter 1', exact: true })).toBeVisible();
       await page.getByRole('textbox', { name: 'Project draft', exact: true }).fill('Keep my project draft');
       const tools = page.getByRole('toolbar', { name: 'Comment tools', exact: true });
-      await expect(tools.getByRole('button')).toHaveCount(2);
+      await expect(tools.getByRole('button')).toHaveCount(3);
       await tools.getByRole('button', { name: 'Screenshot', exact: true }).click();
       await page.locator('#headline').click();
       await expect(page.getByAltText('Selected element screenshot preview')).toBeVisible();

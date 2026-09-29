@@ -2,6 +2,7 @@
   import { onMount, tick, type Snippet } from 'svelte';
   import { Badge, Button, Icon, Switch, Toolbar, IconButton, TextArea, Spinner, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
   import CommentTools from './CommentTools.svelte';
+  import { workbench } from '../workbench/state.svelte';
   import SurfaceShell from './SurfaceShell.svelte';
   import { composerPlacement, readViewport, observeViewport } from '../comments/viewport.ts';
   import { describeTarget, resolveTarget } from '../comments/selection.ts';
@@ -399,7 +400,7 @@
       schedulePosition();
     };
     const key = (event: KeyboardEvent) => {
-      if (event.isComposing || event.repeat) return;
+      if (event.isComposing || event.repeat || workbench.fullscreen) return;
       if ((event.metaKey || event.ctrlKey) && event.key === 'Enter' && editorOpen) {
         event.preventDefault(); if (!locked) addComment(); return;
       }
@@ -470,7 +471,7 @@
     {#if children}{@render children(mode)}{:else}<div id="surface-page"></div>{/if}
   </section>
 
-{#if editorOpen && review.draft.target}
+{#if editorOpen && review.draft.target && !workbench.fullscreen}
   <div class="editor-anchor" use:measureEditor>
   <FloatingComposer density="compact" footer={notice && !compactEditor ? editorNotice : undefined} label="Comment on selected element" x={editorPosition.x} y={editorPosition.y} width={`${editorPosition.width}px`} maxHeight={`${editorPosition.maxHeight}px`}>
 {#snippet header()}
@@ -492,7 +493,7 @@
   </FloatingComposer>
   </div>
 {/if}
-{#if box && !panel}<div class="selection-outline"><SelectionOutline {...box} size="compact" tone="neutral" elevation="floating" state={hovered && hovered !== selected ? 'hover' : 'selected'} /></div>{/if}
+{#if box && !panel && !workbench.fullscreen}<div class="selection-outline"><SelectionOutline {...box} size="compact" tone="neutral" elevation="floating" state={hovered && hovered !== selected ? 'hover' : 'selected'} /></div>{/if}
 {#if !editorOpen && !panel}
 <CommentTools active={mode ? pickAction : null} disabled={locked} onchoose={(action) => {
   if (document.activeElement instanceof HTMLElement) document.activeElement.blur();

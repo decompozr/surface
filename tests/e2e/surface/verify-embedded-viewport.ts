@@ -31,7 +31,7 @@ try{
    await tools.getByRole('button',{name:'Comment',exact:true}).click();await frame.locator('#keyboard-target').click();
    const field=frame.locator('#comment');await field.fill('Draft stays above outer keyboard');
    const editor=frame.getByRole('region',{name:'Comment on selected element',exact:true});const add=frame.getByRole('button',{name:'Add comment to draft'});
-   await expect.poll(async()=>{const r=await editor.boundingBox();return !!r&&r.y>=36&&r.y+r.height<=350;}).toBe(true);
+   await expect.poll(async()=>{const r=await editor.boundingBox();return {fits:!!r&&r.y>=36&&r.y+r.height<=350,bounds:r};},{message:'Composer above outer keyboard'}).toMatchObject({fits:true});
    const bounds=await field.boundingBox();assert.ok(bounds);assert.ok(bounds.y+bounds.height<=350);await expect(field).toBeFocused();
    await resize(280,70);await expect.poll(async()=>{const r=await add.boundingBox();return !!r&&r.y>=70&&r.y+r.height<=350;}).toBe(true);
    await expect(field).toHaveValue('Draft stays above outer keyboard');await page.screenshot({path:join(output,`${name}-embedded-keyboard.png`)});
@@ -39,6 +39,21 @@ try{
    await page.keyboard.press('Control+Shift+p');const commands=page.getByRole('combobox',{name:'Run command'});await commands.fill('Toggle status');await page.keyboard.press('Enter');
    await expect.poll(async()=>{const r=await tools.boundingBox();return r?Math.round(r.y+r.height):0;}).toBe(342);
    await page.screenshot({path:join(output,`${name}-embedded-toolbar.png`)});
+   const viewportHeight=page.viewportSize()?.height;if(!viewportHeight)throw new Error('Missing outer viewport');
+   await resize(viewportHeight,0);
+   const savedPreferences=await page.evaluate(()=>localStorage.getItem('surface.workbench.v1'));
+   await tools.getByRole('button',{name:'Fullscreen',exact:true}).click();
+   const exit=page.getByRole('button',{name:'Exit fullscreen',exact:true});await expect(exit).toHaveCount(1);
+   await expect(frame.getByRole('button',{name:'Exit fullscreen',exact:true})).toHaveCount(0);
+   await expect(tools).toBeHidden();await expect(page.getByRole('button',{name:'Open surface',exact:true})).toBeHidden();
+   await expect.poll(async()=>{const r=await page.locator('iframe[title="keyboard"]').boundingBox();return r ? {y:r.y,height:r.height} : null;},{message:'Fullscreen iframe fills outer viewport'}).toEqual({y:0,height:viewportHeight});
+   await page.screenshot({path:join(output,`${name}-embedded-fullscreen.png`)});
+   await exit.click();await expect(tools).toBeVisible();
+   expect(await page.evaluate(()=>localStorage.getItem('surface.workbench.v1'))).toBe(savedPreferences);
+   await expect(frame.getByRole('contentinfo',{name:'Connection status'})).toBeHidden();
+   await frame.locator('#keyboard-target').click();await expect(field).toHaveValue('Draft stays above outer keyboard');
+   await frame.locator('#comment').evaluate(()=>window.dispatchEvent(new CustomEvent('surface:execute',{detail:'fullscreen.toggle'})));
+   await expect(editor).toBeHidden();await frame.locator('body').press('Escape');await expect(editor).toBeVisible();await expect(field).toHaveValue('Draft stays above outer keyboard');
    assert.deepEqual(errors,[]);console.log(`${name}: embedded toolbar and composer follow outer keyboard/pan; status visibility accounted for; draft retained`);
   }finally{await browser.close();}
  }

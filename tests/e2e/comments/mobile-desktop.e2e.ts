@@ -17,7 +17,7 @@ for (const profile of ['desktop', 'touch-chromium', 'mobile'] as const) {
     await page.goto(origin + '/experiments/comments', { waitUntil: 'networkidle' });
     const reviewTools = page.getByRole('toolbar', { name: 'Comment tools' });
     await expect(reviewTools).toBeVisible();
-    await expect(reviewTools.getByRole('button')).toHaveCount(2);
+    await expect(reviewTools.getByRole('button')).toHaveCount(3);
     for (const icon of await reviewTools.locator('svg').all()) {
       const box = await icon.boundingBox();
       if (!box) throw new Error('Missing tool icon');
@@ -28,9 +28,9 @@ for (const profile of ['desktop', 'touch-chromium', 'mobile'] as const) {
       await commentAction.focus(); await page.keyboard.press('ArrowRight');
       await expect(reviewTools.getByRole('button',{name:'Screenshot',exact:true})).toBeFocused();
       await page.keyboard.press('Home'); await expect(commentAction).toBeFocused();
-      await page.keyboard.press('End'); await expect(reviewTools.getByRole('button',{name:'Screenshot',exact:true})).toBeFocused();
+      await page.keyboard.press('End'); await expect(reviewTools.getByRole('button',{name:'Fullscreen',exact:true})).toBeFocused();
       await page.keyboard.press('ArrowRight'); await expect(commentAction).toBeFocused();
-      await page.keyboard.press('ArrowLeft'); await expect(reviewTools.getByRole('button',{name:'Screenshot',exact:true})).toBeFocused();
+      await page.keyboard.press('ArrowLeft'); await expect(reviewTools.getByRole('button',{name:'Fullscreen',exact:true})).toBeFocused();
     }
     for (const action of await reviewTools.getByRole('button').all()) {
       const target = await action.boundingBox();
@@ -88,7 +88,9 @@ for (const profile of ['desktop', 'touch-chromium', 'mobile'] as const) {
     if (!toolBounds) throw new Error('Missing toolbar');
     expect(toolBounds.x).toBeGreaterThanOrEqual(0);
     expect(toolBounds.x + toolBounds.width).toBeLessThanOrEqual(page.viewportSize()!.width);
-    expect(toolBounds.width).toBeLessThan(120);
+    const actionCount=await tools.getByRole('button').count();
+    const gripWidth=profile==='desktop'?24:0;
+    expect(toolBounds.width).toBeLessThanOrEqual(actionCount*36+gripWidth+16);
     await page.screenshot({path:`${output}/${profile}-compact-selection.png`});
     await commentAction.click();
     await expect(commentAction).toHaveAttribute('aria-pressed','true');

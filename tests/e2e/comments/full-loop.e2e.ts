@@ -49,7 +49,7 @@ try {
     try {
       await page.goto(origin + '/experiments/comments');
       const tools = page.getByRole('toolbar', { name: 'Comment tools', exact: true });
-      await expect(tools.getByRole('button')).toHaveCount(2);
+      await expect(tools.getByRole('button')).toHaveCount(3);
       await tools.getByRole('button', { name: 'Screenshot', exact: true }).click();
       await page.locator('#headline').click();
       await expect(page.getByAltText('Selected element screenshot preview')).toBeVisible();

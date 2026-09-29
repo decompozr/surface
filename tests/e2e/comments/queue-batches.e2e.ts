@@ -101,7 +101,7 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
     const url=new URL(parent.previewUrl);url.hash='token='+parent.token;
     await page.goto(url.href);
     const toolbar=page.getByRole('toolbar',{name:'Comment tools',exact:true});
-    await expect(toolbar.getByRole('button')).toHaveCount(2);
+    await expect(toolbar.getByRole('button')).toHaveCount(3);
     const movable=page.getByRole('group',{name:'Comment tools position',exact:true});
     const before=await movable.boundingBox();
     if(!before)throw new Error('Toolbar missing');
@@ -124,6 +124,34 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
     expect((await movable.boundingBox())?.x).toBe(originalPosition?.x);
     await page.waitForTimeout(300); // Capture the settled drawer transition, not its closing frame.
     await page.screenshot({path:'/tmp/comment-toolbar-'+(mobile?'phone-bottom':'desktop-grip')+'.png'});
+    const preferences=await page.evaluate(()=>localStorage.getItem('surface.workbench.v1'));
+    await page.getByRole('textbox',{name:'Project draft',exact:true}).fill('Preserved through fullscreen');
+    await toolbar.getByRole('button',{name:'Fullscreen',exact:true}).click();
+    await expect(toolbar).toBeHidden();
+    await expect(page.getByRole('button',{name:'Exit fullscreen',exact:true})).toHaveCount(1);
+    await expect(page.getByRole('button',{name:'Toggle navigation',exact:true})).toBeHidden();
+    await expect(page.getByRole('contentinfo',{name:'Connection status'})).toBeHidden();
+    await page.screenshot({path:'/tmp/comment-fullscreen-'+(mobile?'phone':'desktop')+'.png'});
+    await page.getByRole('button',{name:'Exit fullscreen',exact:true}).click();
+    await expect(toolbar).toBeVisible();
+    await expect(page.getByRole('textbox',{name:'Project draft',exact:true})).toHaveValue('Preserved through fullscreen');
+    expect(await page.evaluate(()=>localStorage.getItem('surface.workbench.v1'))).toBe(preferences);
+    await toolbar.getByRole('button',{name:'Fullscreen',exact:true}).click();await page.keyboard.press('Escape');await expect(toolbar).toBeVisible();
+    await page.getByRole('button',{name:'Toggle navigation',exact:true}).click();
+    await page.getByRole('button',{name:/Open comments/}).click();
+    const openPanePreferences=await page.evaluate(()=>localStorage.getItem('surface.workbench.v1'));
+    const navigationExpanded=await page.getByRole('button',{name:'Toggle navigation',exact:true}).getAttribute('aria-expanded');
+    await expect(page.getByRole('button',{name:'Close comments',exact:true})).toBeVisible();
+    await page.evaluate(()=>window.dispatchEvent(new CustomEvent('surface:execute',{detail:'fullscreen.toggle'})));
+    await expect(page.getByRole('complementary',{name:'Comments and conversation'})).toBeHidden();
+    await expect(page.getByRole('complementary',{name:'Workspace navigation'})).toBeHidden();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('button',{name:'Close comments',exact:true})).toBeVisible();
+    await expect(page.getByRole('button',{name:'Toggle navigation',exact:true})).toHaveAttribute('aria-expanded',navigationExpanded??'false');
+    expect(await page.evaluate(()=>localStorage.getItem('surface.workbench.v1'))).toBe(openPanePreferences);
+    if(navigationExpanded==='true')await page.getByRole('button',{name:'Toggle navigation',exact:true}).click();
+    await page.waitForTimeout(300);
+    if(await page.getByRole('button',{name:'Close comments',exact:true}).isVisible())await page.getByRole('button',{name:'Close comments',exact:true}).click();
     for(let i=0;i<2;i++) {
       const close=page.getByRole('button',{name:'Close comments',exact:true});if(await close.isVisible())await close.click();
       await page.getByRole('toolbar',{name:'Comment tools',exact:true}).getByRole('button',{name:'Comment',exact:true}).click();

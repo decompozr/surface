@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { workbench } from '../workbench/state.svelte';
   import { readViewport, observeViewport } from '../comments/viewport';
-  import { Toolbar, ToggleButton, DragHandle } from '@decompozr/design-system';
+  import { Toolbar, ToggleButton, DragHandle, IconButton } from '@decompozr/design-system';
   let { active, disabled, onchoose }: {
     active: 'comment' | 'capture' | null;
     disabled: boolean;
@@ -55,11 +55,12 @@
     return () => { window.removeEventListener('resize', constrain); media.removeEventListener('change', syncWidth); stopViewport(); };
   });
 </script>
-<div bind:this={host} bind:clientWidth={width} bind:clientHeight={height} hidden={narrow && workbench.left} class="floating-tools" role="group" aria-label="Comment tools position" style:left={`${placedX}px`} style:top={`${placedY}px`}>
+<div bind:this={host} bind:clientWidth={width} bind:clientHeight={height} hidden={workbench.fullscreen || (narrow && workbench.left)} class="floating-tools" role="group" aria-label="Comment tools position" style:left={`${placedX}px`} style:top={`${placedY}px`}>
   <Toolbar label="Comment tools" appearance="floating">
     {#if !narrow}<DragHandle label="Move comment tools" onpointerdown={start} onpointermove={move} onpointerup={end} onpointercancel={end} onkeydown={key} />{/if}
     <ToggleButton size="compact" touchAppearance="compact" icon="message-square" label="Comment" title="Comment: choose an element, or hover and press C" aria-keyshortcuts="C" pressed={active === 'comment'} {disabled} onPressedChange={() => onchoose('comment')} />
     <ToggleButton size="compact" touchAppearance="compact" icon="camera" label="Screenshot" title="Screenshot: choose an element, or hover and press S" aria-keyshortcuts="S" pressed={active === 'capture'} {disabled} onPressedChange={() => onchoose('capture')} />
+    <IconButton size="compact" touchAppearance="compact" icon="maximize" label="Fullscreen" title="Fullscreen" onclick={() => window.dispatchEvent(new CustomEvent('surface:execute', {detail:'fullscreen.toggle'}))} />
   </Toolbar>
 </div>
 <style>

@@ -2,7 +2,7 @@
   import '@decompozr/design-system/fonts.css';
   import { onMount, tick, type Snippet } from 'svelte';
   import type { NavigationNode } from '../contracts/navigation.ts';
-  import { AppShell, AppHeader, IconButton, Text, SurfaceTabs, SurfaceCard, Button, TextField } from '@decompozr/design-system';
+  import { Theme, Toolbar, AppShell, AppHeader, IconButton, Text, SurfaceTabs, SurfaceCard, Button, TextField } from '@decompozr/design-system';
   import NavigationTree from './NavigationTree.svelte';
   import Toast from './Toast.svelte';
   import WorkbenchPalette from './WorkbenchPalette.svelte';
@@ -30,6 +30,8 @@
   const knownFrame=(source:MessageEventSource|null)=>tabs.some(tab=>{const frame=document.getElementById(`surface-frame-${tab.id}`);return frame instanceof HTMLIFrameElement&&frame.contentWindow===source;});
   const execute=(id:CommandId)=>{
     if(embedded){parent.postMessage({type:'surface:command',id},location.origin);return;}
+    if(id==='fullscreen.toggle'){workbench.fullscreen=!workbench.fullscreen;palette='';keymapOpen=false;return;}
+    if(id==='theme.light'||id==='theme.dark'||id==='theme.system'){workbench.theme=id==='theme.light'?'light':id==='theme.dark'?'dark':'system';saveWorkbench();return;}
     if(id==='keymap.open'){keymapOpen=true;return;}
     if(id==='tabs.moveLeft'||id==='tabs.moveRight'){const i=tabs.findIndex(t=>t.id===activeTab),j=i+(id==='tabs.moveLeft'?-1:1);if(i>=0&&j>=0&&j<tabs.length){const next=[...tabs];[next[i],next[j]]=[next[j],next[i]];tabs=next;}return;}
     if(id==='pages.open'||id==='commands.open'||id==='notifications.open'){paletteInvoker=document.activeElement;palette=id==='pages.open'?'pages':id==='commands.open'?'commands':'notifications';}
@@ -40,6 +42,7 @@
     if(id==='tabs.close')closeTab(activeTab);
     if(id==='tabs.next'||id==='tabs.previous'){const i=tabs.findIndex(t=>t.id===activeTab);const t=tabs[(i+(id==='tabs.next'?1:-1)+tabs.length)%tabs.length];if(t)selectTab(t.id);}
   };
+  $effect(()=>{if(!embedded){const fullscreen=workbench.fullscreen;for(const tab of tabs){const frame=document.getElementById(`surface-frame-${tab.id}`);if(frame instanceof HTMLIFrameElement)frame.contentWindow?.postMessage({type:'surface:fullscreen',active:fullscreen},location.origin);}}});
   const resizePane=(event:PointerEvent,side:'left'|'right')=>{
     event.preventDefault();const start=event.clientX,width=side==='left'?workbench.leftWidth:workbench.rightWidth;
     const move=(e:PointerEvent)=>{const next=Math.max(200,Math.min(600,window.innerWidth-80,width+(e.clientX-start)*(side==='left'?1:-1)));if(side==='left')workbench.leftWidth=next;else workbench.rightWidth=next;saveWorkbench();};
@@ -137,6 +140,7 @@
     const receive = (event: MessageEvent<unknown>) => {
       if (event.origin !== location.origin || typeof event.data !== 'object' || !event.data) return;
       const data = event.data;
+      if(embedded&&event.source===parent&&'type' in data&&data.type==='surface:fullscreen'&&'active' in data&&typeof data.active==='boolean')workbench.fullscreen=data.active;
       if(!embedded&&'type' in data&&data.type==='surface:notification'&&'message' in data&&typeof data.message==='string'&&knownFrame(event.source))workbench.notifications=[...workbench.notifications,{id:crypto.randomUUID(),message:data.message,tone:'info'}].slice(-100);
       if(!embedded&&'type' in data&&data.type==='surface:command'&&'id' in data&&isCommandId(data.id)&&knownFrame(event.source))execute(data.id);
       if (embedded && event.source === parent && 'type' in data && data.type === 'surface:review-tool' && 'action' in data && (data.action === 'select' || data.action === 'comments' || data.action === 'comment' || data.action === 'capture')) window.dispatchEvent(new CustomEvent('surface:review-tool', { detail:data.action }));
@@ -154,7 +158,8 @@
   });
 </script>
 <svelte:window onkeydown={(event) => {
-  if(event.defaultPrevented||keymapOpen)return;
+  if(event.key==='Escape'&&workbench.fullscreen){event.preventDefault();execute('fullscreen.toggle');return;}
+  if(workbench.fullscreen||event.defaultPrevented||keymapOpen)return;
   const target=event.target;
   const typing=target instanceof HTMLElement&&(target.isContentEditable||!!target.closest('input,textarea,select,[role="textbox"]'));
   if(typing&&!event.metaKey&&!event.ctrlKey&&!event.altKey)return;
@@ -169,7 +174,7 @@
   {:else}{@render headerTools?.()}{/if}
 {/snippet}
 {#snippet header()}
-  {#if !embedded}<AppHeader actions={actions} density="compact" height="36px">
+  {#if !embedded && !workbench.fullscreen}<AppHeader actions={actions} density="compact" height="36px">
     <a class="skip-link" href="#surface-page-content" onclick={skipToContent}>Skip to content</a>
     <IconButton icon="panel-left" size="compact" touchAppearance="compact" onclick={()=>execute('pane.left.toggle')} label="Toggle navigation" title="Workspaces" aria-controls="surface-navigation" aria-expanded={navigationOpen} />
     <IconButton icon="search" size="compact" touchAppearance="compact" label="Open surface" title="Open surface (⌘P)" onclick={()=>execute('pages.open')} />
@@ -184,7 +189,8 @@
   <Text size="body">Workspaces</Text>
   {#if navigation.length}<NavigationTree nodes={navigation} currentPath={activePath} currentURL={activeSurface?.href ?? currentURL} open={openSurface} />{:else}<Text size="small" tone="muted">No route pages are mounted yet.</Text>{/if}
 {/snippet}
-<AppShell navigationMode="responsive" navigationWidth={`${workbench.leftWidth}px`} panelWidth={`${workbench.rightWidth}px`} edgeSwipes {header} headerHeight={embedded ? '0px' : '36px'} navigation={embedded ? undefined : navigationContent} bind:navigationOpen navigationId="surface-navigation" navigationLabel="Workspace navigation" panel={originalVisible && panelContent ? rightContent : undefined} bind:panelOpen panelId="surface-comments" panelLabel="Comments and conversation" status={originalVisible && workbench.status ? status : undefined} statusHeight={originalVisible && workbench.status ? '24px' : '0px'}>
+<Theme mode={workbench.theme} documentRoot>
+<AppShell navigationMode="responsive" navigationWidth={`${workbench.leftWidth}px`} panelWidth={`${workbench.rightWidth}px`} edgeSwipes={!workbench.fullscreen} {header} headerHeight={embedded || workbench.fullscreen ? '0px' : '36px'} navigation={embedded || workbench.fullscreen ? undefined : navigationContent} bind:navigationOpen={() => !workbench.fullscreen && navigationOpen, value => {if(!workbench.fullscreen)navigationOpen=value;}} navigationId="surface-navigation" navigationLabel="Workspace navigation" panel={!workbench.fullscreen && originalVisible && panelContent ? rightContent : undefined} bind:panelOpen={() => !workbench.fullscreen && panelOpen, value => {if(!workbench.fullscreen)panelOpen=value;}} panelId="surface-comments" panelLabel="Comments and conversation" status={!workbench.fullscreen && originalVisible && workbench.status ? status : undefined} statusHeight={!workbench.fullscreen && originalVisible && workbench.status ? '24px' : '0px'}>
   {#if !originalClosed}<div class="content" class:viewport={viewportContent || tabs.length > 0} hidden={!originalVisible}>
 
     <!-- svelte-ignore a11y_no_noninteractive_tabindex (Keyboard users need to focus this horizontal scroll region.) -->
@@ -192,17 +198,20 @@
   </div>{/if}
   {#if originalClosed && !tabs.length}<div class="empty"><Text>Open a surface from Workspaces.</Text></div>{/if}
   {#each tabs.filter(tab => !tab.original) as tab (tab.id)}
-    <iframe id={`surface-frame-${tab.id}`} class="surface-frame" title={tab.label} src={tab.embeddedURL} hidden={activeTab !== tab.id}></iframe>
+    <iframe id={`surface-frame-${tab.id}`} class="surface-frame" title={tab.label} src={tab.embeddedURL} onload={event=>{if(event.currentTarget instanceof HTMLIFrameElement)event.currentTarget.contentWindow?.postMessage({type:'surface:fullscreen',active:workbench.fullscreen},location.origin);}} hidden={activeTab !== tab.id}></iframe>
   {/each}
 </AppShell>
-{#if navigationOpen && !embedded}<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions (Resizable separators support keyboard arrows.) -->
+{#if workbench.fullscreen && !embedded}<div class="fullscreen-exit"><Toolbar label="Fullscreen controls" appearance="floating"><IconButton icon="minimize" label="Exit fullscreen" title="Exit fullscreen (Escape)" size="compact" touchAppearance="compact" onclick={()=>execute('fullscreen.toggle')} /></Toolbar></div>{/if}
+{#if navigationOpen && !embedded && !workbench.fullscreen}<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions (Resizable separators support keyboard arrows.) -->
 <div role="separator" aria-label="Resize Workspaces" aria-orientation="vertical" aria-valuenow={workbench.leftWidth} tabindex="0" class="resize" style:left={`${workbench.leftWidth-3}px`} onpointerdown={e=>resizePane(e,'left')} onkeydown={e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();workbench.leftWidth=Math.max(200,Math.min(600,workbench.leftWidth+(e.key==='ArrowRight'?10:-10)));}}}></div>{/if}
-{#if panelOpen && originalVisible}<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions (Resizable separators support keyboard arrows.) -->
+{#if panelOpen && originalVisible && !workbench.fullscreen}<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions (Resizable separators support keyboard arrows.) -->
 <div role="separator" aria-label="Resize Comments" aria-orientation="vertical" aria-valuenow={workbench.rightWidth} tabindex="0" class="resize" style:right={`${workbench.rightWidth-3}px`} onpointerdown={e=>resizePane(e,'right')} onkeydown={e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();workbench.rightWidth=Math.max(200,Math.min(600,workbench.rightWidth+(e.key==='ArrowLeft'?10:-10)));}}}></div>{/if}
-{#if palette}<WorkbenchPalette title={palette==='pages'?'Open surface':palette==='commands'?'Run command':'Notifications'} items={palette==='pages'?pages(navigation):palette==='commands'?commands.map(c=>({id:c.id,label:c.label,detail:workbench.keymap[c.id]??c.key})):workbench.notifications.map(n=>({id:n.id,label:n.message,detail:n.tone}))} close={dismissPalette} choose={id=>{const mode=palette;dismissPalette();if(mode==='pages')openSurface(id,pages(navigation).find(p=>p.id===id)?.label??'Surface');else if(mode==='commands'&&isCommandId(id))execute(id);}} />{/if}
-{#if !embedded&&nextNotification}<Toast message={nextNotification.message} tone={nextNotification.tone==='warning'?'warning':nextNotification.tone==='success'?'success':'info'} dismiss={dismissNotification}/>{/if}
+{#if palette}<WorkbenchPalette title={palette==='pages'?'Open surface':palette==='commands'?'Run command':'Notifications'} items={palette==='pages'?[{id:'commands.open',label:'Commands',detail:'>'},...pages(navigation)]:palette==='commands'?commands.map(c=>({id:c.id,label:c.label,detail:workbench.keymap[c.id]??c.key})):workbench.notifications.map(n=>({id:n.id,label:n.message,detail:n.tone}))} close={dismissPalette} choose={id=>{const mode=palette;dismissPalette();if(mode==='pages'){if(id==='commands.open')execute('commands.open');else openSurface(id,pages(navigation).find(p=>p.id===id)?.label??'Surface');}else if(mode==='commands'&&isCommandId(id))execute(id);}} />{/if}
+{#if !embedded&&!workbench.fullscreen&&nextNotification}<Toast message={nextNotification.message} tone={nextNotification.tone==='warning'?'warning':nextNotification.tone==='success'?'success':'info'} dismiss={dismissNotification}/>{/if}
 {#if keymapOpen}<div class="settings" role="dialog" aria-label="Keyboard shortcuts" aria-modal="true" tabindex="-1" onkeydown={e=>{if(e.key==='Escape'){keymapOpen=false;dismissPalette();}if(e.key==='Tab'){const controls=Array.from(e.currentTarget.querySelectorAll<HTMLElement>('button,input'));const index=controls.indexOf(document.activeElement as HTMLElement);e.preventDefault();controls[(index+(e.shiftKey?-1:1)+controls.length)%controls.length]?.focus();}}}><SurfaceCard padding="16px"><Button size="compact" onclick={()=>keymapOpen=false}>Close</Button><h2>Keyboard shortcuts</h2><p>Use Mod, Shift, Alt and a key, such as Mod+Shift+p. Blank disables a shortcut.</p>{#each commands as c}<TextField size="compact" label={c.label} aria-label={c.label+' shortcut'} value={workbench.keymap[c.id]??c.key} onchange={e=>{const value=e.currentTarget.value.trim();if(value&&!/^(?:(?:Mod|Shift|Alt)\+)*[A-Za-z0-9]+$/.test(value)){e.currentTarget.setCustomValidity('Use Mod, Shift, Alt and a key');e.currentTarget.reportValidity();return;}if(commands.some(other=>other.id!==c.id&&(workbench.keymap[other.id]??other.key)===value&&value)){e.currentTarget.setCustomValidity('This shortcut is already assigned');e.currentTarget.reportValidity();return;}e.currentTarget.setCustomValidity('');workbench.keymap={...workbench.keymap,[c.id]:value};saveWorkbench();}}/>{/each}<Button size="compact" onclick={()=>{workbench.keymap={};saveWorkbench();}}>Reset shortcuts</Button></SurfaceCard></div>{/if}
+</Theme>
 <style>
+  .fullscreen-exit{position:fixed;right:12px;top:12px;z-index:1000;}
 .settings{position:fixed;z-index:1001;inset:50px max(12px,calc((100vw - 640px)/2));overflow:auto}
   :global(body) { margin:0; }
   .skip-link { position:fixed; top:8px; left:8px; z-index:60; transform:translateY(calc(-100% - 16px)); background:#fff; color:#1e293b; padding:8px 14px; border:2px solid #334155; border-radius:4px; }

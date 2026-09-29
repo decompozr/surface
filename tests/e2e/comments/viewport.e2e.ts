@@ -34,6 +34,7 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]] as con
     // Init scripts run before the mobile meta viewport is parsed. Start from
     // settled dimensions rather than retaining the browser's 980px default.
     await page.evaluate(()=>{const viewport=window.visualViewport;if(viewport){Object.assign(viewport,{offsetLeft:0,offsetTop:0,width:innerWidth,height:innerHeight});viewport.dispatchEvent(new Event('resize'));}});
+    await page.evaluate(()=>{if(window.visualViewport){Object.assign(window.visualViewport,{offsetLeft:0,offsetTop:0,width:innerWidth,height:innerHeight});window.visualViewport.dispatchEvent(new Event('resize'));}});
     await expect(page.getByRole('button', { name: 'Comment', exact: true })).toBeEnabled();
     const workspace = page.locator('#comment-workspace');
     expect(await workspace.evaluate(el => Math.abs(el.getBoundingClientRect().bottom - (innerHeight - 24)))).toBeLessThan(1);
