@@ -3,7 +3,7 @@
   import { Badge, Button, Icon, Switch, Toolbar, IconButton, TextArea, Spinner, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
   import CommentTools from './CommentTools.svelte';
   import SurfaceShell from './SurfaceShell.svelte';
-  import { composerPlacement, readViewport } from '../comments/viewport.ts';
+  import { composerPlacement, readViewport, observeViewport } from '../comments/viewport.ts';
   import { describeTarget, resolveTarget } from '../comments/selection.ts';
   import { captureElement } from '../comments/capture.ts';
   import { emptyState, readState, writeState, type Target, type Comment, type Batch } from '../comments/model.ts';
@@ -342,15 +342,13 @@
     let active = true;
     let updates = new AbortController();
     let updatesTask: Promise<void> = Promise.resolve();
-    const viewport = window.visualViewport;
     let revealFrame = 0;
     const viewportChange = () => {
       schedulePosition();
       cancelAnimationFrame(revealFrame);
       revealFrame = requestAnimationFrame(() => { void tick().then(revealFocusedInput); });
     };
-    viewport?.addEventListener('resize', viewportChange);
-    viewport?.addEventListener('scroll', viewportChange);
+    const stopViewport = observeViewport(window, viewportChange);
     window.addEventListener('focusin', viewportChange);
     updateBox();
     const offline = () => { liveAbort?.abort(); };
@@ -416,7 +414,7 @@
       if (mode && (event.key === 'Enter' || event.key === ' ') && targetFrom(event)) { event.preventDefault(); event.stopPropagation(); const target = targetFrom(event); if (target) void chooseTarget(target); }
     };
     window.addEventListener('pointerdown', press, true); window.addEventListener('click', click, true); window.addEventListener('pointermove', move); window.addEventListener('keydown', key, true); window.addEventListener('resize', viewportChange); window.addEventListener('scroll', scroll, true); window.addEventListener('pointerup', release, true); window.addEventListener('pointercancel', cancel, true);
-    return () => { window.removeEventListener('surface:review-tool', reviewTool); window.removeEventListener('surface:source-changed', sourceChanged); active = false; window.removeEventListener('hashchange', connect); cancelAnimationFrame(positionFrame); cancelAnimationFrame(revealFrame); viewport?.removeEventListener('resize', viewportChange); viewport?.removeEventListener('scroll', viewportChange); window.removeEventListener('focusin', viewportChange); clearTimeout(toastTimer); updates.abort(); window.removeEventListener('offline', offline); workspaceSize.disconnect(); window.removeEventListener('pointerdown', press, true); window.removeEventListener('click', click, true); window.removeEventListener('pointermove', move); window.removeEventListener('keydown', key, true); window.removeEventListener('resize', viewportChange); window.removeEventListener('scroll', scroll, true); window.removeEventListener('pointerup', release, true); window.removeEventListener('pointercancel', cancel, true); };
+    return () => { window.removeEventListener('surface:review-tool', reviewTool); window.removeEventListener('surface:source-changed', sourceChanged); active = false; window.removeEventListener('hashchange', connect); cancelAnimationFrame(positionFrame); cancelAnimationFrame(revealFrame); stopViewport(); window.removeEventListener('focusin', viewportChange); clearTimeout(toastTimer); updates.abort(); window.removeEventListener('offline', offline); workspaceSize.disconnect(); window.removeEventListener('pointerdown', press, true); window.removeEventListener('click', click, true); window.removeEventListener('pointermove', move); window.removeEventListener('keydown', key, true); window.removeEventListener('resize', viewportChange); window.removeEventListener('scroll', scroll, true); window.removeEventListener('pointerup', release, true); window.removeEventListener('pointercancel', cancel, true); };
   });
 </script>
 {#snippet headerTools()}

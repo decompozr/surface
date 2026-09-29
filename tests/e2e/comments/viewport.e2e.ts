@@ -31,6 +31,9 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]] as con
     };
 
     await page.goto(origin + '/experiments/comments', { waitUntil: 'networkidle' });
+    // Init scripts run before the mobile meta viewport is parsed. Start from
+    // settled dimensions rather than retaining the browser's 980px default.
+    await page.evaluate(()=>{const viewport=window.visualViewport;if(viewport){Object.assign(viewport,{offsetLeft:0,offsetTop:0,width:innerWidth,height:innerHeight});viewport.dispatchEvent(new Event('resize'));}});
     await expect(page.getByRole('button', { name: 'Comment', exact: true })).toBeEnabled();
     const workspace = page.locator('#comment-workspace');
     expect(await workspace.evaluate(el => Math.abs(el.getBoundingClientRect().bottom - (innerHeight - 24)))).toBeLessThan(1);
@@ -39,6 +42,17 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]] as con
     expect(statusBounds!.height).toBe(24);
     expect(statusBounds!.y + statusBounds!.height).toBe(page.viewportSize()!.height);
     expect(await page.evaluate(() => !!document.elementFromPoint(12, innerHeight - 12)?.closest('#comment-workspace'))).toBe(false);
+    const tools=page.getByRole('toolbar',{name:'Comment tools',exact:true});
+    await expect(page.getByRole('group',{name:'Move comment tools',exact:true})).toHaveCount(0);
+    const bottomGap=async()=>{const box=await tools.boundingBox();if(!box)throw new Error('Mobile tools missing');return page.evaluate(bottom=>{const viewport=window.visualViewport;return (viewport ? viewport.offsetTop+viewport.height : innerHeight)-bottom;},box.y+box.height);};
+    await expect.poll(bottomGap).toBeCloseTo(32,1);
+    await page.evaluate(()=>window.dispatchEvent(new CustomEvent('surface:execute',{detail:'status.toggle'})));
+    await expect.poll(bottomGap).toBeCloseTo(8,1);
+    await page.evaluate(()=>window.dispatchEvent(new CustomEvent('surface:execute',{detail:'status.toggle'})));
+    await page.evaluate(()=>{if(window.visualViewport){Object.assign(window.visualViewport,{offsetTop:120,height:300});window.visualViewport.dispatchEvent(new Event('resize'));}});
+    await expect.poll(bottomGap).toBeCloseTo(32,1);
+    await page.screenshot({path:`${output}/${name}-bottom-toolbar-keyboard.png`});
+    await page.evaluate(()=>{if(window.visualViewport){Object.assign(window.visualViewport,{offsetTop:0,height:innerHeight});window.visualViewport.dispatchEvent(new Event('resize'));}});
     await page.getByRole('button', { name: 'Comment', exact: true }).click();
     await page.locator('#headline').tap();
     const field = page.locator('#comment');

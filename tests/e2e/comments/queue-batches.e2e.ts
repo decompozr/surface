@@ -102,11 +102,11 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
     await page.goto(url.href);
     const toolbar=page.getByRole('toolbar',{name:'Comment tools',exact:true});
     await expect(toolbar.getByRole('button')).toHaveCount(2);
-    const movable=page.getByRole('group',{name:'Move comment tools',exact:true});
+    const movable=page.getByRole('group',{name:'Comment tools position',exact:true});
     const before=await movable.boundingBox();
     if(!before)throw new Error('Toolbar missing');
-    await page.mouse.move(before.x+2,before.y+2);await page.mouse.down();await page.mouse.move(before.x+52,before.y+62);await page.mouse.up();
-    const after=await movable.boundingBox();expect(after?.x).toBeGreaterThan(before.x+40);
+    if(!mobile){const grip=await page.getByRole('group',{name:'Move comment tools',exact:true}).boundingBox();if(!grip)throw new Error('Drag handle missing');await page.mouse.move(grip.x+grip.width/2,grip.y+grip.height/2);await page.mouse.down();await page.mouse.move(grip.x+grip.width/2+50,grip.y+grip.height/2+60);await page.mouse.up();}
+    const after=await movable.boundingBox();if(!mobile)expect(after?.x).toBeGreaterThan(before.x+40);
     await page.reload();await expect(movable).toBeVisible();
     expect((await movable.boundingBox())?.x).toBe(after?.x);
     const originalPosition=await movable.boundingBox();
@@ -122,6 +122,8 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
     await page.getByRole('button',{name:'Toggle navigation',exact:true}).click();
     await expect(movable).toBeVisible();
     expect((await movable.boundingBox())?.x).toBe(originalPosition?.x);
+    await page.waitForTimeout(300); // Capture the settled drawer transition, not its closing frame.
+    await page.screenshot({path:'/tmp/comment-toolbar-'+(mobile?'phone-bottom':'desktop-grip')+'.png'});
     for(let i=0;i<2;i++) {
       const close=page.getByRole('button',{name:'Close comments',exact:true});if(await close.isVisible())await close.click();
       await page.getByRole('toolbar',{name:'Comment tools',exact:true}).getByRole('button',{name:'Comment',exact:true}).click();

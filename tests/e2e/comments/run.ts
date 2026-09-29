@@ -13,6 +13,7 @@ const run = async (args: string[], env: Record<string, string> = {}, cwd = root)
 };
 
 const root = process.cwd();
+const layoutOnly = process.env.COMMENTS_E2E_LAYOUT_ONLY === '1';
 const output = resolve(process.env.COMMENTS_E2E_OUTPUT ?? `.decompozr/surface/comments-e2e/${Date.now()}`);
 mkdirSync(output, { recursive: true });
 await run(['bun', 'test', 'apps/surface/src/lib/server/comments/delivery.test.ts', 'apps/surface/src/lib/server/comments/mounted.test.ts']);
@@ -58,20 +59,21 @@ try {
   hashTree(join(fixtureRoot, 'apps'), 'fixture/apps');
   writeFileSync(join(output, 'snapshot-manifest.json'), JSON.stringify(manifest, null, 2));
   if (prepared && bundle) writeFileSync(join(output, 'prepared-release.json'), JSON.stringify({ directory: prepared, commit: bundle.commit, version: bundle.version }, null, 2));
-for (const scenario of ['idle', 'active']) {
+for (const scenario of layoutOnly ? [] : ['idle', 'active']) {
   await run(['bun', 'tests/e2e/comments/full-loop.e2e.ts'], {
     COMMENTS_E2E_BUILD_DIR: snapshot,
     COMMENTS_E2E_OUTPUT: join(output, scenario),
     COMMENTS_E2E_ACTIVE: scenario === 'idle' ? '0' : '1',
   });
 }
-for (const scenario of ['idle', 'active']) {
+for (const scenario of layoutOnly ? [] : ['idle', 'active']) {
   await run(['bun', 'tests/e2e/comments/mounted.e2e.ts'], {
     COMMENTS_E2E_APP_DIR: appSnapshot,
     COMMENTS_E2E_OUTPUT: join(output, `mounted-${scenario}`),
     COMMENTS_E2E_ACTIVE: scenario === 'idle' ? '0' : '1',
   });
 }
+await run(['bun', 'tests/e2e/surface/verify-embedded-viewport.ts'], { COMMENTS_E2E_APP_DIR: appSnapshot, SURFACE_EDITOR_OUTPUT: join(output, 'embedded-viewport') });
 // Geometry tests use the fixture build with a local-only recipient and no real state.
 const reservation = createServer();
 await new Promise<void>(resolve => reservation.listen(0, '127.0.0.1', resolve));
@@ -97,7 +99,7 @@ const git = Bun.spawn(['git', 'rev-parse', 'HEAD'], { cwd: root, stdout: 'pipe',
 const [revision, gitExit] = await Promise.all([new Response(git.stdout).text(), git.exited]);
 const head = bundle?.commit ?? (gitExit === 0 ? revision.trim() : null);
 if (prepared) verifyBundle(prepared); // The verifier must leave the package immutable.
-writeFileSync(join(output, 'report.json'), JSON.stringify({ status: 'passed', head, source: prepared ? 'verified prepared release' : 'source snapshot including local changes; inventory identifies tested bytes', builds: { production: 'untouched production build', fixture: 'separate test-only source overlay' }, scenarios: ['idle', 'active'], profiles: ['Chromium desktop', 'WebKit iPhone 13 emulation'], provider: 'isolated local protocol fixture', physicalDevice: false, snapshotManifestSha256: createHash('sha256').update(JSON.stringify(manifest)).digest('hex'), reports: ['idle','active','mounted-idle','mounted-active'].map(name => JSON.parse(readFileSync(join(output, name, 'report.json'), 'utf8'))) }, null, 2));
+writeFileSync(join(output, 'report.json'), JSON.stringify({ status: 'passed', head, source: prepared ? 'verified prepared release' : 'source snapshot including local changes; inventory identifies tested bytes', builds: { production: 'untouched production build', fixture: 'separate test-only source overlay' }, scenarios: layoutOnly ? ['layout'] : ['idle', 'active'], profiles: ['Chromium desktop', 'WebKit iPhone 13 emulation'], provider: 'isolated local protocol fixture', physicalDevice: false, snapshotManifestSha256: createHash('sha256').update(JSON.stringify(manifest)).digest('hex'), reports: (layoutOnly ? [] : ['idle','active','mounted-idle','mounted-active']).map(name => JSON.parse(readFileSync(join(output, name, 'report.json'), 'utf8'))) }, null, 2));
 console.log(`Comments E2E matrix passed. Evidence: ${output}`);
 
 } finally {

@@ -14,7 +14,7 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]] as con
  try {
   await page.goto(origin+'/experiments/comments', {waitUntil:'networkidle'});
   const tools=page.getByRole('toolbar',{name:'Comment tools'});
-  const root=page.getByRole('group',{name:'Move comment tools'});
+  const root=page.getByRole('group',{name:'Comment tools position'});
   await expect(tools).toBeVisible();
   await expect(tools.getByRole('button')).toHaveCount(2);
   const before=await root.boundingBox();
@@ -25,17 +25,22 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]] as con
    await expect.poll(async()=> (await root.boundingBox())?.y).toBeCloseTo(before.y,1);
   }
   await expect(root).toHaveAttribute('data-observed-node','retained');
-  // Drag the toolbar background without activating either action.
-  await page.mouse.move(before.x + 1, before.y + 1);
-  await page.mouse.down(); await page.mouse.move(before.x + 121,before.y + 71); await page.mouse.up();
+  const handle=page.getByRole('group',{name:'Move comment tools',exact:true});
+  const grip=await handle.boundingBox();if(!grip)throw new Error('Visible drag handle missing');
+  await page.mouse.move(grip.x+grip.width/2,grip.y+grip.height/2);
+  await page.mouse.down(); await page.mouse.move(grip.x+grip.width/2+120,grip.y+grip.height/2+70); await page.mouse.up();
   await expect.poll(async()=> (await root.boundingBox())?.x).toBeCloseTo(before.x + 120,1);
   await expect(tools.getByRole('button',{name:'Comment',exact:true})).toHaveAttribute('aria-pressed','false');
-  await root.focus(); await page.keyboard.press('ArrowRight');
+  await handle.focus(); await page.keyboard.press('ArrowRight');
   await expect.poll(async()=> (await root.boundingBox())?.x).toBeCloseTo(before.x + 130,1);
   await page.reload();
   await expect.poll(async()=> (await root.boundingBox())?.x).toBeCloseTo(before.x + 130,1);
   await page.setViewportSize({width:320,height:400});
   await expect.poll(async()=> { const box=await root.boundingBox(); return !!box && box.x>=0 && box.x+box.width<=320 && box.y>=36 && box.y+box.height<=376; }).toBe(true);
+  await expect(handle).toHaveCount(0);
+  await expect.poll(async()=> {const r=await root.boundingBox();return r?400-r.y-r.height:0;}).toBeCloseTo(32,1);
+  const fixed=await root.boundingBox();await page.locator('#comment-workspace').evaluate(el=>{el.scrollTop=0;});
+  expect((await root.boundingBox())?.y).toBe(fixed?.y);
   await page.screenshot({path:`${output}/${name}-selected-toolbar.png`});
   expect(errors).toEqual([]);
   console.log(`${name}: PASS fixed toolbar during content scroll, pointer and keyboard movement, reload restoration, resize clamping`);

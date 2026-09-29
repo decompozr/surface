@@ -13,3 +13,5 @@ Default modifier shortcuts: Mod+P opens surfaces, Mod+Shift+P opens commands, Mo
 The status bar reserves 24px. Recipient details live under Delivery settings in the comments pane, not above page content. Notification history is available through Show notifications. Focus restoration is separate from pane visibility and selection mode.
 
 Acceptance: desktop and phone Quick Open, commands from embedded content, independent pane toggles and resizing, reload recovery, status geometry, tab order/close/history, typing guards, palette focus and dismissal, stale recipient handling and multiple queued comment batches. No fixture submissions go to real conversations.
+
+Embedded tabs intersect their local visible viewport with the same-origin ancestor viewports, translated through each frame rectangle. Keyboard resize and panning in the outer document must reposition the active tab's composer and mobile toolbar even when the iframe's own viewport has not resized. Observe ancestor viewport/scroll changes and release listeners with the component; do not infer keyboard clearance from the iframe layout height alone.

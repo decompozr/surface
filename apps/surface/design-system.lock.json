@@ -2,7 +2,7 @@
   "version": 1,
   "name": "@decompozr/design-system",
   "packageVersion": "0.0.0",
-  "fileCount": 124,
-  "sha256": "120a5c839a381c176e58e4cd02cd5569ecbe0a8ecd57cd33a9f501dfeaede60c",
-  "providerCommit": "8d1e672702060ad9d1515eb3d6d9c250640a6df1"
+  "fileCount": 126,
+  "sha256": "d2305b10b6d5aa024d68fc9b95dcea1610ae9779979e868bf20da8694543009e",
+  "providerCommit": "ee1b25b647f6946057c45ed6a4edac22a7024f2b"
 }

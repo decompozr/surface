@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { composerPlacement } from './viewport.ts';
+import { composerPlacement, clipViewportToFrame } from './viewport.ts';
 
 describe('comment composer visible viewport', () => {
   test('keyboard bounds use visible height and pan offset rather than layout height', () => {
@@ -26,4 +26,12 @@ describe('comment composer visible viewport', () => {
     expect(restored.maxHeight).toBeGreaterThan(small.maxHeight);
     expect(restored.y).toBe(300);
   });
+});
+
+// Parent keyboard occlusion is invisible to an iframe's local visualViewport.
+test('embedded viewport clips the outer keyboard and translates the shell header', () => {
+  expect(clipViewportToFrame({x:0,y:0,width:390,height:808}, {x:0,y:0,width:390,height:360}, {x:0,y:36,width:390,height:808})).toEqual({x:0,y:0,width:390,height:324});
+});
+test('embedded viewport includes parent panning and a left pane offset', () => {
+  expect(clipViewportToFrame({x:0,y:0,width:600,height:700}, {x:0,y:180,width:900,height:320}, {x:280,y:36,width:600,height:700})).toEqual({x:0,y:144,width:600,height:320});
 });
