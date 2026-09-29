@@ -26,6 +26,14 @@ Keep E2E providers and storage isolated; never send fixture messages to real tas
 
 Prefer arrow functions for new or modified JavaScript and TypeScript functions, including callbacks and exported functions. Do not use the `function` keyword unless a specific semantic or API requirement calls for it, such as declaration hoisting, overload declarations, generators, or dynamic `this` binding. Keep exceptions narrowly scoped and explain the reason when it is not obvious from the code. Do not rewrite unrelated existing functions solely for style consistency.
 
+## Type safety and interface contracts
+
+Treat type safety and clear typed interfaces as core design requirements, not optional polish. Define explicit contracts for public APIs, component props, module boundaries, events, requests and results. Reuse the owning module's canonical types instead of duplicating shapes across consumers; keep straightforward local inference where it remains clear.
+
+Validate external or persisted data at runtime before treating it as a trusted type. Use `unknown` at untrusted boundaries and narrow it through validation. Prefer discriminated unions for distinct states and event variants so invalid combinations are difficult to represent and consumers handle variants explicitly.
+
+Do not use `any`, unchecked type assertions, non-null assertions or compiler suppressions merely to silence errors. Resolve the underlying contract or narrowing problem; narrowly document unavoidable interop exceptions. Update owned producers, consumers and relevant checks together when a contract changes. Strong typing does not justify extra packages, generic frameworks or interfaces without a concrete purpose.
+
 ## Package ownership
 
 Follow `docs/architecture/package-boundaries.md`. Use only the Surface and CLI workspaces under `apps/`; do not split internal modules into packages without concrete independent consumers. Surface owns interactions, contracts, services, agent adapters, page runtime, MCP and templates. Use declared exports across apps and keep the dependency graph acyclic. Surface must not import CLI. Installation and lifecycle implementation belongs in `apps/cli/src/installation`, with no independent installer package. Use the root frozen Bun workspace lockfile. Root scripts are repository-wide tooling only; integrated verifiers belong in `tests/e2e`.
