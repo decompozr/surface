@@ -67,3 +67,13 @@ The [September 24 adoption](../requirements/agent-interaction.md#mounted-page-co
 The comment header identifies Comments, not the arbitrary request title. Empty review has no send action or empty action footer. Sending belongs beside existing drafts; refresh feedback uses a transient Toast. Connection details are available from an accessible status action rather than persistent status prose. Appearance refinements still require the committed design-system APIs described in the [design index](README.md).
 
 Each comment batch has independent delivery/reply state. Awaiting replies or an earlier unconfirmed batch does not block composing and sending a new batch with a fresh ID. Each explicit Send observes current recipient state before submitting the chosen queue/steer intent. State-change rejection retains the new comments and refreshes observation; unknown submissions are never automatically resent.
+
+## Floating comment tools
+
+Comment and Screenshot are the two actions in a draggable floating toolbar. The header's Comments icon controls the right pane only. Clicking a tool enables target picking; clicking it again turns picking off without leaving a focus treatment that implies the tool remains active. Choosing an element opens the comment editor; Screenshot first captures that element. Hover shortcuts invoke the same actions. Escape dismisses editing or leaves selection mode without discarding saved drafts.
+
+Toolbar position is retained in browser storage and constrained to the current viewport after resize. Drag the toolbar background to move it; its focusable group also supports arrow-key movement. The two action buttons use the design system's toolbar keyboard navigation. Adding or saving a comment opens the Comments pane and reveals the latest draft. It does not send anything; new comments remain addable while earlier batches await replies.
+
+Acceptance covers two visible tool actions, drag and reload position, comment and screenshot picking, automatic pane opening after Add, repeat additions with pending replies, and phone/desktop visual bounds. Physical touchscreen and native keyboard behavior remain separate device acceptance.
+
+The floating toolbar is hidden while the editor or Comments pane is open so it cannot obscure text or delivery actions. Closing the pane with its header control restores the toolbar. Adding a draft is confirmed by the open pane itself, without an overlapping success toast.

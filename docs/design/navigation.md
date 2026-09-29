@@ -6,7 +6,7 @@ Source references: [shell](../../apps/surface/src/lib/components/SurfaceShell.sv
 
 The sidebar heading is **Workspaces**. Do not label it “Projects & workspaces”.
 
-The current shell orders one header with the Surface icon as its navigation toggle (without an adjacent Surface wordmark or a second Home/breadcrumb bar), request recipient controls when applicable, then project-owned page content. Projects, workspaces and mounted source folders are grouping nodes. The mount root has a single Home page link; route segments link to declared pages or generated indexes. Workspace labels use the source directory name without appending Git branches or agent metadata. Only the actual page link is current. Identity comes from the ledger/mount, not the label. The tree includes only active registered workspaces with ready route mounts and pages; it does not expose arbitrary directories or legacy component catalogs.
+The shell has one compact header with a pane toggle and tabs, followed by project-owned page content. Delivery settings are collapsed inside the Comments pane; request URLs do not insert a recipient banner above content. Projects, workspaces and mounted source folders are grouping nodes. The mount root has a single Home page link; route segments link to declared pages or generated indexes. Workspace labels use the source directory name without appending Git branches or agent metadata. Only the actual page link is current. Identity comes from the ledger/mount, not the label. The tree includes only active registered workspaces with ready route mounts and pages; it does not expose arbitrary directories or legacy component catalogs.
 
 | Surface | Entry and content | Primary action / boundary |
 | --- | --- | --- |
@@ -14,21 +14,18 @@ The current shell orders one header with the Surface icon as its navigation togg
 | Health | `/health` | Inspect health data; this is not proof of page usability or delivery connectivity. |
 | Mount root / route folder | Returned `/workspace/<project>/<worktree>/<folder>/...` alias | Render a declared page or a generated child-route index when the folder has no page. Use returned aliases rather than deriving identity from strings. |
 | Project page | Declared `routes/.../+page.svelte` | View/interact with project content. Supported route files are client-rendered Svelte components, not a full mounted Kit app. |
-| Interaction page | Returned request `previewUrl` with query and capability fragment; it may use a legacy component URL | Shared Agent recipient panel above the form. A clean browsing route does not confer submission capability. |
+| Interaction page | Returned request `previewUrl` with query and capability fragment; it may use a legacy component URL | Optional delivery settings inside the Comments pane. A clean browsing route does not confer submission capability. |
 | Historical recipient lab | Retired implementation; see the dated [experiment package](../experiments/2026-09-23-agent-recipient.md) | Retired harness; not a current route or evidence of shared-panel draft persistence. |
 
 Illustrative structure below describes source composition, not a rendered or approved wireframe:
 
 ```text
-[Surface icon / navigation toggle]
+[Navigation toggle / tabs / Comments pane toggle]
 [Project > worktree > folder > route] | Project content
-                                    | Agent recipient (request URLs only)
-                                    |   identity, observed status, delivery choice
-                                    |   optional explicit recipient change
                                     | Project page: controls, submit, result
 ```
 
-Navigation links preserve query/fragment only for the current page. Unrelated page links remain clean; never forward a request capability to another page. Current source uses `data-sveltekit-reload`, so navigation can create a new document. Do not imply that form drafts persist across these links.
+Navigation links preserve query/fragment only for the current page. Unrelated page links remain clean; never forward a request capability to another page. Unmodified activation opens a Surface tab; modified/native link navigation can create a new document. Do not imply arbitrary form drafts survive document reload.
 
 ### Compact navigation and brand
 
@@ -44,11 +41,11 @@ The September 28 spacing correction uses the public NavigationLinks `touchDensit
 | --- | --- | --- |
 | Ready | Registered project > exact worktree > mounted source folder > nested route; current link has `aria-current="page"` | Confirm duplicate labels remain distinguishable by context; labels are not identity. |
 | No navigable mounts | “No route pages are mounted yet.” | Current copy does not distinguish no registration, no route pages, failure or retired workspaces. Proposed: actionable diagnostic path without pretending the source directory is empty. |
-| Initial load | Home navigation comes from parent server load; navigation remains closed through hydration and slides in on request, pushing content without compressing its width | No dedicated navigation-loading indicator. Verify no premature delivery action is enabled by a project form during hydration. |
+| Initial load | Home navigation comes from parent server load; navigation restores the browser preference and opens on request; desktop content resizes while phone navigation overlays it | No dedicated navigation-loading indicator. Verify no premature delivery action is enabled by a project form during hydration. |
 | Mount failed/unmounted | Non-ready mounts are omitted on a rebuilt tree; old page access may fail | No continuous tree refresh is promised. Proposed: show a stale-page explanation and route to inspection without erasing project drafts. |
 | Offline/service unavailable | Browser/network failure; no dedicated shared offline screen | Proposed: distinguish unreachable service from no mounts and from unavailable recipient. No automatic mutation replay. |
 | Long/deep tree | Labels wrap; nested list indentation; route keys sorted within each mount | Project/workspace/mount order follows supplied records. Deep-tree overflow, duplicate labels and ordering are open design choices, not complete coverage. |
-| Desktop collapsed / mobile closed | Navigation is hidden and inert; it starts closed consistently through hydration | See [mobile/accessibility](accessibility.md); no global persisted account preference. |
+| Desktop collapsed / mobile closed | Navigation is hidden and inert when its saved preference is closed | See [mobile/accessibility](accessibility.md); browser-local preferences, not a cross-device account setting. |
 
 Pass/fail and evidence boundaries are [E-07](../evaluations/ui-eval.md#e-07-navigation-and-location) and [E-10](../evaluations/ui-eval.md#e-10-failure-and-freshness-presentation).
 
@@ -69,3 +66,10 @@ Workspaces and Comments pane visibility persists in browser-local origin-wide pr
 Overflowing tab strips support horizontal trackpad and vertical mouse-wheel scrolling. Tabs retain their 120px minimum; the outer page must not scroll sideways as the strip moves.
 
 The global I shortcut toggles Comments without leaving focus on the header trigger or a pane control. Tab navigation and explicit keyboard activation retain their visible focus behavior.
+
+
+## Expandable groups
+
+Workspace/project, worktree, mounted folder and nested route groups expand and collapse independently using the disclosure or non-link group label. A group that is also a page retains separate disclosure and navigation actions. Page links remain links; collapsing a group never closes an open tab or clears its draft. Each disclosure exposes `aria-expanded` and an Expand/Collapse label. Keyboard activation uses native buttons with visible focus.
+
+All groups begin expanded. Collapsed group IDs persist in origin-local browser storage and synchronize across Surface documents; node identity, rather than display labels, preserves distinct worktrees with matching names. Unknown or invalid persisted formats are not overwritten. Storage failure leaves navigation usable for the current document. Review these states on the Navigation design page, then verify real mounted workspace/worktree/folder collapse, refresh restoration, reopening and leaf activation at phone and desktop sizes.

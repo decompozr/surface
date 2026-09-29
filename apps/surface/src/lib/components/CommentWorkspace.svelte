@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick, type Snippet } from 'svelte';
-  import { Badge, Button, Switch, Toolbar, ToggleButton, IconButton, TextArea, StatusIndicator, Spinner, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
-  import Toast from './Toast.svelte';
+  import { Badge, Button, Icon, Switch, Toolbar, IconButton, TextArea, Spinner, Text, SurfaceCard, SidePanel, FloatingComposer, StatusBar, SelectionOutline, Divider } from '@decompozr/design-system';
+  import CommentTools from './CommentTools.svelte';
   import SurfaceShell from './SurfaceShell.svelte';
   import { composerPlacement, readViewport } from '../comments/viewport.ts';
   import { describeTarget, resolveTarget } from '../comments/selection.ts';
@@ -33,6 +33,7 @@
   };
 
   const notify = (message: string, tone: 'info' | 'success' | 'warning') => {
+    window.dispatchEvent(new CustomEvent('surface:notification',{detail:{message,tone}}));
     clearTimeout(toastTimer); toast = { message, tone };
     toastTimer = setTimeout(() => { toast = null; }, 5000);
   };
@@ -109,7 +110,7 @@
   const updateEditor = () => {
     if (!editorOpen) return;
     const anchor = selected?.getBoundingClientRect() ?? { left: editorPosition.x, bottom: editorPosition.y - 10 };
-    editorPosition = composerPlacement({ ...visibleViewport, height: Math.min(visibleViewport.height, Math.max(1, window.innerHeight - 44 - visibleViewport.y)) }, anchor, measuredEditorHeight, workspace?.getBoundingClientRect().top ?? 60);
+    editorPosition = composerPlacement({ ...visibleViewport, height: Math.min(visibleViewport.height, Math.max(1, window.innerHeight - 24 - visibleViewport.y)) }, anchor, measuredEditorHeight, workspace?.getBoundingClientRect().top ?? 60);
   };
 
   const updateBox = () => {
@@ -128,12 +129,7 @@
     const w = workspace.getBoundingClientRect();
     selectionBox = clipped(selected);
     box = hovered && hovered !== selected ? clipped(hovered) : selectionBox;
-    if (selectionBox) {
-      toolsPosition = {
-        x: Math.max(visibleViewport.x + 12, Math.min(selectionBox.x, visibleViewport.x + visibleViewport.width - selectionToolsWidth - 12)),
-        y: Math.max(visibleViewport.y + 12, w.top + 4, Math.min(selectionBox.y - selectionToolsHeight, visibleViewport.y + visibleViewport.height - selectionToolsHeight - 32)),
-      };
-    }
+
   };
 
 
@@ -161,7 +157,7 @@
     if (d.editing) review.comments = review.comments.map(c => c.id === d.editing ? comment : c);
     else review.comments.push(comment);
     review.draft = { target: null, text: '' }; selected = null; hovered = null; editorOpen = false; updateBox();
-    if (clearNotice) { notice = ''; notify('Added to draft', 'success'); }
+    if (clearNotice) { notice = ''; mode = false; pickAction = null; panel = true; }
     return true;
   };
 
@@ -291,8 +287,7 @@
   let selected = $state<HTMLElement | null>(null), hovered = $state<HTMLElement | null>(null);
   let box = $state<{ x: number; y: number; width: number; height: number } | null>(null);
   let selectionBox = $state<typeof box>(null);
-  let toolsPosition = $state({ x: 12, y: 64 });
-  let selectionToolsWidth = $state(340), selectionToolsHeight = $state(44);
+  let pickAction = $state<'comment' | 'capture' | null>(null);
   let workspace = $state<HTMLElement>(null!);
   let composer = $state<HTMLTextAreaElement>();
   let persistQueue: Promise<void> = Promise.resolve();
@@ -313,7 +308,6 @@
   $effect(() => {
     if (panel) void tick().then(() => { if (reviewScroller) reviewScroller.scrollTop = reviewScroller.scrollHeight; });
   });
-  $effect(() => { selectionToolsWidth; selectionToolsHeight; schedulePosition(); });
   $effect(() => {
     if (!ready || !storageReady) return;
     const snapshot = $state.snapshot(review);
@@ -321,10 +315,16 @@
   });
   onMount(() => {
     let pointerTarget: HTMLElement | null = null;
+    const chooseTarget = async (target: HTMLElement) => {
+      await select(target);
+      if (selected !== target) return;
+      if (pickAction === 'capture') await capture();
+      await openComment();
+    };
     const hoverAction = async (action: 'comment' | 'capture') => {
       const target = pointerTarget;
       if (locked || !target?.isConnected || editorOpen || panel) return;
-      mode = true; await select(target);
+      mode = true; pickAction = action; await select(target);
       if (selected !== target) return;
       if (action === 'capture') await capture();
       await openComment();
@@ -332,8 +332,8 @@
     const reviewTool = (event: Event) => {
       if (!(event instanceof CustomEvent)) return;
       if (event.detail === 'comment' || event.detail === 'capture') void hoverAction(event.detail);
-      if (event.detail === 'comments') void togglePanel();
-      if (event.detail === 'select' && !locked) { mode = !mode; hovered = null; if (!mode) editorOpen = false; updateBox(); }
+      if (event.detail === 'comments') void togglePanelShortcut();
+      if (event.detail === 'select' && !locked) { mode = !mode; pickAction = mode ? 'comment' : null; hovered = null; if (!mode) editorOpen = false; updateBox(); }
     };
     window.addEventListener('surface:review-tool', reviewTool);
     mode = !mounted; observedRevision = revision;
@@ -392,7 +392,7 @@
       const el = targetFrom(event); if (!el) return;
       event.preventDefault(); event.stopPropagation();
       if (suppressClick || gesture?.moved) { gesture = null; return; }
-      gesture = null; void select(el);
+      gesture = null; void chooseTarget(el);
     };
     const move = (event: PointerEvent) => {
       if (gesture && Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > 8) gesture.moved = true;
@@ -407,18 +407,13 @@
       }
       const target = event.target;
       const typing = target instanceof HTMLElement && (target.isContentEditable || !!target.closest('input, textarea, select, [role="textbox"]'));
-      if (!typing && !event.metaKey && !event.ctrlKey && !event.altKey) {
-        if ((event.key.toLowerCase() === 'c' || event.key.toLowerCase() === 's') && pointerTarget && !locked) { event.preventDefault(); void hoverAction(event.key.toLowerCase() === 'c' ? 'comment' : 'capture'); return; }
-        if (event.key.toLowerCase() === 'v' && !locked) { event.preventDefault(); mode = !mode; hovered = null; if (!mode) editorOpen = false; updateBox(); return; }
-        if (event.key.toLowerCase() === 'i') { event.preventDefault(); void togglePanelShortcut(); return; }
-      }
       if (event.key === 'Escape') {
         if (editorOpen) { event.preventDefault(); closeEditor(); }
         else if (panel || document.querySelector('[aria-controls="surface-navigation"]')?.getAttribute('aria-expanded') === 'true') return;
-        else mode = false;
+        else { mode = false; pickAction = null; }
         hovered = null; updateBox();
       }
-      if (mode && (event.key === 'Enter' || event.key === ' ') && targetFrom(event)) { event.preventDefault(); event.stopPropagation(); void select(targetFrom(event)!); }
+      if (mode && (event.key === 'Enter' || event.key === ' ') && targetFrom(event)) { event.preventDefault(); event.stopPropagation(); const target = targetFrom(event); if (target) void chooseTarget(target); }
     };
     window.addEventListener('pointerdown', press, true); window.addEventListener('click', click, true); window.addEventListener('pointermove', move); window.addEventListener('keydown', key, true); window.addEventListener('resize', viewportChange); window.addEventListener('scroll', scroll, true); window.addEventListener('pointerup', release, true); window.addEventListener('pointercancel', cancel, true);
     return () => { window.removeEventListener('surface:review-tool', reviewTool); window.removeEventListener('surface:source-changed', sourceChanged); active = false; window.removeEventListener('hashchange', connect); cancelAnimationFrame(positionFrame); cancelAnimationFrame(revealFrame); viewport?.removeEventListener('resize', viewportChange); viewport?.removeEventListener('scroll', viewportChange); window.removeEventListener('focusin', viewportChange); clearTimeout(toastTimer); updates.abort(); window.removeEventListener('offline', offline); workspaceSize.disconnect(); window.removeEventListener('pointerdown', press, true); window.removeEventListener('click', click, true); window.removeEventListener('pointermove', move); window.removeEventListener('keydown', key, true); window.removeEventListener('resize', viewportChange); window.removeEventListener('scroll', scroll, true); window.removeEventListener('pointerup', release, true); window.removeEventListener('pointercancel', cancel, true); };
@@ -427,8 +422,8 @@
 {#snippet headerTools()}
     <Toolbar label="Review tools">
 
-      <ToggleButton size="compact" touchAppearance="compact" icon="mouse-pointer-2" label={mode ? 'Leave comment mode' : 'Select and comment'} aria-keyshortcuts="V" title={mode ? 'Leave comment mode (V / Esc)' : 'Select and comment (V); hover + C to comment, S to capture'} pressed={mode} disabled={locked} onclick={(event) => { if (event.detail > 0) event.currentTarget.blur(); }} onPressedChange={(value) => { mode = value; hovered = null; if (!mode) editorOpen = false; updateBox(); }} />
-      <IconButton size="compact" touchAppearance="compact" icon="message-square" label={`Open comments (${review.comments.length} drafts)`} title="Comments (I)" aria-keyshortcuts="I" aria-expanded={panel} aria-controls="surface-comments" onclick={togglePanel}>{#snippet badge()}{#if review.comments.length}<Badge tone="sage">{review.comments.length}</Badge>{/if}{/snippet}</IconButton>
+
+      <IconButton size="compact" touchAppearance="compact" icon="message-square" label={`Open comments (${review.comments.length} drafts)`} title="Comments (I)" aria-keyshortcuts="I" aria-expanded={panel} aria-controls="surface-comments" onclick={()=>window.dispatchEvent(new CustomEvent('surface:execute',{detail:'pane.right.toggle'}))}>{#snippet badge()}{#if review.comments.length}<Badge tone="sage">{review.comments.length}</Badge>{/if}{/snippet}</IconButton>
     </Toolbar>
 {/snippet}
 {#snippet commentPanel()}
@@ -442,7 +437,7 @@
       {#if data.live && review.comments.length}
         <Switch label={steer ? 'Steer' : 'Queue'} aria-label="Steer delivery" bind:checked={steer} disabled={locked} />
       {/if}
-      {#if review.comments.length}<div class="send-action"><IconButton size="compact" touchAppearance="compact" icon="arrow-up" appearance="quiet" label={`Send ${review.comments.length} comments together`} title={`Send ${review.comments.length} comments together`} disabled={locked || inspecting || (data.live && !connectionKey) || !!review.draft.text.trim() || !!review.draft.capture} onclick={send} /></div>{/if}
+      {#if review.comments.length}<div class="send-action"><IconButton size="compact" touchAppearance="compact" icon="arrow-up" appearance="quiet" label={`Send ${review.comments.length} comments together`} title={`Send ${review.comments.length} comments together`} disabled={locked || inspecting || (data.live && (!connectionKey || !agentAvailable)) || !!review.draft.text.trim() || !!review.draft.capture} onclick={send} /></div>{/if}
       </div>
       {#if storageError}<span role="alert">{storageError}</span>{/if}
     </div>
@@ -460,19 +455,19 @@
       </SurfaceCard>{/each}
       {#if review.comments.length}<Text size="eyebrow" tone="muted">Draft · not sent</Text>{/if}
       {#each review.comments as comment, i (comment.id)}<SurfaceCard as="article" class="comment-card"><div class="comment-heading"><Badge>{i + 1}</Badge><strong>{comment.target.label}</strong></div>{#if comment.capture}<a href={comment.capture.png} download={`${comment.target.id}.png`} aria-label={`Download screenshot of ${comment.target.label}`}><img src={comment.capture.png} alt={`Captured ${comment.target.label}`} /></a><Text as="span" size="small" tone="muted" class="image-meta">{comment.capture.width} × {comment.capture.height} · frozen capture</Text>{/if}<Text size="small">{comment.text}</Text><div class="card-actions"><IconButton size="compact" touchAppearance="compact" icon="pencil" label={`Edit comment ${i + 1}`} title="Edit comment" disabled={locked || review.draft.editing === comment.id} onclick={() => edit(comment)} /><IconButton size="compact" touchAppearance="compact" icon="trash-2" label={`Remove comment ${i + 1}`} title="Remove comment" disabled={locked || review.draft.editing === comment.id} onclick={() => review.comments = review.comments.filter(c => c.id !== comment.id)} /></div></SurfaceCard>{/each}
-      {#if toast}<Toast inline message={toast.message} tone={toast.tone} dismiss={() => { toast = null; clearTimeout(toastTimer); }} />{/if}
+
     </div>
 
 </SidePanel>
 {/snippet}
 {#snippet connectionStatus()}
-<StatusBar label="Connection status" height="44px">
-  {#if data.live && connectionKey}<IconButton size="compact" touchAppearance="compact" icon="refresh" label="Refresh agent" title="Refresh agent" disabled={locked || inspecting} onclick={async () => { await refreshRecipient(); notify(agentAvailable ? 'Agent refreshed.' : 'Agent unavailable. Try again.', agentAvailable ? 'success' : 'warning'); }} />{/if}
-  <StatusIndicator kind={!data.live || !connectionKey ? 'error' : !streamConnected || !agentAvailable ? 'warning' : 'success'} label={!data.live ? 'Local test; show connection details' : !connectionKey ? 'Not connected; show connection details' : !streamConnected ? 'Reconnecting; show connection details' : !agentAvailable ? 'Agent unavailable; show connection details' : 'Connected; show connection details'} onclick={() => notify(!data.live ? 'Local test. No agent connected.' : !connectionKey ? 'Open the private connection link to connect.' : streamConnected ? `Live updates connected. ${agentStatus}.` : 'Disconnected. Reconnecting automatically.', streamConnected && agentAvailable ? 'info' : 'warning')} />
+<StatusBar label="Connection status" height="24px">
+  {#if data.live && connectionKey}<button class="connection-action" aria-label="Refresh agent" title="Refresh agent" disabled={locked || inspecting} onclick={async () => { await refreshRecipient(); notify(agentAvailable ? 'Agent refreshed.' : 'Agent unavailable. Try again.', agentAvailable ? 'success' : 'warning'); }}><Icon name="refresh" size=".875rem" /></button>{/if}
+  <button class="connection-action" aria-label={!data.live ? 'Local test; show connection details' : !connectionKey ? 'Not connected; show connection details' : !streamConnected ? 'Reconnecting; show connection details' : !agentAvailable ? 'Agent unavailable; show connection details' : 'Connected; show connection details'} onclick={() => notify(!data.live ? 'Local test. No agent connected.' : !connectionKey ? 'Open the private connection link to connect.' : streamConnected ? `Live updates connected. ${agentStatus}.` : 'Disconnected. Reconnecting automatically.', streamConnected && agentAvailable ? 'info' : 'warning')}><Icon name={!data.live || !connectionKey ? 'error' : !streamConnected || !agentAvailable ? 'warning' : 'check'} size=".875rem" /></button>
 </StatusBar>
 {/snippet}
 {#snippet editorNotice()}<Text size="small" role="status">{notice}</Text>{/snippet}
-<SurfaceShell panelContent={commentPanel} bind:panelOpen={panel} status={connectionStatus} statusHeight="44px" navigation={data.navigation} {currentPath} {headerTools} viewportContent={!mounted}>
+<SurfaceShell panelContent={commentPanel} bind:panelOpen={panel} status={connectionStatus} statusHeight="24px" navigation={data.navigation} {currentPath} {headerTools} viewportContent={!mounted}>
   <section id="comment-workspace" class:selecting={mode} class:mounted bind:this={workspace} aria-label="Shared workspace">
     {#if children}{@render children(mode)}{:else}<div id="surface-page"></div>{/if}
   </section>
@@ -500,24 +495,20 @@
   </div>
 {/if}
 {#if box && !panel}<div class="selection-outline"><SelectionOutline {...box} size="compact" tone="neutral" elevation="floating" state={hovered && hovered !== selected ? 'hover' : 'selected'} /></div>{/if}
-{#if mode && selected && !editorOpen && !panel}
-  <div class="selection-tools" class:offscreen={!selectionBox} inert={!selectionBox} aria-hidden={!selectionBox} bind:clientWidth={selectionToolsWidth} bind:clientHeight={selectionToolsHeight} style:--tools-x={`${toolsPosition.x}px`} style:--tools-y={`${toolsPosition.y}px`}>
-    <Toolbar label="Selected element actions" appearance="floating" targetLabel={`${selected.tagName.toLowerCase()}${selected.id ? `#${selected.id}` : ''}`}>
-    {#if selected}
-{#if selected?.parentElement && selected.parentElement !== workspace}<IconButton size="compact" touchAppearance="compact" icon="chevron-up" label="Select parent element" title="Select parent element" disabled={locked} onclick={() => { const parent = selected?.parentElement; if (parent && workspace.contains(parent) && parent !== workspace) { selected = parent; review.draft = { ...review.draft, target: metadata(parent), capture: undefined }; hovered = null; updateBox(); } }} />{/if}
-    {/if}
-    {#if selected}
-    <IconButton size="compact" touchAppearance="compact" icon="camera" label="Capture selected element" title="Screenshot (S)" aria-keyshortcuts="S" disabled={locked} onclick={async () => { await capture(); editorOpen = true; updateBox(); }} />
-    <IconButton size="compact" touchAppearance="compact" icon="message-square" label="Comment on selected element" title="Comment (C)" aria-keyshortcuts="C" disabled={locked} onclick={openComment} />
-    <IconButton size="compact" touchAppearance="compact" icon="close" label="Clear selection" title="Clear selection" disabled={locked} onclick={() => { selected = null; hovered = null; updateBox(); }} />
-    {/if}
-    </Toolbar>
-  </div>
+{#if !editorOpen && !panel}
+<CommentTools active={mode ? pickAction : null} disabled={locked} onchoose={(action) => {
+  if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  pickAction = mode && pickAction === action ? null : action;
+  mode = pickAction !== null;
+  if (mode) { panel = false; editorOpen = false; }
+  hovered = null; updateBox();
+}} />
 {/if}
 
-{#if toast && !panel && !editorOpen}<Toast message={toast.message} tone={toast.tone} dismiss={() => { toast = null; clearTimeout(toastTimer); }} />{/if}
+
 </SurfaceShell>
 <style>
+.connection-action{height:24px;width:24px;border:0;background:transparent;color:inherit;display:inline-flex;align-items:center;justify-content:center;padding:0}.connection-action:focus-visible{outline:2px solid #45604b;outline-offset:-2px}.editor-actions,.panel-heading,.delivery-actions{--dz-action-coarse-target:2rem;}
 :global(body) { margin:0; }
 #comment-workspace { box-sizing:border-box; height:100%; min-width:0; overflow:auto; padding:24px 38px; }
 #comment-workspace.mounted { padding:0; }
@@ -554,6 +545,4 @@
 }
 
 .reply-wait { display:flex; align-items:center; gap:.5rem; font-size:.875rem; padding-top:.75rem; }
-.selection-tools { position:fixed; top:0; left:0; z-index:61; width:max-content; max-width:calc(100vw - 24px); transform:translate3d(var(--tools-x),var(--tools-y),0); will-change:transform; }
-.selection-tools.offscreen { visibility:hidden; pointer-events:none; }
 </style>

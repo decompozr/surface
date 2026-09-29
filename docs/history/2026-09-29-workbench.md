@@ -1,0 +1,9 @@
+# Workbench integration
+
+Surface now centralizes browser-local pane visibility/width, status visibility and keyboard mappings. Tab sessions retain order and active selection; browser history changes the selected tab without discarding other mounted pages. Quick Open searches mounted page labels and paths; the command picker also exposes tab movement, notifications and shortcut settings. The adopted contract is [workbench](../design/workbench.md).
+
+The implementation uses provider SurfaceCard, TextField, Button and existing shell primitives. Provider main `e3aea6c` is frozen in the application and design-page package pins. The top-right action is exclusively Comments pane control. Comment and screenshot tools are separate floating controls; recipient settings are collapsed inside the pane.
+
+Verification of the working tree based on `b3ebc0b` with the `ca96c48` banner correction retained: `verify-workbench.ts` passed desktop Chromium 1440×1000 and phone-sized Chromium 390×844. It covers Quick Open, command search, independently toggled panes, separator resizing and reload, status visibility, commands into mounted frames, customized keyboard binding after reload, and browser Back retaining the other tab. The expanded regression initially pressed the shortcut before reloaded content hydrated; it now waits for the mounted content to be interactive. Initial and reloaded sessions passed. This is browser emulation, not physical-device acceptance or host shortcut interception acceptance.
+
+The control reference page replaces the ambiguous icon/state-label sequence with one explained interactive toggle and a separate unavailable screenshot example. Navigation disclosure has a separate [record](2026-09-29-navigation-collapse.md). Full comment transport, installed revision and final live visual checks are recorded at release completion rather than inferred from these isolated checks.

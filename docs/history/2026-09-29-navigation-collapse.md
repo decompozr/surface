@@ -1,0 +1,7 @@
+# Navigation disclosure verification
+
+The September 29 user request adds independent expand/collapse to workspace/project, worktree and folder groups. The prior provider NavigationLinks rendered noninteractive group labels and every child list unconditionally, so these actions were unavailable. The adopted behavior is in [navigation](../design/navigation.md#expandable-groups).
+
+Provider main `e3aea6c` adds a public controlled disclosure API. Provider `check` and `package` passed with zero diagnostics. The Surface working tree based on `b3ebc0b` consumed those exact packaged sources for `bun tests/e2e/surface/verify-navigation-collapse.ts`: isolated registered main/linked worktrees, project/worktree/folder collapse, native keyboard activation and refresh restoration passed in desktop Chromium 1440×1000 and touch-emulated Chromium 390×844. No user installation, recipient or conversation was mutated.
+
+Visual inspection of the expanded phone and collapsed desktop states found consistent 32px row cadence, distinct project/worktree/folder/page icons, readable labels and no overlap. Keyboard focus is visible after keyboard activation and remains separate from expansion. Screenshots are temporary release-review evidence under `/tmp/surface-editor-review/navigation-*.png`; retire them after the integrated release audit. Physical phone acceptance and the final installed release are separate gates owned by integration.
