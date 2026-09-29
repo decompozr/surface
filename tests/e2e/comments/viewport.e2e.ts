@@ -31,16 +31,16 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]] as con
     };
 
     await page.goto(origin + '/experiments/comments', { waitUntil: 'networkidle' });
-    await expect(page.getByRole('button', { name: 'Leave comment mode', exact: true })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Comment', exact: true })).toBeEnabled();
     const workspace = page.locator('#comment-workspace');
-    expect(await workspace.evaluate(el => Math.abs(el.getBoundingClientRect().bottom - (innerHeight - 44)))).toBeLessThan(1);
+    expect(await workspace.evaluate(el => Math.abs(el.getBoundingClientRect().bottom - (innerHeight - 24)))).toBeLessThan(1);
     const status = page.getByRole('contentinfo', { name: 'Connection status' });
     const statusBounds = await status.boundingBox();
-    expect(statusBounds!.height).toBe(44);
+    expect(statusBounds!.height).toBe(24);
     expect(statusBounds!.y + statusBounds!.height).toBe(page.viewportSize()!.height);
     expect(await page.evaluate(() => !!document.elementFromPoint(12, innerHeight - 12)?.closest('#comment-workspace'))).toBe(false);
+    await page.getByRole('button', { name: 'Comment', exact: true }).click();
     await page.locator('#headline').tap();
-    await page.getByRole('button', { name: 'Comment on selected element', exact: true }).click();
     const field = page.locator('#comment');
     const editor = page.getByRole('region', { name: 'Comment on selected element', exact: true });
     await field.fill('Keep this draft through keyboard resize and scrolling.');
@@ -69,9 +69,10 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]] as con
     await expect(page.getByRole('button', { name: 'Open comments (1 drafts)' })).toBeVisible();
     // The reported case includes a capture and a long selector. Keep the field
     // reachable while the screenshot body scrolls and actions remain visible.
+    await page.getByRole('button', { name: 'Close comments', exact: true }).click();
+    await page.getByRole('button', { name: 'Screenshot', exact: true }).click();
     await page.locator('#option-a h2').scrollIntoViewIfNeeded();
     await page.locator('#option-a h2').tap();
-    await page.getByRole('button', { name: 'Capture selected element', exact: true }).click();
     await expect(page.getByAltText('Selected element screenshot preview')).toBeVisible({ timeout: 15000 });
     await field.fill('Capture plus keyboard draft');
     await resize(0, 120, 390, 300);

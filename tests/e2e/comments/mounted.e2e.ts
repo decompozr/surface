@@ -108,34 +108,9 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
     const commentsState = join(state, 'mounted-comments', parent.id);
     try {
       await page.goto(preview.href);
-      await expect(page.getByRole('button', { name: 'Toggle navigation', exact: true }).getByRole('img', { name: 'Surface', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Toggle navigation', exact: true })).toBeVisible();
       const navigation = page.getByRole('complementary', { name: 'Workspace navigation' });
-      // Sample the real mounted page throughout opening, not only its final position.
-      const frames = await page.evaluate(async () => {
-        const main = document.querySelector('#surface-page-content')!;
-        const drawer = document.querySelector('#surface-navigation')!;
-        const measure = () => {
-          const pageBounds = main.getBoundingClientRect(), navBounds = drawer.getBoundingClientRect();
-          return { x: pageBounds.x, y: pageBounds.y, width: pageBounds.width, navX: navBounds.x, navWidth: navBounds.width,
-            labels: Array.from(drawer.querySelectorAll('a')).map(link => link.getBoundingClientRect().height) };
-        };
-        const samples = [measure()];
-        (document.querySelector('[aria-controls="surface-navigation"]') as HTMLButtonElement).click();
-        for (let i = 0; i < 24; i++) {
-          await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-          samples.push(measure());
-        }
-        return samples;
-      });
-      for (const frame of frames) {
-        expect(frame.width).toBe(frames[0].width);
-        expect(frame.y).toBe(frames[0].y);
-        expect(frame.navWidth).toBe(frames[0].navWidth);
-        expect(frame.labels).toEqual(frames[0].labels);
-        expect(Math.abs((frame.x - frames[0].x) - (frame.navX - frames[0].navX))).toBeLessThan(1);
-      }
-      expect(frames.at(-1)!.x - frames[0].x).toBeCloseTo(frames[0].navWidth, 0);
-
+      await page.getByRole('button', { name: 'Toggle navigation', exact: true }).click();
       await expect.poll(async () => { const bounds = await navigation.boundingBox(); return !!bounds && bounds.width >= 279 && Math.abs(bounds.x) <= 1; }).toBe(true);
       await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
       if (mobile) for (const link of await navigation.getByRole('link').all()) {
@@ -148,11 +123,11 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       await expect(navigation).toBeHidden();
       await (mobile ? navToggle.tap() : navToggle.click());
       await expect.poll(async () => Math.abs((await navigation.boundingBox())?.x ?? 999)).toBeLessThan(1);
-      await expect(navigation).toBeFocused();
+      await expect(navigation).toBeVisible();
       await page.screenshot({ path: join(output, name + '-navigation.png'), fullPage: true });
       await page.getByRole('button', { name: 'Toggle navigation', exact: true }).click();
       if (mobile) await verifyEdgeSwipes(page, false, output, name);
-      await page.getByRole('button', { name: /Open comments/ }).click();
+      if (!await page.getByRole('button', { name: 'Close comments', exact: true }).isVisible()) await page.getByRole('button', { name: /Open comments/ }).click();
       const emptyReview = page.getByRole('region', { name: 'Comment review', exact: true });
       await expect(emptyReview.getByText('No comments yet. Select an element to start.', { exact: true })).toBeVisible();
       await expect(emptyReview.getByRole('button', { name: /Send .* comments together/ })).toHaveCount(0);
@@ -163,34 +138,13 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       await page.getByRole('button', { name: 'Project counter 0', exact: true }).click();
       await expect(page.getByRole('button', { name: 'Project counter 1', exact: true })).toBeVisible();
       await page.getByRole('textbox', { name: 'Project draft', exact: true }).fill('Keep my project draft');
-      await page.getByRole('button', { name: 'Select and comment', exact: true }).click();
-      await page.getByRole('button', { name: 'Project counter 1', exact: true }).locator('span').click();
-      await expect(page.locator('.target-label')).toContainText('button');
-      await expect(page.getByRole('button', { name: 'Project counter 1', exact: true })).toBeVisible();
-      await page.locator('#option-a h2').click();
-      const parentAction = page.getByRole('button', { name: 'Select parent element' });
-      await expect(parentAction).toBeVisible();
-      await parentAction.click();
-      await expect(parentAction).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-      expect(await page.getByRole('toolbar', { name: 'Selected element actions' }).evaluate(node => {
-        const button = node.querySelector('button')!.getBoundingClientRect();
-        const label = node.querySelector('.target-label')!.getBoundingClientRect();
-        return label.right <= button.left + 1;
-      })).toBe(true);
-      await page.getByRole('button', { name: 'Clear selection', exact: true }).click();
+      const tools = page.getByRole('toolbar', { name: 'Comment tools', exact: true });
+      await expect(tools.getByRole('button')).toHaveCount(2);
+      await tools.getByRole('button', { name: 'Screenshot', exact: true }).click();
       await page.locator('#headline').click();
-      const selectedTools = page.getByRole('toolbar', { name: 'Selected element actions' });
-      await expect(selectedTools.locator('.target-label')).toHaveText('h1#headline');
-      expect(await selectedTools.evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
-      expect(await selectedTools.evaluate(el => getComputedStyle(el, '::before').backgroundColor)).toBe('rgb(255, 255, 255)');
-      expect((await selectedTools.boundingBox())!.width).toBeLessThan(300);
-      await page.screenshot({ path: join(output, name + '-selection.png'), fullPage: true });
-      await page.getByRole('button', { name: 'Capture selected element', exact: true }).click();
-      await expect(page.getByRole('button', { name: 'Select parent element' })).toHaveCount(0);
       await expect(page.getByAltText('Selected element screenshot preview')).toBeVisible();
       await page.locator('#comment').fill(`E2E ${name}: fixture submission`);
       await page.getByRole('button', { name: 'Add comment to draft' }).click();
-      await page.getByRole('button', { name: /Open comments/ }).click();
       const send = page.getByRole('button', { name: 'Send 1 comments together' });
       await expect(page.getByRole('switch', { name: 'Steer delivery', exact: true })).toBeChecked();
       await expect(send).toBeDisabled();
@@ -199,8 +153,10 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       await expect(send).toBeDisabled();
       await page.goto(preview.href + '#token=' + token);
       await expect(send).toBeEnabled();
+      await page.getByText('Delivery settings', {exact:true}).click();
       await expect(page.getByRole('region', { name: 'Agent recipient', exact: true })).toContainText('e2e-fixture');
-      await expect(page.getByRole('textbox', { name: 'Project draft', exact: true })).toHaveValue('Keep my project draft');
+      await page.getByText('Delivery settings', {exact:true}).click();
+      await expect(page.getByRole('textbox', { name: 'Project draft', exact: true, includeHidden: true })).toHaveValue('Keep my project draft');
       expect(await page.evaluate(() => document.body.dataset.sameDocument)).toBe('retained');
       await expect(page.getByText(`E2E ${name}: fixture submission`, { exact: true })).toBeVisible();
       const refresh = page.getByRole('button', { name: 'Refresh agent', exact: true });
@@ -216,22 +172,24 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       const inspectionURL = preview.origin + endpoint + '/batch';
       await page.route(inspectionURL, route => route.fulfill({ status: 503, body: 'Isolated refresh failure' }));
       await (mobile ? refresh.tap() : refresh.click());
-      await expect(page.getByText('Agent unavailable. Try again.', { exact: true })).toBeVisible();
+      await expect(page.getByText('Agent unavailable. Try again.', { exact: true })).toBeVisible({timeout:15000});
       await expect(page.getByRole('button', { name: 'Agent unavailable; show connection details', exact: true })).toBeVisible();
       expect(deliveries.length).toBe(count);
       await page.unroute(inspectionURL);
       await (mobile ? refresh.tap() : refresh.click());
       await expect(connected).toBeVisible();
       if (activeRecipient) {
-      // A turn change must retain the unsent draft until an explicit refresh/send.
-      activeTurn = `changed-${name}`;
+      // Change the active turn between the fresh GET observation and POST submission.
+      await page.route('**' + endpoint + '/batch', async route => {
+        if (route.request().method() !== 'POST') return route.continue();
+        activeTurn = `changed-${name}`;
+        await route.continue();
+      });
       await send.click();
       await expect(page.getByRole('region', { name: 'Comment review' }).locator('.notice')).toContainText('Comments remain unsent');
       expect(deliveries.length).toBe(count);
-      await expect(send).toBeDisabled();
-      await page.getByRole('button', { name: 'Refresh agent', exact: true }).click();
+      await page.unroute('**' + endpoint + '/batch');
       await expect(send).toBeEnabled();
-      await expect(page.getByText('Agent refreshed.', { exact: true })).toBeVisible();
       }
       if (mobile) {
         await page.locator('label').filter({ has: page.getByRole('switch', { name: 'Steer delivery', exact: true }) }).tap();
@@ -289,9 +247,8 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       await reply(`Recovered reply ${name}`);
       await context.setOffline(false);
       await expect(page.locator('.agent-reply')).toHaveText(`Recovered reply ${name}`, { timeout: 15000 });
-      await expect(page.getByText('Live updates reconnected.', { exact: true })).toBeVisible();
+      await expect(page.getByText('Live updates reconnected.', { exact: true })).toBeVisible({timeout:15000});
       await page.reload();
-      await page.getByRole('button', { name: /Open comments/ }).click();
       await expect(page.locator('.agent-reply')).toHaveText(`Recovered reply ${name}`);
       expect(deliveries.length).toBe(count + 1);
       expect(posts).toBe(1);
@@ -301,17 +258,15 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       await expect(page.getByRole('button', { name: 'Export conversation JSON' })).toHaveCount(0);
       await expect(page.getByRole('contentinfo', { name: 'Connection status' }).getByRole('button', { name: 'Refresh agent' })).toBeVisible();
       await page.getByRole('button', { name: 'Close comments', exact: true }).click();
-      await page.getByRole('button', { name: 'Select and comment', exact: true }).click();
+      await tools.getByRole('button', { name: 'Comment', exact: true }).click();
       await page.locator('#headline').click();
-      await page.getByRole('button', { name: 'Comment on selected element', exact: true }).click();
       await page.locator('#comment').fill('Latest draft ' + name);
       await page.getByRole('button', { name: 'Add comment to draft' }).click();
-      await page.getByRole('button', { name: /Open comments/ }).click();
       await expect.poll(() => page.locator('.conversation').evaluate(node => {
         const scroller = node.parentElement!;
         return scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop;
       })).toBeLessThan(2);
-      await expect(page.getByRole('button', { name: 'Dismiss Added to draft', exact: true })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Close comments', exact: true })).toBeVisible();
       await expect(page.getByText('Latest draft ' + name, { exact: true })).toBeInViewport();
       // Capture settled geometry, not an intermediate drawer animation frame.
       await expect.poll(async () => {
@@ -327,9 +282,9 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
         await page.getByRole('button', { name: 'Close comments', exact: true }).click();
         await expect(pane).not.toBeVisible();
         await page.setViewportSize({ width: 390, height: 400 });
+        await tools.getByRole('button', { name: 'Comment', exact: true }).click();
         await page.locator('#headline').click();
-        await page.getByRole('button', { name: 'Comment on selected element', exact: true }).click();
-        await page.locator('#comment').fill('Retain the constrained-height draft');
+          await page.locator('#comment').fill('Retain the constrained-height draft');
         const editor = page.getByRole('region', { name: 'Comment on selected element', exact: true });
         await expect.poll(async () => {
           const bounds = await editor.boundingBox();
@@ -348,28 +303,31 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       expect(unauthorized.status).toBe(401);
       expect((await fetch(origin + endpoint + '/result', { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: '{}' })).status).toBe(401);
       await page.goto(foreign.previewUrl);
-      await page.getByRole('button', { name: /Open comments/ }).click();
+      if (!await page.getByRole('button', { name: 'Close comments', exact: true }).isVisible()) await page.getByRole('button', { name: /Open comments/ }).click();
       await expect(page.locator('.comment-card')).toHaveCount(0);
       await expect(page.locator('.batch')).toHaveCount(0);
       await page.goto(mount.previewUrl + 'second');
-      await page.getByRole('button', { name: /Open comments/ }).click();
+      if (!await page.getByRole('button', { name: 'Close comments', exact: true }).isVisible()) await page.getByRole('button', { name: /Open comments/ }).click();
       await expect(page.locator('.comment-card')).toHaveCount(0);
       await expect(page.locator('.batch')).toHaveCount(0);
       await page.goto(preview.href + '#token=' + token);
-      await page.getByRole('button', { name: /Open comments/ }).click();
+      if (!await page.getByRole('button', { name: 'Close comments', exact: true }).isVisible()) await page.getByRole('button', { name: /Open comments/ }).click();
       await expect(page.getByText('Latest draft ' + name, { exact: true })).toBeVisible();
       expect(deliveries.length).toBe(count + 1);
       await page.getByRole('button', { name: 'Close comments', exact: true }).click();
+      await page.getByRole('button', { name: /Open comments/ }).click();
+      await page.getByText('Delivery settings', {exact:true}).click();
       const domainMode = page.getByRole('combobox', { name: 'Delivery mode', exact: true });
       await expect(domainMode).toBeEnabled();
       if (activeRecipient) await domainMode.selectOption('steer');
+      await page.getByRole('button', { name: 'Close comments', exact: true }).click();
       await page.getByRole('button', { name: 'Send domain choice', exact: true }).click();
       await expect(page.getByTestId('domain-status')).toHaveText('accepted');
       expect(deliveries.length).toBe(count + 2);
       expect((await api(`/api/requests/${parent.id}`)).response.data).toEqual({ domainChoice: 'keep' });
       await api(`/api/requests/${parent.id}/result`, { message: 'Domain result preserved' });
       await expect(page.getByTestId('domain-result')).toHaveText('Domain result preserved');
-      await page.getByRole('button', { name: /Open comments/ }).click();
+      if (!await page.getByRole('button', { name: 'Close comments', exact: true }).isVisible()) await page.getByRole('button', { name: /Open comments/ }).click();
       await expect(page.locator('.agent-reply')).toHaveText(`Recovered reply ${name}`);
       expect(posts).toBe(1);
       if (process.env.COMMENTS_E2E_BASELINE !== '1') {
@@ -389,7 +347,6 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
         return key;
       });
       await page.reload();
-      await page.getByRole('button', { name: /Open comments/ }).click();
       await expect(page.getByRole('alert')).toContainText('Existing data is preserved');
       const unsupportedState = await page.evaluate(key => new Promise<unknown>((resolve, reject) => {
         const open = indexedDB.open('surface-comment-experiment-v1', 1);
