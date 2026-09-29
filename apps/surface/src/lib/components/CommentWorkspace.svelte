@@ -98,6 +98,14 @@
     await tick();
   };
 
+  const togglePanelShortcut = async () => {
+    // Global pane shortcuts do not represent keyboard traversal into a control.
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    await togglePanel();
+    await tick();
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  };
+
   const updateEditor = () => {
     if (!editorOpen) return;
     const anchor = selected?.getBoundingClientRect() ?? { left: editorPosition.x, bottom: editorPosition.y - 10 };
@@ -401,7 +409,7 @@
       if (!typing && !event.metaKey && !event.ctrlKey && !event.altKey) {
         if ((event.key.toLowerCase() === 'c' || event.key.toLowerCase() === 's') && pointerTarget && !locked) { event.preventDefault(); void hoverAction(event.key.toLowerCase() === 'c' ? 'comment' : 'capture'); return; }
         if (event.key.toLowerCase() === 'v' && !locked) { event.preventDefault(); mode = !mode; hovered = null; if (!mode) editorOpen = false; updateBox(); return; }
-        if (event.key.toLowerCase() === 'i') { event.preventDefault(); void togglePanel(); return; }
+        if (event.key.toLowerCase() === 'i') { event.preventDefault(); void togglePanelShortcut(); return; }
       }
       if (event.key === 'Escape') {
         if (editorOpen) { event.preventDefault(); closeEditor(); }

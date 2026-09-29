@@ -118,6 +118,13 @@ try {
     const href = await nav.getByRole('link',{name:'alpha',exact:true}).getAttribute('href'); assert.ok(href);
     await page.goto(new URL(href,app.origin).href);
     await expect(page.getByRole('tab',{name:'alpha',exact:true})).toBeVisible();
+    await page.keyboard.press('i');
+    await expect(page.getByRole('complementary',{name:'Comments and conversation'})).toBeVisible();
+    await page.keyboard.press('i');
+    await expect(page.getByRole('complementary',{name:'Comments and conversation'})).toBeHidden();
+    const commentsToggle=page.getByRole('button',{name:/Open comments/});
+    await expect(commentsToggle).not.toBeFocused();
+    assert.equal(await commentsToggle.evaluate(el=>el.matches(':focus-visible')),false);
     const selectionToggle=page.getByRole('button',{name:'Select and comment',exact:true});
     await selectionToggle.click();
     await expect(page.getByRole('button',{name:'Leave comment mode',exact:true})).not.toBeFocused();

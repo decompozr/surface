@@ -67,3 +67,5 @@ Selection-mode pointer activation releases button focus so a later global shortc
 Workspaces and Comments pane visibility persists in browser-local origin-wide preferences and synchronizes across Surface documents. Refresh restores each pane. This is a UI preference, not project data or tab/draft persistence; unavailable browser storage must not break navigation.
 
 Overflowing tab strips support horizontal trackpad and vertical mouse-wheel scrolling. Tabs retain their 120px minimum; the outer page must not scroll sideways as the strip moves.
+
+The global I shortcut toggles Comments without leaving focus on the header trigger or a pane control. Tab navigation and explicit keyboard activation retain their visible focus behavior.
