@@ -1,0 +1,9 @@
+# Source reconciliation and evidence retirement
+
+Before the planned computer reformat, Surface remote main was verified at `a12dc798624043c9bb589d70f1a4267635cca128`, matching the installed application. All 17 modified/untracked source files in the actively mounted production-readiness worktree were compared byte-for-byte with main: manifest renaming, example documentation and the complete design folder were already committed and pushed. Its retired artifact manifests are also absent on main. The mounted checkout was preserved.
+
+The clean, fully merged `surface-ui-continuation-20260923` worktree and local branch were retired after checking process, mounted-workspace and Codex thread references. Its ignored contents were only historical screenshot/log/verification receipts. Current task and canonical worktrees remain; the mounted source worktree remains active. No runtime home, user draft, interaction or foreign working changes were deleted.
+
+Disposable evidence in the current task's `.decompozr/surface` was retired: old navigation/home/counter screenshots, an obsolete full-loop failure trace/screenshot, and project-access proof output. The latter receipt recorded isolated MCP/CLI shared project identity and mounting, browser/HMR draft retention, archive/restore and adapter reconnect checks; it explicitly recorded no live-agent action. Subsequent integrated verification and current behavior are recorded in the existing September 29 histories. The old failed trace is superseded by those verified releases, not reclassified as a passing run.
+
+This record changes documentation only. It does not require rebuilding the installed application. Pushed Git source does not back up local service state, capabilities, browser storage, attachments or conversations; external backup remains a separate pre-reformat requirement.
