@@ -28,6 +28,8 @@ bun tests/e2e/release/candidate.ts \
 
 This creates an owned isolated installation with a short path, preserves its surfaces/state, and stops only its own test service. It verifies checksums and installation without a development toolchain on PATH; project registration/mounting through the public CLI; real installed MCP listing; persisted browser drafts, project source, identity and durable comment/domain results through upgrade, rollback and candidate restoration. Chromium/WebKit comment flows use an explicit fake provider socket and the installed reply executable. No fixture is sent to a real conversation, and no existing preview recipient is changed.
 
+Create the retained draft through the current Comment tools toolbar. On reopening, inspect whether the comments panel is already open before toggling it: retained panel state must not turn the verification action into a close. Capture navigation only after its open width and position settle, so screenshots represent the usable state rather than an animation frame.
+
 Run the standard delivery and UI regression matrix against the exact package without rebuilding it:
 
 ```sh

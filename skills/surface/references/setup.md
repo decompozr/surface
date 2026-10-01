@@ -47,6 +47,10 @@ Setup checks before stopping the selected owned service, installs HEAD, verifies
 
 The provider link is stable because it targets the checkout, not a copied skill or a version-specific installed directory. Source edits are visible through the link immediately; after setup updates the installation, have the provider reload/restart its skill discovery if required. Verify discovery separately. Avoid leaving this linked checkout on an incompatible development revision while relying on an older installed runtime.
 
+### Promoting a verified archive
+
+When a release task has already verified an immutable archive built with `--design-system-package`, use that archive's shipped `install --home SELECTED_HOME` entry point for the authorized promotion, stopping the selected owned service first if needed. Then run `./bin/setup --skills-dir PROVIDER_SKILLS_DIRECTORY --home SELECTED_HOME` from the clean canonical checkout at the archive's exact commit. Setup reuses that matching release, starts it if stopped, and establishes or verifies the checkout skill symlink. Run `./bin/test` afterward with the same selection. This preserves the tested package bytes without changing development links; setup itself has no prepared-package override. Do not move checkout HEAD between promotion and verification.
+
 ## Private Tailscale access
 
 Source setup detects a connected Tailscale and preselects private HTTPS on first interactive use. Saved choices are reused; noninteractive first setup stays local unless `--tailscale on` is explicit. Use `./bin/setup --tailscale on|off` to change the selection. Setup manages only its recorded Serve mapping, configures the accepted browser origin, and prints the HTTPS URL. It does not enable Funnel. See [remote browser verification](pages.md#remote-browser-access); provider discovery and real conversation delivery remain separate checks.
