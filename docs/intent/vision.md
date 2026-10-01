@@ -4,6 +4,14 @@ Surface helps people and agents make ideas tangible, clarify intent through inte
 
 Surface gives humans and agents a shared, extensible interactive environment for representing, manipulating, and simulating systems.
 
+## Persistent, editable pages
+
+The adopted page direction is: **Surface provides persistent, editable pages built from typed, extensible templates, with explicit content and view state, so humans and agents can create, use, and improve them together.**
+
+A person can create something with an agent, edit it themselves, save it, and keep improving it later. Documents, visualizations, and small custom components can coexist in an experience that remains useful beyond the conversation that created it. Typed contracts, reusable templates, persistence, explicit view state, and extensibility are the five properties of this direction.
+
+The [page requirements](../requirements/template-pages.md) define these properties, ownership, and observable acceptance. This is adopted product direction, not a claim that the existing mounted-page runtime implements saved template instances or shared human/agent editing. It extends the Web experience without making pages the universal representation for every future capability.
+
 ## Long-term vision
 
 Projects need ways to make their systems, data, and ideas understandable and actionable. A person might adjust a design parameter, inspect an architecture graph, compare scenarios, or explore a simulation. An agent needs the structured meaning of that interaction so it can continue working and return an updated result.
