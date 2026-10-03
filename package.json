@@ -5,9 +5,8 @@
   "type": "module",
   "packageManager": "bun@1.4.0",
   "scripts": {
-    "build:release": "bun scripts/release/build.ts",
     "dev": "bun apps/cli/src/index.ts serve",
-    "test": "bun run --cwd apps/surface build && bun test apps/surface/src apps/cli/src scripts/package-boundaries.test.ts tests/fixtures/project-database/backend.test.ts tests/e2e/runtime/interactions.test.ts",
+    "test": "bun run --cwd apps/surface build && bun test apps/surface/src apps/cli/src scripts tests/fixtures/project-database/backend.test.ts tests/e2e/runtime/interactions.test.ts",
     "check": "tsc --noEmit",
     "verify:mcp": "bun tests/e2e/mcp/verify.ts",
     "verify:project-access": "bun tests/e2e/mcp/verify-projects.ts",

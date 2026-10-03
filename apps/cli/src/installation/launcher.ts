@@ -28,7 +28,7 @@ export const prepareLauncher = async (home: string, release: string) => {
 };
 
 export const lifecycleMain = async (args: string[]) => {
-  const {values,positionals} = parseArgs({args,allowPositionals:true,options:{home:{type:'string'},repo:{type:'string'},ref:{type:'string'},port:{type:'string'},release:{type:'string'},bundle:{type:'string'}}});
+  const {values,positionals} = parseArgs({args,allowPositionals:true,options:{home:{type:'string'},port:{type:'string'},release:{type:'string'},bundle:{type:'string'}}});
   if (positionals.length !== 1) throw new Error('Expected one lifecycle command.');
   const home=installationHome(values.home), manager=new Installation(home,validateRelease);
   const start = async () => {
@@ -40,13 +40,10 @@ export const lifecycleMain = async (args: string[]) => {
   switch(positionals[0]) {
     case 'install': case 'upgrade': {
       if(values.bundle) {
-        if(values.repo||values.ref)throw new Error('Select --bundle or --repo/--ref, not both.');
         const release=await manager.installPrepared(values.bundle,async(_directory,id)=>prepareLauncher(home,id));
         return {...release,home,launcher:join(home,'bin/surface')};
       }
-      if(!values.repo || !values.ref) throw new Error('Use --repo PATH --ref COMMIT to select a pinned release.');
-      const release=await manager.install(values.repo,values.ref,'surface',async(_directory,id)=>prepareLauncher(home,id));
-      return {...release,home,launcher:join(home,'bin/surface')};
+      throw new Error('Use install --bundle DIRECTORY with a prepared release. Build candidates with ./bin/build.');
     }
     case 'start': return start();
     case 'status': return manager.health();

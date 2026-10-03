@@ -1,0 +1,15 @@
+#!/usr/bin/env bun
+import { parseArgs } from 'node:util';
+import { promoteRelease } from '../scripts/release/promote.ts';
+
+const run = async () => {
+  const { values } = parseArgs({ options: { archive: { type: 'string' }, acceptance: { type: 'string' }, out: { type: 'string' } }, allowPositionals: false });
+  if (!values.archive || !values.acceptance || !values.out) throw new Error('Usage: ./bin/release --archive PATH --acceptance PATH --out DIR');
+  const selection = await promoteRelease({ archive: values.archive, acceptance: values.acceptance, out: values.out });
+  console.log(JSON.stringify(selection));
+};
+
+await run().catch(error => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+});

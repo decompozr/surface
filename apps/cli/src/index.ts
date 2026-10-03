@@ -36,10 +36,9 @@ export const main = async (args=process.argv.slice(2)) => {
     console.log(`Surface — shared local service for Git projects and worktrees
 
   install --bundle DIRECTORY         Install a prepared release
-  install --repo PATH --ref COMMIT    Developer source installation
   start [--port 4319]                 Start the owned shared service
   status | stop | restart | recover
-  upgrade --repo PATH --ref COMMIT
+  upgrade --bundle DIRECTORY
   rollback --release ID | uninstall  Preserve service/project data
   serve [--data-root PATH]           Foreground workspace service
   init --directory PATH              Generate a mounted Svelte page locally

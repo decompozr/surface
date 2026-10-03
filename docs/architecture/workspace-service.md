@@ -23,7 +23,7 @@ Surface/
 
 Client and foreground commands additionally allow `--state-dir` or `SURFACE_STATE_DIR`. Explicit home overrides the state environment; explicit state overrides home environment. Supplying both `--home` and `--state-dir` is rejected. Lifecycle operations use the selected installation's `state/`. The default does not change with cwd or worktree and does not copy checkout-local evidence/state into the installation.
 
-Surface owns the built shell, live compiler, identity, backend dispatch and services. CLI owns installation and lifecycle. See [module ownership](package-boundaries.md) for current locations.
+Surface owns the built shell, live compiler, identity, backend dispatch and services. CLI owns prepared installation and lifecycle. Repository `bin/build` and `bin/release` own source candidate production and accepted local promotion; `bin/setup` consumes a selected artifact and configures the installation. See [module ownership](package-boundaries.md) for current locations.
 
 ## Worktree workflow
 
@@ -53,4 +53,4 @@ Uninstall retains service metadata, Git source, persistent project data, backups
 
 ## Verification
 
-`bun run verify:surface` verifies the installed launcher after source relocation and launching-session teardown, route-page browser storage, CLI/MCP identity agreement, retirement, restart and uninstall/reinstall. Tests use disposable Git fixtures and provider data. [Release acceptance](../evaluations/release-candidate.md) adds immutable package and upgrade/rollback gates. Historical milestones are retained in [history](../history/2026-09-24-workspace-boundaries.md).
+`SURFACE_E2E_ARCHIVE=/absolute/accepted-candidate.tar.gz bun run verify:surface` verifies the installed launcher after source relocation and launching-session teardown, route-page browser storage, CLI/MCP identity agreement, retirement, restart and uninstall/reinstall. Tests use disposable Git fixtures and provider data. [Release acceptance](../evaluations/release-candidate.md) adds immutable package and upgrade/rollback gates. Historical milestones are retained in [history](../history/2026-09-24-workspace-boundaries.md).

@@ -19,7 +19,7 @@ Full source context and delivery metadata stay in the record. Read them only whe
 
 ## Setup, update, or test
 
-For installation or updates, read [agent setup](references/setup.md). Use the explicit provider skills directory and a symlink to this checkout’s entire `skills/surface` directory. Never copy the skill into a provider folder. Preserve foreign or broken links and existing directories; report conflicts. Use `./bin/setup` for installation and updates; it reconciles the selected installation with the committed checkout. It does not authorize unrelated Git changes or service migration.
+For installation or updates, read [agent setup](references/setup.md). Use the explicit provider skills directory and a symlink to this checkout’s entire `skills/surface` directory. Never copy the skill into a provider folder. Preserve foreign or broken links and existing directories; report conflicts. Use `./bin/setup --release /absolute/release.json` for installation and updates; it consumes the selected prepared package and configures service and skill links without compiling checkout source. Repeat setup may reuse the saved selection. It does not authorize unrelated Git changes or service migration.
 
 ## Select the existing service
 

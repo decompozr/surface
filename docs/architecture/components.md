@@ -22,7 +22,7 @@ Browser   -> shared shell + mounted CSR page -> request-scoped interaction
 | [Interaction service](../../apps/surface/src/lib/server/services/service.ts), [store](../../apps/surface/src/lib/server/services/store.ts) | Bindings, one-response requests, preflight, durable attempts/results, unsent takeover | Domain interpretation, automatic source edits or exactly-once model execution |
 | [Codex adapter](../../apps/surface/src/lib/server/agent-adapters/codex.ts), [discovery](../../apps/surface/src/lib/server/agent-adapters/discovery.ts) | Exact endpoint/root/thread inspection and supported queue/steer/start; bounded read-only directory | Control of arbitrary conversations or another provider without a verified adapter |
 | [Browser client](../../apps/surface/src/lib/interactions/index.ts), [recipient panel](../../apps/surface/src/lib/components/RecipientPanel.svelte) | Scoped request calls and tab/document delivery intent; shared recipient display | General draft persistence, automatic retries, continuous provider monitoring or complete result rendering |
-| [Installation manager](../../apps/cli/src/installation/manager.ts), [setup](../../apps/cli/src/installation/setup/setup.ts) | Selected release/home, owned lifecycle, symlink verification and setup state | User domain schema migration, remote CLI, OS login service or provider UI discovery acceptance |
+| [Installation manager](../../apps/cli/src/installation/manager.ts), [setup](../../apps/cli/src/installation/setup/setup.ts) | Prepared release/home, owned lifecycle, symlink verification and setup state | User domain schema migration, remote CLI, OS login service or provider UI discovery acceptance |
 | Project backend via [backend dispatcher](../../apps/surface/src/lib/server/http/backends.ts) | Project-defined named operations with workspace resource context; lazy storage under the accepted policy | A generic plugin protocol or adopted shared multi-view backend/sync engine |
 
 The shell build and mounted compiler have different lifecycles: shell changes require rebuilding/restarting the selected release; supported mounted-source changes use the live compiler. Project dependencies resolve in source context while the shared Svelte compiler/runtime stays pinned. Scope and supported route syntax are in [consumer requirements](../requirements/consumers.md).
@@ -37,7 +37,7 @@ The shell build and mounted compiler have different lifecycles: shell changes re
 
 ## Surface application ownership (September 24 correction)
 
-The [application boundary](package-boundaries.md) keeps two workspaces: Surface and CLI. CLI owns installation and lifecycle internally. Surface owns its interaction SDK, contracts, services, provider adapters, page runtime, MCP and templates as internal modules. Root tooling contains repository-wide tasks; integrated verifiers live in `tests/e2e`.
+The [application boundary](package-boundaries.md) keeps two workspaces: Surface and CLI. CLI owns prepared installation and lifecycle internally. Repository tooling owns candidate builds, acceptance-based local promotion and selected-release setup; setup never hides a source build. Surface owns its interaction SDK, contracts, services, provider adapters, page runtime, MCP and templates as internal modules. Root tooling contains repository-wide tasks; integrated verifiers live in `tests/e2e`.
 
 Repository checks enforce dependency direction, declared dependencies and an acyclic graph. Installation resolves only the current application layout.
 

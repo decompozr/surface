@@ -11,11 +11,23 @@ For every Surface update/release, check the design-system provider's latest comm
 Build a committed Surface revision with the verified provider package:
 
 ```sh
-bun scripts/release/build.ts --version 0.1.0-rc.YYYYMMDD.N --ref COMMIT \
+./bin/build --version 0.1.0-rc.YYYYMMDD.N --ref COMMIT \
   --design-system-package /absolute/frozen-provider --out /absolute/surfaces
 ```
 
 The source revision, provider pin, bundled runtime, file inventory and archive checksum identify the candidate. The provider override must match the selected Surface commit's pin and never replaces a development link. The release is a native macOS arm64 archive; signing/notarization and other platforms remain separate work.
+
+In a separate source export of that revision with the same frozen dependencies/provider package, run the repository type check, Surface check, app/CLI tests and existing MCP/project-access verifiers:
+
+```sh
+bun run check
+bun run --cwd apps/surface check
+bun run test
+bun run verify:mcp
+bun run verify:project-access
+```
+
+These establish the source gate only. They do not replace packaged browser, installed lifecycle or visual acceptance.
 
 Exercise installation and lifecycle through the shipped launcher:
 
@@ -39,6 +51,32 @@ bun run test:e2e:comments
 ```
 
 Prepared-release mode checks package integrity before and after the run. It runs the delivery/guard tests and eight demo/mounted browser profiles plus toolbar, keyboard, touch and viewport checks using frozen assets. It checks/builds the fixture overlay in a disposable copy; it does not rebuild or modify the immutable production package. Run source checks against a separate source export with the same frozen dependencies; do not mutate the tested package. Installed launcher coverage is the separate lifecycle gate above.
+
+## Required acceptance receipt
+
+After all required verification and rendered inspection finish, record a trusted acceptance receipt for the exact archive. `./bin/release` validates this contract; it does not execute the gates or authenticate the author's observations.
+
+```json
+{
+  "format": 1,
+  "sha256": "ARCHIVE_SHA256",
+  "commit": "SURFACE_COMMIT",
+  "provider": {
+    "commit": "PROVIDER_COMMIT",
+    "packageSha256": "PROVIDER_PACKAGE_SHA256"
+  },
+  "gates": {
+    "source": { "status": "pass" },
+    "comments": { "status": "pass" },
+    "lifecycle": { "status": "pass" },
+    "visual": { "status": "pass", "phone": true, "desktop": true, "findingsResolved": true }
+  }
+}
+```
+
+Use actual full commit IDs and SHA-256 digests. Source checks must use the selected revision and frozen provider bytes; comments must cover the full delivery/UI matrix; lifecycle must cover the installed CLI/MCP and state-preserving upgrade/rollback acceptance above. Visual acceptance requires inspecting affected shipped routes at phone and desktop sizes, resolving findings and inspecting again under the [automatic audit gate](../source-workflow.md#uiux-completion-gate). For a bounded remaining device limitation, visual may be `limited` only with both inspected size flags and `findingsResolved` true and a nonempty `limitation` explanation for remaining device/accessibility verification constraints. Known in-scope UI findings must be resolved. This never substitutes for rendered inspection or allows a failed functional gate. Record actual physical-device limitations separately.
+
+Promote the accepted bytes with `./bin/release --archive ARCHIVE --acceptance RECEIPT --out DIRECTORY`, then select `DIRECTORY/release.json` for setup. Local promotion produces no new package bytes and grants no installation or publication authorization. A failed, missing, mismatched or unexecuted required gate cannot be recorded as passing.
 
 ## Evidence retention
 
