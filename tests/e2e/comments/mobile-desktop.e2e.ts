@@ -56,17 +56,15 @@ for (const profile of ['desktop', 'touch-chromium', 'mobile'] as const) {
     await menu.evaluate(el => (el as HTMLButtonElement).click());
     await page.waitForTimeout(70);
     const movingLeft = await page.locator('#surface-navigation').boundingBox();
-    if (profile !== 'desktop') {
-      expect(movingLeft!.x).toBeLessThan(0);
-      expect(movingLeft!.x).toBeGreaterThan(-movingLeft!.width);
-    } else expect(movingLeft!.x).toBe(0);
+    if (!movingLeft || !before) throw new Error('Navigation or page geometry is unavailable');
+    expect(movingLeft.x).toBeLessThan(0);
+    expect(movingLeft.x).toBeGreaterThan(-movingLeft.width);
     await expect(menu).toHaveAttribute('aria-expanded', 'true');
     const left = page.getByRole('complementary', { name: 'Workspace navigation' });
     await expect(left).toBeVisible();
     await page.waitForTimeout(250);
-    if (profile !== 'desktop') expect((await main.boundingBox())!.width).toBe(before!.width);
-    else expect((await main.boundingBox())!.width).toBeLessThan(before!.width);
-    if (profile !== 'desktop') expect(await left.evaluate(el => getComputedStyle(el).transitionDuration)).not.toBe('0s');
+    expect((await main.boundingBox())?.width).toBe(before.width);
+    expect(await left.evaluate(el => getComputedStyle(el).transitionDuration)).not.toBe('0s');
     await menu.click();
     await expect(menu).toHaveAttribute('aria-expanded', 'false');
     await page.waitForTimeout(250);
