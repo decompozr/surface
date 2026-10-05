@@ -5,6 +5,7 @@
 ## Start here
 
 - Product scope: [vision](intent/vision.md), [principles](intent/principles.md), [consumers](requirements/consumers.md).
+- Adopted page direction: [typed, templated, persisted pages](requirements/template-pages.md), including explicit view state and project extensions; implementation pending.
 - Installation and use: [user setup](../SETUP.md), [agent setup](../skills/surface/references/setup.md), [page authoring](../skills/surface/references/pages.md).
 - Implementation: [module ownership](architecture/package-boundaries.md), [component interactions](architecture/components.md), [state and lifecycle](architecture/lifecycle.md).
 - User experience: [design](design/README.md).
@@ -17,7 +18,7 @@ Each subject has one source of authority. Other documents should link to that so
 | Category | Owns | Main sources |
 | --- | --- | --- |
 | `intent/` | User value, product scope and principles | [Vision](intent/vision.md), [principles](intent/principles.md) |
-| `requirements/` | Observable behavior and exclusions; explicitly labeled proposals | [Consumers](requirements/consumers.md), [runtime](requirements/runtime.md), [agent interaction](requirements/agent-interaction.md), [continuation proposal](requirements/project-continuation.md) |
+| `requirements/` | Observable behavior and exclusions; explicitly labeled proposals | [Consumers](requirements/consumers.md), [runtime](requirements/runtime.md), [template pages](requirements/template-pages.md), [agent interaction](requirements/agent-interaction.md), [continuation proposal](requirements/project-continuation.md) |
 | `architecture/` | Implementation ownership, state, operations and invariants | [Modules](architecture/package-boundaries.md), [components](architecture/components.md), [lifecycle](architecture/lifecycle.md), [project operations](architecture/project-operations.md), [workspace service](architecture/workspace-service.md), [installation](architecture/installation-lifecycle.md), [release distribution](architecture/release-distribution.md) |
 | `design/` | Navigation, interaction states, recovery, drafts and accessibility | [Design index](design/README.md) |
 | `evaluations/` | Traceability and acceptance procedures | [Evaluation index](evaluations/README.md) |

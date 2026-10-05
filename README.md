@@ -10,7 +10,7 @@ The current implementation is a local Svelte runtime for trusted Git projects an
 - [Surface skill](skills/surface/SKILL.md): agent-managed setup, project pages, exact conversation binding and replies.
 - [Source documentation](docs/README.md): product intent, current contracts, design and verification.
 
-Private Tailscale browser access is supported by source setup. Browser access, provider connectivity, delivery acknowledgement and completed agent work are separate acceptance checks. A tested local candidate is not a signed/notarized general-availability release.
+Repository `bin/build`, `bin/release` and `bin/setup` separate candidate builds, accepted local promotion and prepared installation/configuration. Private Tailscale browser access is supported by checkout setup. Browser access, provider connectivity, delivery acknowledgement and completed agent work are separate acceptance checks. A tested local candidate is not a signed/notarized general-availability release.
 
 ## Repository layout
 

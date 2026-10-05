@@ -4,8 +4,8 @@ import { createConnection } from 'node:net';
 import { randomBytes } from 'node:crypto';
 
 import { requireCompatibleBun } from './bun-version.ts';
-import { verifyBundle } from './bundle.ts';
-import { materializeDesignSystem } from './design-system.ts';
+import { verifyBundle, sameBundle } from './bundle.ts';
+import { object, string, commit } from './json.ts';
 
 const requireBun = (directory: string, prepared?: Release) => {
   const pkg = read<{ packageManager?: string }>(join(directory, 'package.json'));
@@ -14,13 +14,6 @@ const requireBun = (directory: string, prepared?: Release) => {
 
 const atomic = (path: string, data: unknown) => { writeFileSync(path + '.tmp', JSON.stringify(data, null, 2) + '\n', { mode: 0o600 }); renameSync(path + '.tmp', path); };
 
-const command = async (args: string[], cwd?: string) => {
-  const child = Bun.spawn(args, { cwd, stdout: 'pipe', stderr: 'pipe' });
-  const [code, stdout, stderr] = await Promise.all([child.exited, new Response(child.stdout).text(), new Response(child.stderr).text()]);
-  if (code !== 0) throw new Error(`Command failed (${code}): ${args[0]} ${args.slice(1, 4).join(' ')}\n${stderr.slice(-8000)}${stdout.slice(-8000)}`);
-  return stdout.trim();
-};
-
 const alive = (pid: number) => {
   if (!Number.isInteger(pid) || pid < 1) throw new Error('Invalid owned PID metadata.');
   try { process.kill(pid, 0); return true; } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ESRCH') return false; throw error; }
@@ -28,14 +21,17 @@ const alive = (pid: number) => {
 
 
 export type Host = 'surface';
-type Release = { version: 1; release: string; commit: string; host: Host; bun: string; installedAt: string };
+export type Release = { version: 1; release: string; commit: string; host: Host; bun: string; installedAt: string };
+export const parseRelease = (value: unknown): Release => {
+  if (!object(value) || value.version !== 1 || !commit(value.commit) || value.release !== value.commit + '-surface' || value.host !== 'surface' || !string(value.bun) || !string(value.installedAt)) throw new Error('Invalid installation release metadata.');
+  return {version: 1, release: value.release, commit: value.commit, host: 'surface', bun: value.bun, installedAt: value.installedAt};
+};
 type Owner = { version: 1; release: string; commit: string; host: Host; pid: number; nonce: string; secret: string; instanceId: string; origin: string };
 const read = <T>(path: string): T => JSON.parse(readFileSync(path, 'utf8'));
 
 export class Installation {
   readonly home: string;
-  constructor(home: string, private readonly validateRelease?: (directory: string, stateDir: string) => Promise<void>,
-    private readonly buildOptions: { designSystemPackage?: string } = {}) { this.home = resolve(home); }
+  constructor(home: string, private readonly validateRelease?: (directory: string, stateDir: string) => Promise<void>) { this.home = resolve(home); }
   private initialize() {
     if (existsSync(this.home) && lstatSync(this.home).isSymbolicLink()) throw new Error('Installation home must not be a symlink.');
     mkdirSync(this.home, { recursive: true, mode: 0o700 });
@@ -91,57 +87,19 @@ export class Installation {
       socket.on('end', () => { if (!received.includes('\n')) { clearTimeout(timer); reject(new Error('Lifecycle socket ended without a verified response.')); } });
     });
   }
-  async install(repo: string, ref: string, host: Host = 'surface', prepareEntry?: (directory: string, release: string) => Promise<void>) {
-    return this.locked(async () => {
-      this.ensureStopped();
-      if (host !== 'surface') throw new Error('Unknown host.');
-      const commit = await command(['git', '-C', realpathSync(repo), 'rev-parse', '--verify', `${ref}^{commit}`]);
-      if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error('Expected a full Git commit identity.');
-      const release = `${commit}-${host}`;
-      const directory = join(this.home, 'releases', release);
-      if (existsSync(directory)) {
-        const manifest = read<Release>(join(directory, '.surface-release.json'));
-        if (manifest.commit !== commit || manifest.host !== host || manifest.release !== release) throw new Error('Existing release identity mismatch.');
-        requireBun(directory, manifest);
-        await this.validateRelease?.(directory, join(this.home, 'state'));
-        await prepareEntry?.(directory, release);
-        atomic(join(this.home, 'active.json'), manifest); return manifest;
-      }
-      const staging = join(this.home, 'releases', `.preparing-${crypto.randomUUID()}`);
-      const archive = staging + '.tar'; mkdirSync(staging);
-      try {
-        await command(['git', '-C', realpathSync(repo), 'archive', '--format=tar', `--output=${archive}`, commit]);
-        await command(['tar', '-xf', archive, '-C', staging]);
-        requireBun(staging);
-        await command([process.execPath, 'install', '--frozen-lockfile', '--ignore-scripts'], staging);
-        if (read<{ dependencies?: Record<string, string> }>(join(staging, 'apps/surface/package.json')).dependencies?.['@decompozr/design-system']?.startsWith('link:')) {
-          materializeDesignSystem(realpathSync(repo), staging, this.buildOptions.designSystemPackage);
-        }
-        await command([process.execPath, 'run', 'build'], join(staging, 'apps/surface'));
-        await this.validateRelease?.(staging, join(this.home, 'state'));
-        const manifest: Release = { version: 1, release, commit, host, bun: Bun.version, installedAt: new Date().toISOString() };
-        atomic(join(staging, '.surface-release.json'), manifest);
-        renameSync(staging, directory);
-        await prepareEntry?.(directory, release);
-        // Activation is last: failed dependency preparation/build cannot displace the active release.
-        atomic(join(this.home, 'active.json'), manifest);
-        return manifest;
-      } finally { rmSync(archive, { force: true }); rmSync(staging, { recursive: true, force: true }); }
-    });
-  }
   async installPrepared(source: string, prepareEntry: (directory: string, release: string) => Promise<void>) {
     return this.locked(async () => {
       this.ensureStopped();
       source=realpathSync(source);
       const bundle=verifyBundle(source);
       const release=`${bundle.commit}-surface`, directory=join(this.home,'releases',release);
-      const manifest=read<Release>(join(source,'.surface-release.json'));
+      const manifest=parseRelease(JSON.parse(readFileSync(join(source,'.surface-release.json'), 'utf8')));
       if(manifest.commit!==bundle.commit||manifest.release!==release||manifest.host!=='surface')throw new Error('Bundle release identity mismatch.');
       requireBun(source,manifest);
       await this.validateRelease?.(source,join(this.home,'state'));
       if(existsSync(directory)) {
         const existing=verifyBundle(directory);
-        if(existing.version!==bundle.version||JSON.stringify(existing.files)!==JSON.stringify(bundle.files))throw new Error('Installed release differs from the selected bundle.');
+        if(!sameBundle(existing,bundle))throw new Error('Installed release differs from the selected bundle.');
       } else {
         const staging=join(this.home,'releases',`.preparing-${crypto.randomUUID()}`);
         try {

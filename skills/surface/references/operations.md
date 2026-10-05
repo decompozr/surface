@@ -4,18 +4,18 @@ Use the [public entry guide](../../../docs/architecture/workspace-service.md) fo
 
 ## Installation and service
 
-Install a pinned committed revision when the task includes setup:
+Install a verified prepared bundle when the task includes installation. For checkout service/skill configuration, use [setup](setup.md) with a selected `release.json`:
 
 ```sh
-surface install --repo /path/to/surface --ref FULL_COMMIT
+surface install --bundle /absolute/prepared-bundle
 surface start
 surface status
 surface doctor
 ```
 
-The default home is `~/.decompozr/surface` on macOS/Linux. `--home`/`SURFACE_HOME` selects another home. Releases, state, tooling and persistent project data have separate directories. The default port is 4319; a requested conflict fails without fallback. No login service is installed.
+The default home is `~/.decompozr/surface` on macOS/Linux. `--home`/`SURFACE_HOME` selects another home. Releases, state, tooling and persistent project data have separate directories. The default port is 4319; a requested conflict fails without fallback. No login service is installed. Runtime install/upgrade never clone, export, install dependencies or build source; repository `bin/build` and `bin/release` own candidate production and promotion.
 
-`stop` uses authenticated process ownership. `restart` preserves the configured port. `upgrade --repo ... --ref ...`, `rollback --release ...` and `uninstall` require a stopped owned host. Uninstall retains state, project data and the bootstrap launcher; unresolved accepted/delivering/unknown interactions without results block uninstall even if closed. `recover` handles only verified dead host ownership. Do not remove arbitrary locks or signal a PID merely because it appears in a file.
+`stop` uses authenticated process ownership. `restart` preserves the configured port. `upgrade --bundle /absolute/prepared-bundle`, `rollback --release ...` and `uninstall` require a stopped owned host. Uninstall retains state, project data and the bootstrap launcher; unresolved accepted/delivering/unknown interactions without results block uninstall even if closed. `recover` handles only verified dead host ownership. Do not remove arbitrary locks or signal a PID merely because it appears in a file.
 
 `surface serve --state-dir STATE --data-root DATA` is the foreground shared host. Do not run it against an installed service's active state. It requires the SvelteKit shell build.
 

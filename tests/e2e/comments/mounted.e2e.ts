@@ -122,7 +122,7 @@ const input = { bindingId: binding.id, namespace: mount.namespace, name: mount.n
       await (mobile ? navToggle.tap() : navToggle.click());
       await expect(navigation).toBeHidden();
       await (mobile ? navToggle.tap() : navToggle.click());
-      await expect.poll(async () => Math.abs((await navigation.boundingBox())?.x ?? 999)).toBeLessThan(1);
+      await expect.poll(async () => { const bounds = await navigation.boundingBox(); return !!bounds && bounds.width >= 279 && Math.abs(bounds.x) <= 1; }).toBe(true);
       await expect(navigation).toBeVisible();
       await page.screenshot({ path: join(output, name + '-navigation.png'), fullPage: true });
       await page.getByRole('button', { name: 'Toggle navigation', exact: true }).click();

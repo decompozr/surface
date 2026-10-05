@@ -1,15 +1,10 @@
 import { join, resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
 
-
-export const loadPrompts = async (bootstrap=false) => {
- const root=resolve(import.meta.dir,'../../../../..');
- if(!existsSync(join(root,'node_modules/@clack/prompts/package.json'))) {
-  if(!bootstrap)throw new Error('Setup UI dependencies are missing. Run ./bin/setup or bun install --frozen-lockfile --ignore-scripts.');
-  console.log('Preparing Surface setup…');
-  const child=Bun.spawn([process.execPath,'install','--frozen-lockfile','--ignore-scripts'],{cwd:root,stdout:'pipe',stderr:'pipe'});
-  const [code,out,err]=await Promise.all([child.exited,new Response(child.stdout).text(),new Response(child.stderr).text()]);
-  if(code)throw new Error('Could not prepare setup dependencies.\n'+err+out);
- }
- return import('@clack/prompts');
+let source = resolve(import.meta.dir, '../../../../..');
+export const configurePrompts = (directory: string) => { source = directory; };
+/** Use dependencies shipped in the selected release; setup never installs dependencies. */
+export const loadPrompts = async (): Promise<typeof import('@clack/prompts')> => {
+  const require = createRequire(join(source, 'package.json'));
+  return import(require.resolve('@clack/prompts'));
 };

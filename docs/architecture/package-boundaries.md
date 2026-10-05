@@ -7,9 +7,9 @@ The repository has two Bun workspaces under `apps/` and one root lockfile. A dis
 | Workspace | Responsibility | Dependencies within this repository |
 | --- | --- | --- |
 | `apps/surface` | SvelteKit UI, services, HTTP/MCP, mounted pages and product templates | None |
-| `apps/cli` | Commands, calls to Surface, setup, installation, activation, process lifecycle and rollback | Surface public exports |
+| `apps/cli` | Commands, calls to Surface, prepared installation, activation, process lifecycle and rollback | Surface public exports |
 
-Cross-workspace imports use declared exports and `workspace:*` dependencies. Surface cannot import CLI. Installation is an internal CLI module under `src/installation`, not an independent application. The dependency graph must remain acyclic. Do not create a parallel root `packages/` tree.
+Cross-workspace imports use declared exports and `workspace:*` dependencies. Surface cannot import CLI. Prepared installation is an internal CLI module under `src/installation`, not an independent application. Repository-owned `bin/build`, `bin/release` and `bin/setup` separate candidate production, trusted acceptance/local promotion and selected package/service/skill setup. Source export, dependency installation and release production belong to repository tooling, never the runtime CLI. The dependency graph must remain acyclic. Do not create a parallel root `packages/` tree.
 
 ## Surface modules
 

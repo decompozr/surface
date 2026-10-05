@@ -1,6 +1,6 @@
 # Installation and lifecycle
 
-[SETUP.md](../../SETUP.md) owns user procedures; [workspace service](workspace-service.md) owns service/home layout and selection. This document owns lifecycle and lazy-storage invariants. [Release distribution](release-distribution.md) describes package construction.
+[SETUP.md](../../SETUP.md) owns user procedures; [workspace service](workspace-service.md) owns service/home layout and selection. This document owns lifecycle and lazy-storage invariants. [Release distribution](release-distribution.md) describes repository-owned package construction, trusted acceptance and local promotion. Setup consumes a selected prepared release; the runtime installer never builds source.
 
 ## Accepted project storage policy
 
@@ -19,7 +19,7 @@ Surface metadata is a separate decision. If SQLite is later chosen for the servi
 
 | Concern | Required behavior |
 | --- | --- |
-| Releases | Identify the installed code/dependency/build revision and keep it separate from persistent state. |
+| Releases | Consume a verified prepared bundle without source export, dependency installation or compilation. Identify the installed code/dependency/build revision and keep it separate from persistent state. |
 | Service state | Preserve identities, bindings, interaction records, and ownership information across supported lifecycle operations. |
 | Project files | Retain source, dependency declarations, domain data, and any SQLite sidecars needed for recovery. |
 | Startup/status | Report the actual instance and readiness; restoring mount intent must not eagerly open project databases. |
@@ -42,4 +42,4 @@ Workspace retirement is defined by [workspace service](workspace-service.md). So
 5. Failed startup/upgrade and supported rollback have explicit, recoverable outcomes; project sources/data survive uninstall and reinstall.
 6. Owned host/installer processes exit as expected. New installed-lifecycle evidence is recorded separately from the development experiment results.
 
-Current executable gates are `bun run verify:surface`, the app lifecycle tests and the [release candidate checks](../evaluations/release-candidate.md). Dated experiments remain evidence of their original revisions only.
+Current executable gates are `SURFACE_E2E_ARCHIVE=/absolute/accepted-candidate.tar.gz bun run verify:surface`, the app lifecycle tests and the [release candidate checks](../evaluations/release-candidate.md). Dated experiments remain evidence of their original revisions only.

@@ -65,7 +65,7 @@ try {
 
   const retained = async (label: string) => {
     await page.goto(preview, { waitUntil: 'networkidle' });
-    await page.getByRole('button', { name: /Open comments/ }).click();
+    if (!await page.getByRole('button', { name: 'Close comments', exact: true }).isVisible()) await page.getByRole('button', { name: /Open comments/ }).click();
     await expect(page.getByText('Preserve this draft through upgrade and rollback.', { exact: true })).toBeVisible();
     for (const record of stored) expect(readFileSync(record.path, 'utf8')).toBe(record.value);
     expect(readFileSync(join(project, 'ui/routes/+page.svelte'), 'utf8')).toBe(source);
@@ -99,9 +99,8 @@ try {
   await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
   const page = await context.newPage();
   await page.goto(preview, { waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: 'Select and comment', exact: true }).click();
+  await page.getByRole('toolbar', { name: 'Comment tools', exact: true }).getByRole('button', { name: 'Comment', exact: true }).click();
   await page.locator('#release-title').click();
-  await page.getByRole('button', { name: 'Comment on selected element', exact: true }).click();
   await page.locator('#comment').fill('Preserve this draft through upgrade and rollback.');
   await page.getByRole('button', { name: 'Add comment to draft' }).click();
   const workspaceBefore = await installed('workspace', 'list');
