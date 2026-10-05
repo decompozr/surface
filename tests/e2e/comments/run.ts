@@ -74,6 +74,7 @@ for (const scenario of layoutOnly ? [] : ['idle', 'active']) {
   });
 }
 await run(['bun', 'tests/e2e/surface/verify-theme.ts'], { COMMENTS_E2E_APP_DIR: appSnapshot, SURFACE_EDITOR_OUTPUT: join(output, 'theme') });
+await run(['bun', 'tests/e2e/surface/verify-design-source.ts'], { COMMENTS_E2E_APP_DIR: appSnapshot, SURFACE_EDITOR_OUTPUT: join(output, 'design-source') });
 await run(['bun', 'tests/e2e/surface/verify-embedded-viewport.ts'], { COMMENTS_E2E_APP_DIR: appSnapshot, SURFACE_EDITOR_OUTPUT: join(output, 'embedded-viewport') });
 // Geometry tests use the fixture build with a local-only recipient and no real state.
 const reservation = createServer();

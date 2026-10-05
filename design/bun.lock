@@ -11,7 +11,7 @@
     },
   },
   "packages": {
-    "@decompozr/design-system": ["@decompozr/design-system@vendor/design-system.tgz", { "peerDependencies": { "svelte": "^5.46.4" } }, "sha512-NlNpUbpO4r/zDUDzcato0RlPtTHFZ0EhSBMwgwe/BepMxAB0OHCJGZjZr/3iyXss8ZsyVSU3+wJb1n2LjKHJ2A=="],
+    "@decompozr/design-system": ["@decompozr/design-system@vendor/design-system.tgz", { "peerDependencies": { "svelte": "^5.46.4" } }, "sha512-RsPeI2ET6qMnohLpIHx7YbsBV5XG2X7PmR2wryNVBZtRuWkWpVMwwBXqGxMBfHKbnSzdvHxONt6+CnwkNQkFYA=="],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 
