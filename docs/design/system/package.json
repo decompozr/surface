@@ -1,0 +1,82 @@
+{
+  "name": "@decompozr/design-system",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "DecompozR UI foundation: a SvelteKit catalog, Storybook and an independently versioned Svelte library.",
+  "files": [
+    "dist",
+    "DESIGN.md",
+    "DESIGN-REVIEW.md",
+    "AGENTS.example.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "svelte": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json",
+    "./fonts.css": "./dist/fonts.css",
+    "./logo-white.svg": "./dist/assets/decompozr-logo-white.svg",
+    "./icon-white.svg": "./dist/assets/decompozr-icon-white.svg",
+    "./logo-milk-green-light.svg": "./dist/assets/decompozr-logo-milk-green-light.svg",
+    "./icon-milk-green-light.svg": "./dist/assets/decompozr-icon-milk-green-light.svg",
+    "./logo-milk-green-dark.svg": "./dist/assets/decompozr-logo-milk-green-dark.svg",
+    "./icon-milk-green-dark.svg": "./dist/assets/decompozr-icon-milk-green-dark.svg",
+    "./icon-small-milk-green-light.svg": "./dist/assets/decompozr-icon-small-milk-green-light.svg",
+    "./icon-small-milk-green-dark.svg": "./dist/assets/decompozr-icon-small-milk-green-dark.svg",
+    "./icon-small-white.svg": "./dist/assets/decompozr-icon-small-white.svg",
+    "./logo-soft-milk-light.svg": "./dist/assets/decompozr-logo-soft-milk-light.svg",
+    "./icon-soft-milk-light.svg": "./dist/assets/decompozr-icon-soft-milk-light.svg",
+    "./icon-small-soft-milk-light.svg": "./dist/assets/decompozr-icon-small-soft-milk-light.svg",
+    "./logo-soft-milk-dark.svg": "./dist/assets/decompozr-logo-soft-milk-dark.svg",
+    "./icon-soft-milk-dark.svg": "./dist/assets/decompozr-icon-soft-milk-dark.svg",
+    "./icon-small-soft-milk-dark.svg": "./dist/assets/decompozr-icon-small-soft-milk-dark.svg",
+    "./logo-soft-milk-gray-light.svg": "./dist/assets/decompozr-logo-soft-milk-gray-light.svg",
+    "./icon-soft-milk-gray-light.svg": "./dist/assets/decompozr-icon-soft-milk-gray-light.svg",
+    "./icon-small-soft-milk-gray-light.svg": "./dist/assets/decompozr-icon-small-soft-milk-gray-light.svg",
+    "./logo-soft-milk-gray-dark.svg": "./dist/assets/decompozr-logo-soft-milk-gray-dark.svg",
+    "./icon-soft-milk-gray-dark.svg": "./dist/assets/decompozr-icon-soft-milk-gray-dark.svg",
+    "./icon-small-soft-milk-gray-dark.svg": "./dist/assets/decompozr-icon-small-soft-milk-gray-dark.svg",
+    "./DESIGN.md": "./DESIGN.md",
+    "./DESIGN-REVIEW.md": "./DESIGN-REVIEW.md",
+    "./AGENTS.example.md": "./AGENTS.example.md"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "storybook": "storybook dev -p 6006 --host 127.0.0.1 --no-open --disable-telemetry",
+    "build-storybook": "storybook build --disable-telemetry",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc --noEmit",
+    "package": "svelte-kit sync && svelte-package --input src/lib --output dist",
+    "prepack": "npm run package",
+    "prebuild": "node scripts/daemon.mjs assert-build-safe",
+    "daemon": "node scripts/daemon.mjs",
+    "prepare": "svelte-kit sync"
+  },
+  "peerDependencies": {
+    "svelte": "^5.46.4"
+  },
+  "devDependencies": {
+    "@storybook/sveltekit": "10.6.0",
+    "@sveltejs/adapter-node": "5.5.7",
+    "@sveltejs/kit": "2.70.3",
+    "@sveltejs/package": "2.5.8",
+    "@sveltejs/vite-plugin-svelte": "7.3.0",
+    "@types/node": "24.10.1",
+    "storybook": "10.6.0",
+    "svelte": "5.57.0",
+    "svelte-check": "4.4.5",
+    "typescript": "5.9.3",
+    "vite": "8.3.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/decompozr/design-system.git"
+  }
+}
