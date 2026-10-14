@@ -51,3 +51,7 @@ These references do not justify adding session orchestration, model pickers, cod
 The project-owned `design/` source is mounted separately from `examples/`. Start with controls and focus, then review tabs, navigation, comment tools and the complete shell one element at a time. Specimens import shared design-system components. Experiments are not automatically adopted changes: record accepted behavior here and implement reusable visuals in the design-system provider.
 
 The [workbench contract](workbench.md) owns command dispatch, layout preferences, shortcuts and session restoration.
+
+## Shared guidelines for agents
+
+Read the [versioned provider design guide](system/DESIGN.md), [review checklist](system/DESIGN-REVIEW.md), and [Surface applicability and provenance](system-adoption.md) before UI work. These are exact provider snapshots for agent access. They supplement this design index and do not replace Surface product behavior, installed-runtime evidence or release gates.

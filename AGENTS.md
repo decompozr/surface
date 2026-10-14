@@ -42,6 +42,8 @@ Follow `docs/architecture/package-boundaries.md`. Use only the Surface and CLI w
 
 ## Design-system consumption
 
+Before UI work, read the pinned provider [design guide](docs/design/system/DESIGN.md) and [review checklist](docs/design/system/DESIGN-REVIEW.md), then [Surface applicability and provenance](docs/design/system-adoption.md). These exact package-document snapshots make the shared rules available to agents without network or dependency-resolution assumptions. The guide pin is separate from `apps/surface/design-system.lock.json`; check both before relying on a component capability. Keep shared presentation in the provider and Surface behavior in `docs/design/`. Complete the checklist and Surface's existing rendered/interaction audit before delivery; report engineering, visual review and human acceptance separately.
+
 Use design-system primitives and their public APIs for shared UI appearance and interaction behavior. Do not create replacement primitives or override internal component selectors for visual density, icons, colors, borders, shadows or interaction states. Keep Surface CSS focused on product-specific layout and positioning where needed. Check existing APIs first; when a capability is missing, submit a concrete upstream design-system request and adopt its committed implementation instead of adding a local workaround. Any unavoidable local exception must state its reason and removal condition.
 
 ## Test placement

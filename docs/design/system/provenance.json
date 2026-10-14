@@ -1,0 +1,25 @@
+{
+  "packageName": "@decompozr/design-system",
+  "guidanceVersion": "0.2.0",
+  "tag": "v0.2.0",
+  "release": "https://github.com/decompozr/design-system/releases/tag/v0.2.0",
+  "providerCommit": "d3fd7cc248b06d928848dda6055d128917fa09c9",
+  "archive": "decompozr-design-system-0.2.0.tgz",
+  "archiveSHA256": "49d1ad9983801efec5f3925017a432e70b1a8f5f1334e1ba8a90c1f7ea15b14a",
+  "files": {
+    "DESIGN.md": "085a1287a6f55c72ae749bfc39bb6ce96f2ab7bfd3e7e14dc7969d295c6bcaa3",
+    "DESIGN-REVIEW.md": "68fa12baae33efb3a09efe7a939518179b3a177f3606ce9498c5bb6b441fe9a7",
+    "AGENTS.example.md": "7305e766df7eafec2d28c134ce3d90fd20bab6468679dbd4ff6aecdad0042267",
+    "README.md": "a89f9d3f6b6a0d273d949a12cd5277fd801d55345a3d11cf61baed89fad60a5c",
+    "package.json": "edcb5fb915e5da3940730189084b646c84e348102217ca5fc58bd11903860ff5"
+  },
+  "runtimePinAtAdoption": {
+    "version": 1,
+    "name": "@decompozr/design-system",
+    "packageVersion": "0.0.0",
+    "fileCount": 149,
+    "sha256": "7027dcee051e89272c40bbd935cc6dd99add12a2165886f5d288023ffcee668f",
+    "providerCommit": "c0863d99015cfd6b039755f2f2fb94ce5ee47aa7"
+  },
+  "scope": "Documentation only; does not install or upgrade the Surface runtime."
+}
