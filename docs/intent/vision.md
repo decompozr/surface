@@ -1,8 +1,24 @@
 # Product vision
 
-Surface helps people and agents make ideas tangible, clarify intent through interaction, and learn from observations and experiments.
+Surface is a personal hobby experiment in externalizing the knowledge and tools created during an AI conversation. A document, visualization or small interactive tool can live alongside a project while keeping a feedback connection to the exact conversation that created it.
 
-Surface gives humans and agents a shared, extensible interactive environment for representing, manipulating, and simulating systems.
+The question is: **how can work leave the chat interface without losing the agent context that makes it useful?**
+
+## Core ideas
+
+- **Experiment through interaction.** Make ideas tangible, try them, and use observations to clarify what should happen next.
+- **Provider-independent architecture.** Separate the page runtime and interaction contracts from agent-provider adapters. Independence is an architectural goal, not a claim that every provider is supported today.
+- **Externalized knowledge and tools.** Give explanations, comparisons, diagrams and small tools an interface people can inspect and use outside a chat window.
+- **The same agent, with the same context.** Bind a page to an exact originating conversation. Explicit page feedback returns to that conversation; the agent's response returns to the page. A mounted page alone does not establish that connection.
+- **Git-versioned project ownership.** Keep page source, manifests and dependency lockfiles in the project for review, comparison, rollback and merge. Credentials, private runtime records and domain data are separate from source history.
+- **Multiple worktrees.** Give parallel worktrees distinct workspace identities, pages and conversation bindings through a shared local service. Merging source does not merge runtime data or transfer interactions.
+- **Private cross-device access.** Optionally use Tailscale Serve to reach the same workspace from another device on the tailnet. It is an access mechanism, not a replacement for conversation binding.
+
+## Current implementation and direction
+
+Today, projects supply trusted Svelte route pages and Surface mounts them. It does not import their source into a general document store. The existing runtime provides structured interactions, contextual selection/screenshots/comments and explicit agent delivery. Runtime behavior, engineering verification and human acceptance remain separate claims.
+
+Persistent editable template instances are the next adopted direction, described below; they are not an implemented general document editor.
 
 ## Persistent, editable pages
 
@@ -18,7 +34,7 @@ Projects need ways to make their systems, data, and ideas understandable and act
 
 Surface provides the runtime foundation for that exchange. A project creates an interactive representation, mounts it, and makes it available to people or agents. Interaction returns structured input to the responsible project or agent, which interprets it and updates the experience. Web pages and components are the first delivery form; the product's scope is the shared interactive environment.
 
-Surface has value independently of DecompozR. DecompozR may produce experiences, consume their events, or coordinate capabilities, just as another project or agent can. Surface must operate without DecompozR-specific concepts or services.
+Surface is an independent personal experiment. Other projects and agent providers can produce experiences or consume their events; Surface must operate without a particular orchestration platform. Its interaction loop connects a page to the exact originating conversation, while project sources remain Git-versioned and each worktree retains its own identity.
 
 The long-term direction includes experiences composed from Web, Graph, CAD, Simulation, Data, or other capabilities. Native representations and structured agent interfaces are possible future delivery forms. These are extension directions, not implemented features or requirements for v0. Domain computation belongs to the relevant capability or project.
 
@@ -59,7 +75,7 @@ This separation guides implementation. It does not introduce a public plugin API
 
 ### Projects own content and domain meaning
 
-Projects retain their source files, definitions, dependency declarations, and authoritative domain data. A capability or project decides what a parameter means, which operations are valid, and how domain results are computed. Surface Core should not acquire CAD geometry rules, physics models, financial formulas, or DecompozR orchestration logic.
+Projects retain their source files, definitions, dependency declarations, and authoritative domain data. A capability or project decides what a parameter means, which operations are valid, and how domain results are computed. Surface Core should not acquire CAD geometry rules, physics models, financial formulas, or application-specific orchestration logic.
 
 An experience can use a browser page without making “page” the universal product abstraction. Existing surface IDs, manifests, and commands remain valid implementation contracts; this conceptual model does not rename or migrate them.
 
@@ -97,7 +113,7 @@ Project creates interactive source
   -> The project or agent updates the result or interface
 ```
 
-An agent can use this loop without DecompozR. For example, it creates a deployment selector in an ordinary project, mounts it, and receives the submitted strategy and regions in the same conversation. It then interprets those values and publishes a result or updates the interface. What “Apply” authorizes is part of that experience's contract.
+An agent can use this loop without a separate orchestration platform. For example, it creates a deployment selector in an ordinary project, mounts it, and receives the submitted strategy and regions in the same conversation. It then interprets those values and publishes a result or updates the interface. What “Apply” authorizes is part of that experience's contract.
 
 The v0 implementation target is:
 

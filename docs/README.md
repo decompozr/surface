@@ -2,8 +2,19 @@
 
 `docs/` is the project source specification. Direct user and repository instructions govern authorized work; current requirements and adopted decisions guide implementation. Dated evidence describes the tested revision and does not establish acceptance of later changes. See [source workflow](source-workflow.md) for updating a contract from evidence.
 
+## Learn the project
+
+1. [Vision and core ideas](intent/vision.md): the capability being explored and why it matters.
+2. [How Surface works](how-it-works.md): a page-to-agent walkthrough, design rationale, ownership and current limits.
+3. [Components](architecture/components.md) and [package boundaries](architecture/package-boundaries.md): map the walkthrough to implementation responsibilities.
+4. [Interaction requirements](requirements/agent-interaction.md) and [workspace service](architecture/workspace-service.md): the exact contracts behind the examples.
+5. [Evaluations](evaluations/README.md) and [history](history/2026-10-05-navigation-and-design.md): how claims are tested and what specific experiments actually established.
+
+The learning guide explains the design. Requirements and architecture documents remain authoritative for exact behavior; historical evidence is dated, and proposed capabilities are labeled separately.
+
 ## Start here
 
+- Developer rules: [development policy](development.md).
 - Product scope: [vision](intent/vision.md), [principles](intent/principles.md), [consumers](requirements/consumers.md).
 - Adopted page direction: [typed, templated, persisted pages](requirements/template-pages.md), including explicit view state and project extensions; implementation pending.
 - Installation and use: [user setup](../SETUP.md), [agent setup](../skills/surface/references/setup.md), [page authoring](../skills/surface/references/pages.md).
