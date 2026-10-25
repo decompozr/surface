@@ -1,8 +1,24 @@
 # Product vision
 
-Surface helps people and agents make ideas tangible, clarify intent through interaction, and learn from observations and experiments.
+Surface is a personal hobby experiment in externalizing the knowledge and tools created during an AI conversation. A document, visualization or small interactive tool can live alongside a project while keeping a feedback connection to the exact conversation that created it.
 
-Surface gives humans and agents a shared, extensible interactive environment for representing, manipulating, and simulating systems.
+The question is: **how can work leave the chat interface without losing the agent context that makes it useful?**
+
+## Core ideas
+
+- **Experiment through interaction.** Make ideas tangible, try them, and use observations to clarify what should happen next.
+- **Provider-independent architecture.** Separate the page runtime and interaction contracts from agent-provider adapters. Independence is an architectural goal, not a claim that every provider is supported today.
+- **Externalized knowledge and tools.** Give explanations, comparisons, diagrams and small tools an interface people can inspect and use outside a chat window.
+- **The same agent, with the same context.** Bind a page to an exact originating conversation. Explicit page feedback returns to that conversation; the agent's response returns to the page. A mounted page alone does not establish that connection.
+- **Git-versioned project ownership.** Keep page source, manifests and dependency lockfiles in the project for review, comparison, rollback and merge. Credentials, private runtime records and domain data are separate from source history.
+- **Multiple worktrees.** Give parallel worktrees distinct workspace identities, pages and conversation bindings through a shared local service. Merging source does not merge runtime data or transfer interactions.
+- **Private cross-device access.** Optionally use Tailscale Serve to reach the same workspace from another device on the tailnet. It is an access mechanism, not a replacement for conversation binding.
+
+## Current implementation and direction
+
+Today, projects supply trusted Svelte route pages and Surface mounts them. It does not import their source into a general document store. The existing runtime provides structured interactions, contextual selection/screenshots/comments and explicit agent delivery. Runtime behavior, engineering verification and human acceptance remain separate claims.
+
+Persistent editable template instances are the next adopted direction, described below; they are not an implemented general document editor.
 
 ## Persistent, editable pages
 

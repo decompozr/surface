@@ -4,6 +4,7 @@
 
 ## Start here
 
+- Developer rules: [development policy](development.md).
 - Product scope: [vision](intent/vision.md), [principles](intent/principles.md), [consumers](requirements/consumers.md).
 - Adopted page direction: [typed, templated, persisted pages](requirements/template-pages.md), including explicit view state and project extensions; implementation pending.
 - Installation and use: [user setup](../SETUP.md), [agent setup](../skills/surface/references/setup.md), [page authoring](../skills/surface/references/pages.md).
