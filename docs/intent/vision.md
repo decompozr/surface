@@ -18,7 +18,7 @@ Projects need ways to make their systems, data, and ideas understandable and act
 
 Surface provides the runtime foundation for that exchange. A project creates an interactive representation, mounts it, and makes it available to people or agents. Interaction returns structured input to the responsible project or agent, which interprets it and updates the experience. Web pages and components are the first delivery form; the product's scope is the shared interactive environment.
 
-Surface has value independently of DecompozR. DecompozR may produce experiences, consume their events, or coordinate capabilities, just as another project or agent can. Surface must operate without DecompozR-specific concepts or services.
+Surface is an independent personal experiment. Other projects and agent providers can produce experiences or consume their events; Surface must operate without a particular orchestration platform. Its interaction loop connects a page to the exact originating conversation, while project sources remain Git-versioned and each worktree retains its own identity.
 
 The long-term direction includes experiences composed from Web, Graph, CAD, Simulation, Data, or other capabilities. Native representations and structured agent interfaces are possible future delivery forms. These are extension directions, not implemented features or requirements for v0. Domain computation belongs to the relevant capability or project.
 
@@ -59,7 +59,7 @@ This separation guides implementation. It does not introduce a public plugin API
 
 ### Projects own content and domain meaning
 
-Projects retain their source files, definitions, dependency declarations, and authoritative domain data. A capability or project decides what a parameter means, which operations are valid, and how domain results are computed. Surface Core should not acquire CAD geometry rules, physics models, financial formulas, or DecompozR orchestration logic.
+Projects retain their source files, definitions, dependency declarations, and authoritative domain data. A capability or project decides what a parameter means, which operations are valid, and how domain results are computed. Surface Core should not acquire CAD geometry rules, physics models, financial formulas, or application-specific orchestration logic.
 
 An experience can use a browser page without making “page” the universal product abstraction. Existing surface IDs, manifests, and commands remain valid implementation contracts; this conceptual model does not rename or migrate them.
 
@@ -97,7 +97,7 @@ Project creates interactive source
   -> The project or agent updates the result or interface
 ```
 
-An agent can use this loop without DecompozR. For example, it creates a deployment selector in an ordinary project, mounts it, and receives the submitted strategy and regions in the same conversation. It then interprets those values and publishes a result or updates the interface. What “Apply” authorizes is part of that experience's contract.
+An agent can use this loop without a separate orchestration platform. For example, it creates a deployment selector in an ordinary project, mounts it, and receives the submitted strategy and regions in the same conversation. It then interprets those values and publishes a result or updates the interface. What “Apply” authorizes is part of that experience's contract.
 
 The v0 implementation target is:
 
