@@ -21,3 +21,7 @@ The README, installation guide, product vision and consumer requirement were upd
 ## README and agent-entry correction
 
 The user asked for a typical minimal open-source README, with detailed concepts in the canonical vision, and a substantially shorter AGENTS entry. The agent entry now links task-specific guidance; its detailed rules remain in the development policy without a behavior change. Reference README structures were read from uv, FastAPI and Astro. No badges, license claims, provider support claims or public download URLs were invented.
+
+## Learning-document correction
+
+The project is a capability exploration, not primarily a coding showcase. Documentation must teach the question being explored, the architecture and its rationale, the end-to-end page/agent loop, ownership of Git source versus private state, current limits and the evidence behind claims. Provide a learning path from the minimal README through vision and an explanatory design walkthrough into canonical contracts and source code. Preserve implemented versus proposed status and avoid implying universal provider support.

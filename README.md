@@ -1,6 +1,6 @@
 # Surface
 
-An experimental interactive workspace for you and your AI agent.
+An experiment in bringing AI-created knowledge and tools out of the chat.
 
 Bring documents, visualizations and small tools out of the chat, then send page feedback to the same agent conversation that has the context.
 
@@ -18,5 +18,6 @@ Surface currently hosts trusted, project-owned Svelte pages. It is a hobby exper
 ## Documentation
 
 - [Vision and core ideas](docs/intent/vision.md)
+- [How it works](docs/how-it-works.md)
 - [Documentation](docs/README.md)
 - [Development and verification](docs/source-workflow.md)
